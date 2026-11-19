@@ -213,9 +213,12 @@ class CephalometricDialog(QDialog):
             key: tuple(value) for key, value in saved.get("Puntos", {}).items()
             if isinstance(value, (list, tuple)) and len(value) == 2
         }
-        self.pixels_per_mm = saved.get("Píxeles por mm") or None
-        self.calibration_mm = saved.get("Distancia de calibración · mm") or None
-        self.calibration_points = {}
+        self.pixels_per_mm = float(saved.get("Píxeles por mm")) if saved.get("Píxeles por mm") else None
+        self.calibration_mm = float(saved.get("Distancia de calibración · mm")) if saved.get("Distancia de calibración · mm") else None
+        self.calibration_points = {
+            key: tuple(value) for key, value in saved.get("Puntos de calibración", {}).items()
+            if isinstance(value, (list, tuple)) and len(value) == 2
+        }
         self._calibration_capture = []
         self.setWindowTitle("Cefalometría de Steiner · análisis simplificado")
         self.resize(1420, 900)
