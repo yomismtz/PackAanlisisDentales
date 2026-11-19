@@ -127,7 +127,7 @@ class ImageEditor(QDialog):
         self.bg=QPushButton("Eliminar fondo"); self.bg.setEnabled(allow_background)
         self.scan=QPushButton("Marcar 4 esquinas"); self.rectify=QPushButton("Rectificar")
         self.save=QPushButton("Guardar copia"); self.save.setObjectName("Primary")
-        self.status=QLabel("El original se conserva. Los ajustes se guardan como una copia derivada.")
+        self.status=QLabel("El original se conserva. Para rectificar, marca en orden: esquina superior izquierda, superior derecha, inferior derecha e inferior izquierda.")
         self.brightness.valueChanged.connect(self.update_preview); self.contrast.valueChanged.connect(self.update_preview); self.sharp.valueChanged.connect(self.update_preview)
         self.scan.clicked.connect(self.canvas.choose_corners); self.rectify.clicked.connect(self.rectify_image)
         self.bg.clicked.connect(self.remove_bg); self.save.clicked.connect(self.save_copy)
