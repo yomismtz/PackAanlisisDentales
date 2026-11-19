@@ -54,7 +54,7 @@ class CameraCapture(QDialog):
         super().__init__(parent); self.setWindowTitle("Capturar imagen"); self.setMinimumSize(720,540)
         self.capture=None; self.last=None; self.output_path=None
         self.preview=QLabel("Conectando con la cámara…"); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview.setMinimumSize(640,430); self.preview.setStyleSheet("background:{PALETTE["text"]};color:{PALETTE["surface"]}")
+        self.preview.setMinimumSize(640,430); self.preview.setStyleSheet(f"background:{PALETTE['text']};color:{PALETTE['surface']}")
         self.device=QSpinBox(); self.device.setRange(0,5); self.device.setPrefix("Cámara ")
         self.device.valueChanged.connect(self.open_camera)
         self.status=QLabel("Permite el acceso a la cámara en Windows.")
@@ -300,7 +300,7 @@ class MainWindow(QMainWindow):
     def home(self):
         self.clear(); page=QWidget(); l=QHBoxLayout(page)
         panel=QFrame(); panel.setObjectName("Panel"); panel.setFixedWidth(280); pl=QVBoxLayout(panel)
-        brand=QLabel("Pack Análisis Dentales"); brand.setStyleSheet("font-size:19pt;font-weight:700;color:{PALETTE["primary"]}")
+        brand=QLabel("Pack Análisis Dentales"); brand.setStyleSheet(f"font-size:19pt;font-weight:700;color:{PALETTE['primary']}")
         new=QPushButton("＋ Nuevo registro"); new.setObjectName("Primary"); new.clicked.connect(self.new_patient)
         pl.addWidget(brand); pl.addWidget(QLabel("Expedientes clínicos y análisis ortodóncicos")); pl.addWidget(new); pl.addStretch()
         main=QVBoxLayout(); main.addWidget(QLabel("Expedientes de pacientes"))
