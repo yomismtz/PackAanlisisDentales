@@ -100,7 +100,10 @@ class Canvas(QGraphicsView):
         self.pix=self.scene_obj.addPixmap(pixmap_from_cv(im)); self.scene_obj.setSceneRect(self.pix.boundingRect())
         self.fitInView(self.scene_obj.sceneRect(),Qt.AspectRatioMode.KeepAspectRatio)
     def choose_corners(self):
-        self.corners=[]; self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.corners=[]
+        for item in list(self.scene_obj.items()):
+            if item is not self.pix: self.scene_obj.removeItem(item)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
     def mousePressEvent(self,event):
         if self.pix and self.dragMode()==QGraphicsView.DragMode.NoDrag and event.button()==Qt.MouseButton.LeftButton:
             p=self.mapToScene(event.position().toPoint())
