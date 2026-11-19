@@ -12,6 +12,7 @@ from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
 from .theme import PALETTE, stylesheet
+from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_stages, format_age
 
 STYLE = stylesheet()
 
@@ -109,6 +110,14 @@ class Canvas(QGraphicsView):
                 return
         super().mousePressEvent(event)
 
+    def wheelEvent(self,event):
+        if self.pix:
+            factor=1.15 if event.angleDelta().y()>0 else 1/1.15
+            self.scale(factor,factor)
+            event.accept()
+            return
+        super().wheelEvent(event)
+
 class ImageEditor(QDialog):
     def __init__(self,pid,path,allow_background,parent=None):
         super().__init__(parent); self.pid=pid; self.path=path; self.saved_path=None
@@ -180,6 +189,404 @@ class AnalysisDialog(QDialog):
         for r in range(self.table.rowCount()):
             label=self.table.item(r,0).text(); vals[label]=self.table.item(r,self.table.columnCount()-1).text().strip()
         return self.status.currentText(),vals,self.obs.toPlainText().strip(),self.conclusion.toPlainText().strip()
+
+
+class NollaAnalysisDialog(QDialog):
+    """Registro asistido de siete dientes e interpolación de edad de Nolla."""
+    def __init__(self, patient, image_path=None, existing=None, parent=None):
+        super().__init__(parent)
+        self.patient = patient or {}
+        self.existing = existing or {}
+        self.saved_values = self.existing.get("values", {})
+        self.setWindowTitle("Edad dental · Método de Nolla")
+        self.resize(1240, 820)
+        self.setMinimumSize(1000, 700)
+
+        self.status = QComboBox()
+        self.status.addItems(["Pendiente", "En proceso", "Completo"])
+        self.status.setCurrentText(self.existing.get("status", "Pendiente"))
+
+        self.sex = QComboBox()
+        self.sex.addItems(["Seleccionar", "Femenino", "Masculino"])
+        known_sex = self.saved_values.get("Sexo", self.patient.get("sex", ""))
+        if known_sex in ("Femenino", "Masculino"):
+            self.sex.setCurrentText(known_sex)
+
+        self.quadrant = QComboBox()
+        self.quadrant.addItems(list(QUADRANT_TEETH.keys()))
+        self.quadrant.setCurrentText(self.saved_values.get("Cuadrante", "Inferior derecho"))
+
+        self.age_years = QSpinBox()
+        self.age_years.setRange(0, 30)
+        self.age_years.setSuffix(" años")
+        self.age_years.setValue(int(self.saved_values.get("Edad cronológica · años", 0) or 0))
+        self.age_months = QSpinBox()
+        self.age_months.setRange(0, 11)
+        self.age_months.setSuffix(" meses")
+        self.age_months.setValue(int(self.saved_values.get("Edad cronológica · meses", 0) or 0))
+
+        self.canvas = Canvas()
+        self.canvas.setMinimumSize(520, 500)
+        self.image_status = QLabel("Radiografía panorámica: usa la rueda del ratón para ampliar y arrastra para desplazarte.")
+        self.image_status.setWordWrap(True)
+        if image_path:
+            try:
+                self.canvas.show_image(imaging.load_image(image_path))
+            except Exception as exc:
+                self.image_status.setText("No se pudo mostrar la panorámica: " + str(exc))
+        else:
+            self.image_status.setText("No se encontró una radiografía panorámica para mostrar.")
+
+        self.stage_combos = {}
+        self.tooth_group = QGroupBox("Estadios de los siete dientes permanentes")
+        self.tooth_layout = QVBoxLayout(self.tooth_group)
+        self.result_sum = QLabel("Suma: —")
+        self.result_age = QLabel("Edad dental estimada: —")
+        self.result_reference = QLabel("Completa los siete dientes y selecciona el sexo.")
+        self.result_compare = QLabel("")
+        for label in (self.result_sum, self.result_age):
+            label.setStyleSheet(f"font-size:13pt;font-weight:700;color:{PALETTE['primary']}")
+        self.result_reference.setWordWrap(True)
+        self.result_compare.setWordWrap(True)
+
+        self.observations = QTextEdit(self.existing.get("observations", ""))
+        self.observations.setMaximumHeight(75)
+        self.conclusion = QTextEdit(self.existing.get("conclusion", ""))
+        self.conclusion.setMaximumHeight(90)
+        self._quadrant_stages = self.saved_values.get("Estadios por cuadrante", {})
+        self._rebuild_tooth_rows()
+
+        self.quadrant.currentTextChanged.connect(self._rebuild_tooth_rows)
+        self.sex.currentTextChanged.connect(self.update_result)
+        self.age_years.valueChanged.connect(self.update_result)
+        self.age_months.valueChanged.connect(self.update_result)
+
+        tabs = QTabWidget()
+        work = QWidget()
+        work_layout = QHBoxLayout(work)
+        image_panel = QWidget()
+        image_layout = QVBoxLayout(image_panel)
+        image_layout.addWidget(QLabel("Radiografía panorámica"))
+        image_layout.addWidget(self.canvas, 1)
+        image_layout.addWidget(self.image_status)
+        image_panel.setMinimumWidth(520)
+        work_layout.addWidget(image_panel, 3)
+
+        form_panel = QWidget()
+        form_layout = QVBoxLayout(form_panel)
+        form_scroll = QScrollArea()
+        form_scroll.setWidgetResizable(True)
+        form_inner = QWidget()
+        form_inner_layout = QVBoxLayout(form_inner)
+        patient_form = QFormLayout()
+        patient_form.addRow("Estado", self.status)
+        patient_form.addRow("Sexo para tabla de referencia", self.sex)
+        patient_form.addRow("Cuadrante", self.quadrant)
+        age_row = QHBoxLayout()
+        age_row.addWidget(self.age_years)
+        age_row.addWidget(self.age_months)
+        age_row.addStretch()
+        age_wrap = QWidget()
+        age_wrap.setLayout(age_row)
+        patient_form.addRow("Edad cronológica en la fecha del estudio", age_wrap)
+        form_inner_layout.addLayout(patient_form)
+        form_inner_layout.addWidget(self.tooth_group)
+        form_inner_layout.addWidget(self.result_sum)
+        form_inner_layout.addWidget(self.result_age)
+        form_inner_layout.addWidget(self.result_reference)
+        form_inner_layout.addWidget(self.result_compare)
+        form_inner_layout.addWidget(QLabel("Observaciones"))
+        form_inner_layout.addWidget(self.observations)
+        form_inner_layout.addWidget(QLabel("Conclusión del estudiante"))
+        form_inner_layout.addWidget(self.conclusion)
+        form_scroll.setWidget(form_inner)
+        form_layout.addWidget(form_scroll)
+        work_layout.addWidget(form_panel, 2)
+        tabs.addTab(work, "Evaluación del cuadrante")
+
+        reference_page = QWidget()
+        reference_layout = QVBoxLayout(reference_page)
+        reference_layout.addWidget(QLabel(
+            "Tabla aportada para YSM Análisis. Se utiliza la misma tabla para cualquier cuadrante "
+            "maxilar o mandibular; cambia la columna según el sexo. Cada suma corresponde a siete "
+            "dientes permanentes, sin tercer molar."
+        ))
+        reference = QTableWidget(len(NOLLA_TABLE["Femenino"]), 3)
+        reference.setHorizontalHeaderLabels(["Edad dental", "Femenino · suma de 7 dientes", "Masculino · suma de 7 dientes"])
+        reference.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        reference.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        for row, age in enumerate(sorted(NOLLA_TABLE["Femenino"])):
+            for col, value in enumerate((age, NOLLA_TABLE["Femenino"][age], NOLLA_TABLE["Masculino"][age])):
+                item = QTableWidgetItem(str(value))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                reference.setItem(row, col, item)
+        reference.horizontalHeader().setStretchLastSection(True)
+        reference_layout.addWidget(reference)
+        tabs.addTab(reference_page, "Tabla de referencia")
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(
+            "Selecciona un cuadrante y asigna un estadio a cada uno de sus siete dientes permanentes. "
+            "Los terceros molares no se incluyen. La estimación se obtiene por interpolación; no se extrapola."
+        ))
+        layout.addWidget(tabs, 1)
+        layout.addWidget(buttons)
+        self.update_result()
+
+    def _rebuild_tooth_rows(self):
+        while self.tooth_layout.count():
+            item = self.tooth_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self.stage_combos = {}
+        quadrant = self.quadrant.currentText()
+        tooth_ids = QUADRANT_TEETH.get(quadrant, ())
+        stored = self._quadrant_stages.get(quadrant, {})
+        for tooth in tooth_ids:
+            row = QHBoxLayout()
+            label = QLabel("OD " + tooth)
+            label.setMinimumWidth(65)
+            combo = QComboBox()
+            combo.addItem("Sin seleccionar", None)
+            for stage, description in NOLLA_STAGES.items():
+                combo.addItem(f"{stage} · {description}", stage)
+            saved_stage = stored.get(tooth, self.saved_values.get("Estadio OD " + tooth, None))
+            if saved_stage is not None and str(saved_stage).strip() != "":
+                index = combo.findData(int(saved_stage))
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+            combo.currentIndexChanged.connect(self._stage_changed)
+            row.addWidget(label)
+            row.addWidget(combo, 1)
+            row_widget = QWidget()
+            row_widget.setLayout(row)
+            self.tooth_layout.addWidget(row_widget)
+            self.stage_combos[tooth] = combo
+        self.tooth_layout.addStretch()
+        self.update_result()
+
+    def _stage_changed(self):
+        quadrant = self.quadrant.currentText()
+        self._quadrant_stages[quadrant] = {
+            tooth: combo.currentData() for tooth, combo in self.stage_combos.items()
+        }
+        self.update_result()
+
+    def _current_stages(self):
+        return [combo.currentData() for combo in self.stage_combos.values()]
+
+    def update_result(self):
+        stages = self._current_stages()
+        missing = sum(value is None for value in stages)
+        score = None
+        estimate = None
+        sex = self.sex.currentText()
+        if missing == 0:
+            try:
+                score = sum_stages(stages)
+            except ValueError:
+                score = None
+        if score is not None:
+            self.result_sum.setText(f"Suma de estadios: {score}")
+            if sex in NOLLA_TABLE:
+                estimate = estimate_age(score, sex)
+                if estimate:
+                    self.result_age.setText(
+                        f"Edad dental estimada: {estimate.decimal_age:.2f} años "
+                        f"({format_age(estimate)})"
+                    )
+                    self.result_reference.setText(
+                        f"Interpolación entre {estimate.lower_age} y {estimate.upper_age} años: "
+                        f"{estimate.lower_score:g} y {estimate.upper_score:g} puntos."
+                    )
+                    self._estimate = estimate
+                else:
+                    self.result_age.setText("Edad dental estimada: fuera del rango de la tabla")
+                    self.result_reference.setText(
+                        "La suma está fuera de los valores de referencia (3–15 años). "
+                        "No se realiza extrapolación."
+                    )
+                    self._estimate = None
+            else:
+                self.result_age.setText("Edad dental estimada: —")
+                self.result_reference.setText("Selecciona femenino o masculino para consultar la tabla.")
+                self._estimate = None
+        else:
+            self.result_sum.setText("Suma de estadios: —")
+            self.result_age.setText("Edad dental estimada: —")
+            self.result_reference.setText(f"Faltan {missing} estadios por registrar.")
+            self._estimate = None
+
+        self.result_compare.setText("")
+        if self._estimate:
+            chrono_months = self.age_years.value() * 12 + self.age_months.value()
+            if chrono_months > 0:
+                dental_months = self._estimate.years * 12 + self._estimate.months
+                difference = dental_months - chrono_months
+                if difference > 0:
+                    comparison = f"La estimación dental es aproximadamente {difference} meses mayor que la edad cronológica."
+                elif difference < 0:
+                    comparison = f"La estimación dental es aproximadamente {abs(difference)} meses menor que la edad cronológica."
+                else:
+                    comparison = "La edad dental estimada coincide, en meses completos, con la edad cronológica."
+                self.result_compare.setText(comparison)
+
+    def values(self):
+        stages = self._current_stages()
+        score = sum_stages(stages) if all(value is not None for value in stages) else None
+        sex = self.sex.currentText()
+        estimate = estimate_age(score, sex) if score is not None and sex in NOLLA_TABLE else None
+        values = {
+            "Sexo": sex,
+            "Cuadrante": self.quadrant.currentText(),
+            "Edad cronológica · años": self.age_years.value(),
+            "Edad cronológica · meses": self.age_months.value(),
+            "Suma de estadios": score if score is not None else "",
+            "Edad dental estimada · años": round(estimate.decimal_age, 2) if estimate else "",
+            "Edad dental estimada · años y meses": format_age(estimate) if estimate else "",
+            "Intervalo inferior": estimate.lower_age if estimate else "",
+            "Intervalo superior": estimate.upper_age if estimate else "",
+            "Estadios por cuadrante": self._quadrant_stages,
+        }
+        for tooth, combo in self.stage_combos.items():
+            values["Estadio OD " + tooth] = combo.currentData() if combo.currentData() is not None else ""
+        if estimate:
+            chrono_months = self.age_years.value() * 12 + self.age_months.value()
+            values["Diferencia respecto a edad cronológica · meses"] = (
+                estimate.years * 12 + estimate.months - chrono_months if chrono_months else ""
+            )
+        else:
+            values["Diferencia respecto a edad cronológica · meses"] = ""
+        automatic = self.result_age.text()
+        if self.result_compare.text():
+            automatic += "\n" + self.result_compare.text()
+        conclusion = automatic
+        extra = self.conclusion.toPlainText().strip()
+        if extra:
+            conclusion += "\n\nObservación del estudiante: " + extra
+        return self.status.currentText(), values, self.observations.toPlainText().strip(), conclusion
+
+
+class CervicalMaturationDialog(QDialog):
+    """Registro guiado de maduración vertebral cervical CS1-CS6."""
+    STAGES = {
+        "CS1": ("Prepuberal", "Los bordes inferiores de C2, C3 y C4 son planos; C3 y C4 presentan forma trapezoidal."),
+        "CS2": ("Prepuberal", "Se observa concavidad en el borde inferior de C2; C3 y C4 conservan forma trapezoidal."),
+        "CS3": ("Circumpuberal", "Se observan concavidades en C2 y C3; C3 y C4 comienzan a adoptar forma rectangular horizontal."),
+        "CS4": ("Circumpuberal", "Se identifican concavidades en C2, C3 y C4; C3 y C4 son rectangulares horizontales."),
+        "CS5": ("Pospuberal", "Las concavidades están establecidas; C3 o C4 se aproxima a una forma cuadrada, con maduración avanzada."),
+        "CS6": ("Pospuberal", "C3 o C4 presenta una forma rectangular vertical, compatible con maduración vertebral avanzada."),
+    }
+
+    def __init__(self, image_path=None, existing=None, parent=None):
+        super().__init__(parent)
+        self.existing = existing or {}
+        saved = self.existing.get("values", {})
+        self.setWindowTitle("Maduración vertebral cervical · CS1–CS6")
+        self.resize(1120, 760)
+        self.setMinimumSize(960, 650)
+
+        self.status = QComboBox()
+        self.status.addItems(["Pendiente", "En proceso", "Completo"])
+        self.status.setCurrentText(self.existing.get("status", "Pendiente"))
+        self.stage = QComboBox()
+        self.stage.addItem("No evaluable", "")
+        for stage in self.STAGES:
+            self.stage.addItem(stage, stage)
+        old_stage = saved.get("Estadio vertebral", "")
+        index = self.stage.findData(old_stage)
+        if index >= 0:
+            self.stage.setCurrentIndex(index)
+
+        self.canvas = Canvas()
+        self.canvas.setMinimumSize(500, 480)
+        if image_path:
+            try:
+                self.canvas.show_image(imaging.load_image(image_path))
+            except Exception:
+                pass
+        self.period = QLabel("")
+        self.morphology = QLabel("")
+        self.morphology.setWordWrap(True)
+        self.interpretation = QTextEdit(saved.get("Interpretación", ""))
+        self.interpretation.setMaximumHeight(100)
+        self.treatment = QTextEdit(saved.get("Tratamiento / observación", ""))
+        self.treatment.setMaximumHeight(90)
+        self.observations = QTextEdit(self.existing.get("observations", ""))
+        self.observations.setMaximumHeight(70)
+        self.stage.currentIndexChanged.connect(self.update_stage)
+        self.update_stage()
+
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.addWidget(QLabel("Radiografía lateral de cráneo · región C2–C4"))
+        left_layout.addWidget(self.canvas, 1)
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        form = QFormLayout()
+        form.addRow("Estado", self.status)
+        form.addRow("Estadio vertebral", self.stage)
+        right_layout.addLayout(form)
+        right_layout.addWidget(self.period)
+        right_layout.addWidget(self.morphology)
+        right_layout.addWidget(QLabel("Interpretación / diagnóstico del estudiante"))
+        right_layout.addWidget(self.interpretation)
+        right_layout.addWidget(QLabel("Tratamiento o conducta a considerar"))
+        right_layout.addWidget(self.treatment)
+        right_layout.addWidget(QLabel("Observaciones"))
+        right_layout.addWidget(self.observations)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(left)
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(
+            "Valora la morfología de C2, C3 y C4 en la radiografía lateral. "
+            "La clasificación debe confirmarse visualmente por el estudiante o docente."
+        ))
+        layout.addWidget(splitter, 1)
+        layout.addWidget(buttons)
+
+    def update_stage(self):
+        stage = self.stage.currentData()
+        if stage in self.STAGES:
+            period, morphology = self.STAGES[stage]
+            self.period.setText("Periodo: " + period)
+            self.morphology.setText(morphology)
+            if not self.interpretation.toPlainText().strip():
+                self.interpretation.setPlainText(
+                    "Estadio " + stage + ". " + period + ". " + morphology
+                )
+        else:
+            self.period.setText("Periodo: sin clasificar")
+            self.morphology.setText("No se ha seleccionado un estadio.")
+        self.period.setStyleSheet(f"font-weight:700;color:{PALETTE['primary']}")
+
+    def values(self):
+        stage = self.stage.currentData()
+        period, morphology = self.STAGES.get(stage, ("No evaluable", "No se asignó estadio."))
+        values = {
+            "Estadio vertebral": stage or "No evaluable",
+            "Periodo de maduración": period,
+            "Descripción morfológica": morphology,
+            "Interpretación": self.interpretation.toPlainText().strip(),
+            "Tratamiento / observación": self.treatment.toPlainText().strip(),
+        }
+        return (
+            self.status.currentText(),
+            values,
+            self.observations.toPlainText().strip(),
+            self.interpretation.toPlainText().strip(),
+        )
+
 
 class MediaRow(QFrame):
     def __init__(self,workspace,slot):
@@ -276,7 +683,16 @@ class Workspace(QWidget):
         if item:self.open_analysis_item(item)
     def open_analysis_item(self,item):
         key=item.data(Qt.ItemDataRole.UserRole); existing=self.db.analysis_for_patient(self.pid).get(key,{})
-        dlg=AnalysisDialog(key,existing,self)
+        if key=="dental_age":
+            media=self.db.get_media_for_slot(self.pid,"panoramic")
+            image_path=media["current_path"] if media else None
+            dlg=NollaAnalysisDialog(self.patient,image_path,existing,self)
+        elif key=="cervical_maturation":
+            media=self.db.get_media_for_slot(self.pid,"ceph_lateral")
+            image_path=media["current_path"] if media else None
+            dlg=CervicalMaturationDialog(image_path,existing,self)
+        else:
+            dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
             status,vals,obs,con=dlg.values(); self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
     def export_pdf(self):
