@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 def now():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 class Database:
     def __init__(self, path):
