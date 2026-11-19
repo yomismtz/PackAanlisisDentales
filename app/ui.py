@@ -1,9 +1,9 @@
 """Interfaz de escritorio para expedientes, captura y análisis odontológicos."""
-import mimetypes, tempfile
+import mimetypes, tempfile, re
 from pathlib import Path
 import cv2
-from PySide6.QtCore import Qt, QTimer, QPointF, Signal
-from PySide6.QtGui import QImage, QPixmap, QPen, QColor
+from PySide6.QtCore import Qt, QTimer, QPointF, Signal, QUrl
+from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QDesktopServices
 from PySide6.QtWidgets import *
 
 from .catalog import GROUPS, SLOTS, ANALYSES, analyses_for_slot, CARPAL_STAGES
@@ -14,6 +14,7 @@ from . import imaging
 from .theme import PALETTE, stylesheet
 from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_stages, format_age
 from .cephalometry import LANDMARKS, TRACE_PAIRS, REFERENCES, calculate_cephalometry, distance as ceph_distance
+from .reports import REPORT_MODULES, available_modules, completed_keys, build_report_snapshot
 
 STYLE = stylesheet()
 
@@ -936,6 +937,178 @@ class CervicalMaturationDialog(QDialog):
         )
 
 
+
+class ReportsPage(QWidget):
+    """Academic report builder: select completed modules and export one PDF."""
+    EMAIL_PATTERN = re.compile(r"^[A-Z0-9.!#$%&'*+/=?^_{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$", re.IGNORECASE)
+
+    def __init__(self, workspace):
+        super().__init__()
+        self.workspace = workspace
+        self.boxes = {}
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(
+            "Prepara un solo informe académico con los análisis que ya terminaste. "
+            "Los apartados pendientes no se incluirán."
+        ))
+
+        form = QFormLayout()
+        self.student = QLineEdit()
+        self.student.setPlaceholderText("Nombre completo del estudiante")
+        self.teacher_email = QLineEdit()
+        self.teacher_email.setPlaceholderText("docente@institucion.edu")
+        form.addRow("Estudiante *", self.student)
+        form.addRow("Correo del docente *", self.teacher_email)
+        layout.addLayout(form)
+
+        self.selection_group = QGroupBox("Apartados que se incluirán")
+        self.selection_layout = QVBoxLayout(self.selection_group)
+        layout.addWidget(self.selection_group)
+
+        self.notice = QLabel(
+            "Solo se pueden seleccionar módulos que tengan al menos un análisis guardado "
+            "con estado «Completo». Si un módulo contiene otros análisis pendientes, esos "
+            "registros se omitirán del PDF."
+        )
+        self.notice.setWordWrap(True)
+        self.notice.setStyleSheet(f"color:{PALETTE['muted']}")
+        layout.addWidget(self.notice)
+
+        self.generate_button = QPushButton("Generar PDF y abrir vista previa")
+        self.generate_button.setObjectName("Primary")
+        self.generate_button.clicked.connect(self.generate_report)
+        layout.addWidget(self.generate_button)
+
+        layout.addWidget(QLabel("Informes generados anteriormente"))
+        self.history = QListWidget()
+        self.history.setMaximumHeight(150)
+        self.history.itemDoubleClicked.connect(self.open_history_item)
+        layout.addWidget(self.history)
+        self.refresh()
+
+    def _selected_modules(self):
+        return [key for key, checkbox in self.boxes.items()
+                if checkbox.isEnabled() and checkbox.isChecked()]
+
+    def refresh(self):
+        previous = {key: box.isChecked() for key, box in self.boxes.items()}
+        first_load = not self.boxes
+        while self.selection_layout.count():
+            item = self.selection_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self.boxes = {}
+        analyses = self.workspace.db.analysis_for_patient(self.workspace.pid)
+
+        for module_id, definition in REPORT_MODULES.items():
+            finished = completed_keys(analyses, module_id)
+            total = len(definition["analysis_keys"])
+            checkbox = QCheckBox(
+                f"{definition['title']} · {len(finished)}/{total} análisis completos"
+            )
+            checkbox.setEnabled(bool(finished))
+            if finished:
+                checkbox.setChecked(
+                    True if first_load else previous.get(module_id, True)
+                )
+                detail = QLabel(
+                    "Se incluirá: " + ", ".join(ANALYSES.get(key, key) for key in finished)
+                )
+            else:
+                checkbox.setChecked(False)
+                detail = QLabel("Aún no hay análisis completos en este apartado.")
+            detail.setWordWrap(True)
+            detail.setStyleSheet(f"color:{PALETTE['muted']};font-size:9pt")
+            checkbox.toggled.connect(lambda _checked: self._update_generate_state())
+            self.selection_layout.addWidget(checkbox)
+            self.selection_layout.addWidget(detail)
+            self.boxes[module_id] = checkbox
+
+        self._update_generate_state()
+        self._refresh_history()
+
+    def _update_generate_state(self):
+        self.generate_button.setEnabled(bool(self._selected_modules()))
+
+    def _refresh_history(self):
+        self.history.clear()
+        for report in self.workspace.db.reports_for_patient(self.workspace.pid):
+            created = report.get("created_at", "")[:16].replace("T", " ")
+            title = (
+                f"{created} · {Path(report.get('pdf_path', '')).name} · "
+                f"{report.get('status', 'PDF generado')}"
+            )
+            item = QListWidgetItem(title)
+            item.setData(Qt.ItemDataRole.UserRole, report.get("pdf_path", ""))
+            item.setToolTip(report.get("teacher_email", ""))
+            self.history.addItem(item)
+
+    def open_history_item(self, item):
+        file_path = item.data(Qt.ItemDataRole.UserRole)
+        if file_path and Path(file_path).is_file():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(file_path).resolve())))
+        else:
+            QMessageBox.warning(self, "Archivo no disponible",
+                                "El PDF ya no se encuentra en la ubicación registrada.")
+
+    def generate_report(self):
+        student = self.student.text().strip()
+        teacher = self.teacher_email.text().strip()
+        if not student:
+            QMessageBox.warning(self, "Falta el estudiante",
+                                "Escribe el nombre del estudiante antes de generar el informe.")
+            self.student.setFocus()
+            return
+        if not self.EMAIL_PATTERN.fullmatch(teacher):
+            QMessageBox.warning(self, "Correo no válido",
+                                "Escribe un correo válido del docente.")
+            self.teacher_email.setFocus()
+            return
+
+        selected = self._selected_modules()
+        analyses = self.workspace.db.analysis_for_patient(self.workspace.pid)
+        try:
+            snapshot = build_report_snapshot(analyses, selected)
+        except (ValueError, KeyError) as exc:
+            QMessageBox.warning(self, "Selección de informe", str(exc))
+            return
+
+        suggested = f"YSM_Informe_{self.workspace.patient['record_number']}.pdf"
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Guardar informe académico", suggested, "PDF (*.pdf)"
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".pdf"):
+            path += ".pdf"
+
+        try:
+            from .export_report import export_academic_report
+            export_academic_report(
+                path=path,
+                patient=self.workspace.patient,
+                student_name=student,
+                teacher_email=teacher,
+                selected_modules=selected,
+                analyses_snapshot=snapshot,
+                media=self.workspace.db.media_for_patient(self.workspace.pid),
+            )
+            self.workspace.db.save_report(
+                self.workspace.pid, student, teacher, selected, snapshot, path
+            )
+            self._refresh_history()
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(path).resolve())))
+            QMessageBox.information(
+                self, "Informe generado",
+                "El PDF se guardó y se abrió para revisión. "
+                "El correo del docente quedó registrado como destinatario, pero el documento "
+                "todavía no se envió. El envío automático se conectará en la etapa en línea."
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "No se pudo generar el informe", str(exc))
+
+
 class MediaRow(QFrame):
     def __init__(self,workspace,slot):
         super().__init__(); self.ws=workspace; self.slot=slot
@@ -985,6 +1158,8 @@ class Workspace(QWidget):
         page=QWidget(); pl=QVBoxLayout(page); pl.addWidget(QLabel("Los análisis disponibles se activan al cargar el estudio correspondiente.")); pl.addWidget(self.analyses)
         openbtn=QPushButton("Abrir análisis seleccionado"); openbtn.clicked.connect(self.open_selected); pl.addWidget(openbtn)
         self.tabs.addTab(page,"Análisis")
+        self.reports_page=ReportsPage(self)
+        self.tabs.addTab(self.reports_page,"Informes")
         l=QVBoxLayout(self); l.addLayout(head); l.addWidget(self.tabs,1); self.refresh()
     def build_overview(self):
         w=QWidget(); l=QVBoxLayout(w); self.summary=QLabel(); self.summary.setWordWrap(True); l.addWidget(self.summary)
@@ -1017,6 +1192,8 @@ class Workspace(QWidget):
         self.analyses.clear(); saved=self.db.analysis_for_patient(self.pid)
         for key,title in available.items():
             entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}"); entry.setData(Qt.ItemDataRole.UserRole,key); self.analyses.addItem(entry)
+        if hasattr(self, "reports_page"):
+            self.reports_page.refresh()
     def open_slot(self,slot):
         options=analyses_for_slot(slot)
         if not options:return
@@ -1048,14 +1225,7 @@ class Workspace(QWidget):
         if dlg.exec()==QDialog.DialogCode.Accepted:
             status,vals,obs,con=dlg.values(); self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
     def export_pdf(self):
-        path,_=QFileDialog.getSaveFileName(self,"Guardar informe",f"Informe_{self.patient['record_number']}.pdf","PDF (*.pdf)")
-        if not path:return
-        if not path.lower().endswith(".pdf"):path+=".pdf"
-        try:
-            from .export_report import export_patient_pdf
-            export_patient_pdf(path,self.patient,self.db.media_for_patient(self.pid),self.db.analysis_for_patient(self.pid))
-            QMessageBox.information(self,"Informe generado","Se guardó el informe PDF.")
-        except Exception as e: QMessageBox.critical(self,"Error al generar informe",str(e))
+        self.tabs.setCurrentWidget(self.reports_page)
 
 class MainWindow(QMainWindow):
     def __init__(self):
