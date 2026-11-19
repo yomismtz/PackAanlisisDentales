@@ -32,6 +32,9 @@ TRACE_PAIRS = (
     ("Go", "Gn"),
     ("A", "B"),
     ("U1_apex", "U1_tip"),
+    ("Pog", "L"),
+    ("Co", "E"),
+    ("Cal A", "Cal B"),
 )
 
 @dataclass(frozen=True)
