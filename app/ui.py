@@ -11,16 +11,9 @@ from .analysis_forms import fields_for
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
+from .theme import PALETTE, stylesheet
 
-STYLE = """
-QWidget{font-family:'Segoe UI';font-size:10pt;background:#f4f7fb;color:#213345}
-QFrame#Panel,QGroupBox{background:white;border:1px solid #dce4ec;border-radius:10px}
-QPushButton{background:#e7eef5;border:1px solid #cdd9e4;border-radius:7px;padding:7px 10px}
-QPushButton#Primary{background:#1d668e;color:white;border:0;font-weight:600}
-QLineEdit,QTextEdit,QComboBox{background:white;border:1px solid #cbd6e0;border-radius:6px;padding:6px}
-QListWidget,QTableWidget{background:white;border:1px solid #dce4ec;border-radius:8px}
-QHeaderView::section{background:#edf2f7;padding:6px;border:0;font-weight:600}
-"""
+STYLE = stylesheet()
 
 def pixmap_from_cv(im):
     if im.ndim == 2:
@@ -61,7 +54,7 @@ class CameraCapture(QDialog):
         super().__init__(parent); self.setWindowTitle("Capturar imagen"); self.setMinimumSize(720,540)
         self.capture=None; self.last=None; self.output_path=None
         self.preview=QLabel("Conectando con la cámara…"); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview.setMinimumSize(640,430); self.preview.setStyleSheet("background:#172532;color:white")
+        self.preview.setMinimumSize(640,430); self.preview.setStyleSheet("background:{PALETTE["text"]};color:{PALETTE["surface"]}")
         self.device=QSpinBox(); self.device.setRange(0,5); self.device.setPrefix("Cámara ")
         self.device.valueChanged.connect(self.open_camera)
         self.status=QLabel("Permite el acceso a la cámara en Windows.")
@@ -93,7 +86,7 @@ class CameraCapture(QDialog):
 class Canvas(QGraphicsView):
     def __init__(self,parent=None):
         super().__init__(parent); self.scene_obj=QGraphicsScene(self); self.setScene(self.scene_obj)
-        self.setBackgroundBrush(QColor("#111a24")); self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setBackgroundBrush(QColor(PALETTE["text"])); self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.pix=None; self.corners=[]
     def show_image(self,im):
         self.scene_obj.clear(); self.corners=[]
@@ -109,8 +102,8 @@ class Canvas(QGraphicsView):
             p=self.mapToScene(event.position().toPoint())
             if self.scene_obj.sceneRect().contains(p) and len(self.corners)<4:
                 self.corners.append((p.x(),p.y()))
-                dot=self.scene_obj.addEllipse(p.x()-7,p.y()-7,14,14,QPen(QColor("#ffae42"),3))
-                dot.setBrush(QColor("#ffae42"))
+                dot=self.scene_obj.addEllipse(p.x()-7,p.y()-7,14,14,QPen(QColor(PALETTE["accent"]),3))
+                dot.setBrush(QColor(PALETTE["accent"]))
                 self.scene_obj.addText(str(len(self.corners))).setPos(p.x()+8,p.y()+8)
                 if len(self.corners)==4: self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
                 return
@@ -307,7 +300,7 @@ class MainWindow(QMainWindow):
     def home(self):
         self.clear(); page=QWidget(); l=QHBoxLayout(page)
         panel=QFrame(); panel.setObjectName("Panel"); panel.setFixedWidth(280); pl=QVBoxLayout(panel)
-        brand=QLabel("Pack Análisis Dentales"); brand.setStyleSheet("font-size:19pt;font-weight:700;color:#1d668e")
+        brand=QLabel("Pack Análisis Dentales"); brand.setStyleSheet("font-size:19pt;font-weight:700;color:{PALETTE["primary"]}")
         new=QPushButton("＋ Nuevo registro"); new.setObjectName("Primary"); new.clicked.connect(self.new_patient)
         pl.addWidget(brand); pl.addWidget(QLabel("Expedientes clínicos y análisis ortodóncicos")); pl.addWidget(new); pl.addStretch()
         main=QVBoxLayout(); main.addWidget(QLabel("Expedientes de pacientes"))
