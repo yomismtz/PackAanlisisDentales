@@ -46,3 +46,61 @@ def test_snapshot_rejects_empty_selection_or_incomplete_only_modules():
 def test_snapshot_rejects_unknown_module():
     with pytest.raises(ValueError):
         build_report_snapshot({"steiner": {"status": "Completo"}}, ["invalid"])
+
+from pathlib import Path
+
+from app.export_report import export_academic_report
+
+
+def test_academic_report_creates_pdf_for_selected_completed_modules(tmp_path):
+    output = tmp_path / "YSM_informe.pdf"
+    patient = {
+        "full_name": "Paciente Prueba",
+        "record_number": "PAD-TEST",
+        "birth_date": "2012-01-01",
+        "sex": "Femenino",
+    }
+    snapshot = {
+        "ceph": {
+            "steiner": {
+                "status": "Completo",
+                "values": {
+                    "Resultados": {
+                        "SNA": {
+                            "valor": 82.0,
+                            "norma": "82° ± 2°",
+                            "clasificación": "Dentro de norma",
+                            "interpretación": "Posición maxilar dentro del intervalo.",
+                        }
+                    }
+                },
+                "observations": "Registro de prueba",
+                "conclusion": "Conclusión de prueba",
+            }
+        }
+    }
+    created = export_academic_report(
+        output,
+        patient,
+        "Estudiante Prueba",
+        "docente@institucion.edu",
+        ["ceph"],
+        snapshot,
+        [],
+    )
+    assert created == output
+    assert output.is_file()
+    assert output.read_bytes().startswith(b"%PDF")
+    assert output.stat().st_size > 1000
+
+
+def test_academic_report_rejects_empty_module_selection(tmp_path):
+    try:
+        export_academic_report(
+            tmp_path / "empty.pdf", {}, "Estudiante", "docente@institucion.edu",
+            [], {}, [],
+        )
+    except ValueError as exc:
+        assert "Selecciona" in str(exc)
+    else:
+        raise AssertionError("An empty report selection must be rejected.")
