@@ -22,8 +22,8 @@ GROUPS = [
 SLOTS = {s.key:s for _,group in GROUPS for s in group}
 ANALYSES = {
  "steiner":"Cefalometría de Steiner","cranio_cervical":"Posición craneofacial y postura cráneo-cervical",
- "cervical_maturation":"Maduración cervical","panoramic_systematic":"Análisis sistemático panorámico",
- "levandoski":"Análisis de Levandoski","dental_age":"Edad dental (método por especificar)",
+ "cervical_maturation":"Maduración vertebral cervical · CS1–CS6","panoramic_systematic":"Análisis sistemático panorámico",
+ "levandoski":"Análisis de Levandoski","dental_age":"Edad dental · Método de Nolla",
  "maturation_integration":"Integración de maduración","carpal":"Maduración esquelética · radiografía carpal",
  "intermaxillary":"Relaciones intermaxilares","moyers":"Moyers I · 75 %",
  "nance_carey":"Discrepancia óseo-dentaria · Nance y Carey","tanaka_johnston":"Tanaka-Johnston",
