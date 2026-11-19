@@ -561,10 +561,6 @@ class CervicalMaturationDialog(QDialog):
             period, morphology = self.STAGES[stage]
             self.period.setText("Periodo: " + period)
             self.morphology.setText(morphology)
-            if not self.interpretation.toPlainText().strip():
-                self.interpretation.setPlainText(
-                    "Estadio " + stage + ". " + period + ". " + morphology
-                )
         else:
             self.period.setText("Periodo: sin clasificar")
             self.morphology.setText("No se ha seleccionado un estadio.")
