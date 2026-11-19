@@ -11,3 +11,22 @@ def test_patient_media_and_analysis_roundtrip(tmp_path):
     assert saved["values"]["SNA"]=="82"
     assert saved["conclusion"]=="Revisión"
     assert db.counts_for_patient(p["id"])["analyses"]==1
+
+
+def test_report_snapshot_and_delivery_metadata_roundtrip(tmp_path):
+    db=Database(tmp_path/"test.sqlite3")
+    patient=db.create_patient("Estudiante Paciente")
+    saved=db.save_report(
+        patient["id"],
+        "Estudiante de prueba",
+        "docente@universidad.edu",
+        ["ceph","pan"],
+        {"ceph":{"steiner":{"status":"Completo","values":{"SNA":82}}}},
+        tmp_path/"informe.pdf",
+    )
+    assert saved["student_name"]=="Estudiante de prueba"
+    assert saved["teacher_email"]=="docente@universidad.edu"
+    assert saved["selected_modules"]==["ceph","pan"]
+    assert saved["analyses"]["ceph"]["steiner"]["values"]["SNA"]==82
+    assert saved["status"]=="PDF generado · pendiente de envío"
+    assert db.reports_for_patient(patient["id"])[0]["id"]==saved["id"]
