@@ -10,3 +10,7 @@ def test_analysis_routing():
     assert "levandoski" in [x[0] for x in analyses_for_slot("panoramic")]
     assert "panoramic_systematic" in [x[0] for x in analyses_for_slot("panoramic")]
     assert "carpal" in [x[0] for x in analyses_for_slot("carpal")]
+
+def test_age_analyses_use_the_expected_radiographs():
+    assert "dental_age" in [x[0] for x in analyses_for_slot("panoramic")]
+    assert "cervical_maturation" in [x[0] for x in analyses_for_slot("ceph_lateral")]
