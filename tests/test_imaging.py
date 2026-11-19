@@ -13,3 +13,11 @@ def test_rectify_four_corners():
     result=rectify(image,[(10,10),(180,15),(175,140),(15,145)])
     assert result.shape[0]>100
     assert result.shape[1]>150
+
+def test_adjust_preserves_transparency_channel():
+    source=np.zeros((40,50,4),dtype=np.uint8)
+    source[:,:,:3]=100
+    source[:,:,3]=np.where(np.indices((40,50))[1] < 25, 0, 255)
+    adjusted=adjust(source,brightness=20,contrast=110,sharpness=120)
+    assert adjusted.shape[2]==4
+    assert np.array_equal(adjusted[:,:,3],source[:,:,3])
