@@ -11,7 +11,7 @@ Aplicación de escritorio para Windows, en español, para expediente odontológi
 
 ## Estudios organizados
 - Radiografía lateral de cráneo y panorámica.
-- Fotografías extraorales frontal y perfil.
+- Fotografías extraorales frontal en reposo, frontal sonriendo y perfil.
 - Fotografías intraorales: lateral derecha, lateral izquierda, frontal en oclusión, oclusal superior, oclusal inferior y vista adicional.
 - Modelos superiores e inferiores: laterales, frontal y oclusal.
 - Modelos en oclusión: lateral derecha, lateral izquierda y frontal.
