@@ -9,7 +9,7 @@ class Slot:
 
 GROUPS = [
  ("Radiografías", [Slot("ceph_lateral","Lateral de cráneo","Radiografías"),Slot("panoramic","Panorámica","Radiografías")]),
- ("Fotografías extraorales", [Slot("extra_frontal","Frontal","Fotografías extraorales"),Slot("extra_profile","Perfil lateral","Fotografías extraorales")]),
+ ("Fotografías extraorales", [Slot("extra_frontal","Frontal en reposo","Fotografías extraorales"),Slot("extra_smiling","Frontal sonriendo","Fotografías extraorales"),Slot("extra_profile","Perfil lateral","Fotografías extraorales")]),
  ("Fotografías intraorales", [
   Slot("intra_right","Lateral derecha","Fotografías intraorales"),Slot("intra_left","Lateral izquierda","Fotografías intraorales"),
   Slot("intra_frontal","Frontal en oclusión","Fotografías intraorales"),Slot("intra_upper","Oclusal superior","Fotografías intraorales"),
@@ -35,7 +35,8 @@ BY_SLOT = {
  "ceph_lateral":["steiner","cranio_cervical","cervical_maturation","maturation_integration"],
  "panoramic":["panoramic_systematic","levandoski","dental_age","maturation_integration"],
  "carpal":["carpal","maturation_integration"],
- "extra_frontal":["facial_frontal","facial_midlines","smile","facial_symmetry"],
+ "extra_frontal":["facial_frontal","facial_midlines","facial_symmetry"],
+ "extra_smiling":["smile"],
  "extra_profile":["facial_profile"]
 }
 for key in ("intra_right","intra_left","intra_frontal","intra_upper","intra_lower","intra_extra",
