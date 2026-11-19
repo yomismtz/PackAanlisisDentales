@@ -172,9 +172,9 @@ def calculate_cephalometry(points, pixels_per_mm=None):
             _point(points, "A"), _point(points, "B"),
             _point(points, "Go"), _point(points, "Gn"), acute=True
         ),
-        "U1SN": lambda: angle_between_lines(
+        "U1SN": lambda: 180.0 - angle_between_lines(
             _point(points, "S"), _point(points, "N"),
-            _point(points, "U1_apex"), _point(points, "U1_tip"), acute=False
+            _point(points, "U1_apex"), _point(points, "U1_tip"), acute=True
         ),
     }
     for key, calculation in calculations.items():
