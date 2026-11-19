@@ -48,3 +48,7 @@ Base funcional inicial: expedientes locales, catálogo de estudios, captura por 
 ## Seguridad
 
 La primera versión guarda datos en el perfil local de Windows, pero todavía no cifra a nivel de aplicación la base SQLite ni los archivos clínicos y no incorpora autenticación propia. Consulta [SECURITY.md](SECURITY.md) antes de usarla con información identificable de pacientes. No debe considerarse una solución clínica de producción hasta implementar y validar esos controles.
+
+## Sistema de color
+
+Toda la aplicación utiliza una sola paleta institucional de exactamente ocho colores, centralizada en `app/theme.py`: primario, secundario, acento, fondo, superficie, superficie alternativa, texto y texto secundario. Botones, paneles, formularios, tablas, pestañas y herramientas visuales reutilizan esos ocho valores. No deben añadirse colores hexadecimales aislados en componentes.
