@@ -114,24 +114,64 @@ def _analysis_display_rows(key, record):
     return rows, False
 
 
-def _image_bytes(path):
-    """Load a stored image for the PDF, including DICOM where possible."""
+def _image_bytes(path, cephalometric_points=None):
+    """Load a stored image for the PDF and optionally overlay saved cephalometric tracing."""
     from io import BytesIO
-    from PIL import Image as PILImage
+    from PIL import Image as PILImage, ImageDraw, ImageFont
 
     buffer = BytesIO()
     try:
         with PILImage.open(path) as source:
-            source.convert("RGB").save(buffer, format="PNG")
+            image = source.convert("RGB")
     except Exception:
         from .imaging import load_image
         import cv2
-        image = load_image(path)
-        if image.ndim == 2:
-            rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        raw = load_image(path)
+        if raw.ndim == 2:
+            rgb = cv2.cvtColor(raw, cv2.COLOR_GRAY2RGB)
         else:
-            rgb = cv2.cvtColor(image[:, :, :3], cv2.COLOR_BGR2RGB)
-        PILImage.fromarray(rgb).save(buffer, format="PNG")
+            rgb = cv2.cvtColor(raw[:, :, :3], cv2.COLOR_BGR2RGB)
+        image = PILImage.fromarray(rgb)
+
+    if cephalometric_points:
+        from .cephalometry import project_to_line
+        points = {
+            key: (float(value[0]), float(value[1]))
+            for key, value in cephalometric_points.items()
+            if isinstance(value, (list, tuple)) and len(value) == 2
+        }
+        calculated = {}
+        try:
+            if all(key in points for key in ("S", "N", "Pog")):
+                calculated["L"] = project_to_line(points["Pog"], points["S"], points["N"])
+            if all(key in points for key in ("S", "N", "Co")):
+                calculated["E"] = project_to_line(points["Co"], points["S"], points["N"])
+        except ValueError:
+            calculated = {}
+        displayed = {**points, **calculated}
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default()
+        pairs = (
+            ("S", "N"), ("N", "A"), ("N", "B"), ("N", "D"),
+            ("Ar", "Go"), ("Go", "Me"), ("Go", "Gn"), ("A", "B"),
+            ("U1_apex", "U1_tip"), ("Pog", "L"), ("Co", "E"),
+        )
+        for start, end in pairs:
+            if start in displayed and end in displayed:
+                draw.line(
+                    [displayed[start], displayed[end]],
+                    fill=(53, 107, 114), width=max(2, round(image.width / 900)),
+                )
+        radius = max(3, round(image.width / 180))
+        for key, (x, y) in displayed.items():
+            x, y = int(round(x)), int(round(y))
+            draw.ellipse(
+                (x-radius, y-radius, x+radius, y+radius),
+                fill=(217, 154, 114), outline=(39, 59, 67), width=1,
+            )
+            draw.text((x+radius+2, y-radius-2), key, fill=(39, 59, 67), font=font)
+
+    image.save(buffer, format="PNG")
     buffer.seek(0)
     return buffer
 
@@ -313,7 +353,11 @@ def export_academic_report(path, patient, student_name, teacher_email,
             if not image_path or image_path in added_images or not Path(image_path).is_file():
                 continue
             try:
-                buffer = _image_bytes(image_path)
+                ceph_points = None
+                if module_id == "ceph" and slot_key == "ceph_lateral":
+                    ceph_record = module_analyses.get("steiner", {})
+                    ceph_points = (ceph_record.get("values", {}) or {}).get("Puntos")
+                buffer = _image_bytes(image_path, cephalometric_points=ceph_points)
                 image = ReportImage(buffer)
                 max_width, max_height = 175*mm, 82*mm
                 factor = min(max_width / image.imageWidth, max_height / image.imageHeight)
