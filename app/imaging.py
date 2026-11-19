@@ -19,9 +19,13 @@ def load_image(path):
     return im
 
 def adjust(im,brightness=0,contrast=100,sharpness=100):
-    x=np.clip(im.astype(np.float32)*(contrast/100)+brightness,0,255).astype(np.uint8)
+    alpha = im[:,:,3].copy() if im.ndim==3 and im.shape[2]==4 else None
+    source = im[:,:,:3] if alpha is not None else im
+    x=np.clip(source.astype(np.float32)*(contrast/100)+brightness,0,255).astype(np.uint8)
     if sharpness!=100:
         blur=cv2.GaussianBlur(x,(0,0),2); x=cv2.addWeighted(x,sharpness/100,blur,1-sharpness/100,0)
+    if alpha is not None:
+        x=cv2.cvtColor(x,cv2.COLOR_BGR2BGRA); x[:,:,3]=alpha
     return x
 
 def rectify(im,corners):
