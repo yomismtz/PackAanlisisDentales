@@ -26,6 +26,17 @@ class Database:
               UNIQUE(patient_id, analysis_key));
             CREATE INDEX IF NOT EXISTS ix_media_patient ON media(patient_id, slot_key, created_at);
             CREATE INDEX IF NOT EXISTS ix_analysis_patient ON analyses(patient_id);
+            CREATE TABLE IF NOT EXISTS reports(
+              id TEXT PRIMARY KEY,
+              patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+              student_name TEXT NOT NULL,
+              teacher_email TEXT NOT NULL,
+              selected_modules_json TEXT NOT NULL,
+              analyses_json TEXT NOT NULL,
+              pdf_path TEXT NOT NULL,
+              status TEXT NOT NULL,
+              created_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS ix_reports_patient ON reports(patient_id, created_at);
             """)
     def connect(self):
         c = sqlite3.connect(self.path, timeout=20); c.row_factory = sqlite3.Row
@@ -78,6 +89,51 @@ class Database:
         for x in rows:
             d=dict(x); d["values"]=json.loads(d.pop("values_json") or "{}"); out[d["analysis_key"]]=d
         return out
+
+    def save_report(self, pid, student_name, teacher_email, selected_modules,
+                    analyses_snapshot, pdf_path, status="PDF generado · pendiente de envío"):
+        if not student_name.strip():
+            raise ValueError("El nombre del estudiante es obligatorio.")
+        if not teacher_email.strip():
+            raise ValueError("El correo del docente es obligatorio.")
+        rid = str(uuid.uuid4())
+        stamp = now()
+        with self.connect() as db:
+            db.execute(
+                "INSERT INTO reports VALUES(?,?,?,?,?,?,?,?,?)",
+                (
+                    rid, pid, student_name.strip(), teacher_email.strip(),
+                    json.dumps(list(selected_modules), ensure_ascii=False),
+                    json.dumps(analyses_snapshot, ensure_ascii=False, default=str),
+                    str(pdf_path), status, stamp,
+                ),
+            )
+        return self.get_report(rid)
+
+    def get_report(self, report_id):
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["selected_modules"] = json.loads(result.pop("selected_modules_json") or "[]")
+        result["analyses"] = json.loads(result.pop("analyses_json") or "{}")
+        return result
+
+    def reports_for_patient(self, pid):
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT * FROM reports WHERE patient_id=? ORDER BY created_at DESC",
+                (pid,),
+            ).fetchall()
+        results = []
+        for row in rows:
+            item = dict(row)
+            item["selected_modules"] = json.loads(item.pop("selected_modules_json") or "[]")
+            item["analyses"] = json.loads(item.pop("analyses_json") or "{}")
+            results.append(item)
+        return results
+
     def counts_for_patient(self,pid):
         with self.connect() as db:
             m=db.execute("SELECT count(*) FROM media WHERE patient_id=?",(pid,)).fetchone()[0]
