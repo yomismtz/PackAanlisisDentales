@@ -18,7 +18,7 @@ def export_patient_pdf(path,patient,media,analyses):
     rows=[["Paciente",escape(patient.get("full_name","")),"Expediente",escape(patient.get("record_number",""))],
       ["Nacimiento",escape(patient.get("birth_date") or "No registrado"),"Sexo",escape(patient.get("sex") or "No especificado")],
       ["Teléfono",escape(patient.get("phone") or "—"),"Correo",escape(patient.get("email") or "—")]]
-    t=Table(rows,colWidths=[25*mm,66*mm,25*mm,68*mm])
+    t=Table(rows,colWidths=[25*mm,64*mm,25*mm,64*mm])
     t.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.35,colors.HexColor("#cbd5df")),
       ("BACKGROUND",(0,0),(0,-1),colors.HexColor("#edf2f7")),("BACKGROUND",(2,0),(2,-1),colors.HexColor("#edf2f7")),
       ("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),("FONTNAME",(2,0),(2,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8)]))
@@ -27,7 +27,7 @@ def export_patient_pdf(path,patient,media,analyses):
         data=[["Vista","Archivo original","Fecha"]]
         for m in media:
             slot=SLOTS.get(m["slot_key"]); data.append([slot.label if slot else m["slot_key"],escape(m["filename"]),m["created_at"][:10]])
-        tab=Table(data,colWidths=[60*mm,100*mm,24*mm],repeatRows=1)
+        tab=Table(data,colWidths=[55*mm,100*mm,24*mm],repeatRows=1)
         tab.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1d3448")),
           ("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.3,colors.HexColor("#cbd5df")),
           ("FONTSIZE",(0,0),(-1,-1),7.5),("VALIGN",(0,0),(-1,-1),"TOP")]))
