@@ -36,6 +36,11 @@ El módulo CS1–CS6 reutiliza la radiografía lateral de cráneo cargada en el 
 
 Los campos y referencias numéricas transcritos se basan en el documento de referencia aportado. No se automatizan tablas incompletas, fórmulas no especificadas o criterios que no aparecen en el documento. La ficha panorámica sistemática es editable y queda pendiente de completar con el protocolo clínico definitivo.
 
+
+## Informes académicos
+
+La pestaña «Informes» agrupa cuatro bloques: cefalometría, panorámica, modelos y edad. Solo habilita bloques con al menos un análisis guardado como «Completo»; al generar el PDF incluye únicamente los análisis completos dentro de los bloques seleccionados. El estudiante registra su nombre y el correo del docente. El PDF incorpora datos del expediente, resultados, observaciones, conclusiones guardadas e imágenes disponibles asociadas a cada módulo. Cada versión generada queda registrada localmente con sus apartados seleccionados, los datos de entrega y la ruta del PDF. La generación y apertura del documento funcionan sin conexión; el correo se conserva como destinatario, pero el envío automático y la revisión del docente requieren la futura conexión al servicio en línea.
+
 ## Instalación en Windows
 Instala Python 3.11 de 64 bits. En PowerShell, desde la carpeta del proyecto:
 
