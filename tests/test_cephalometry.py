@@ -57,3 +57,13 @@ def test_anb_is_difference_between_sna_and_snb():
     points = {"S": (0, 0), "N": (10, 0), "A": (15, 5), "B": (15, 3)}
     result = calculate_cephalometry(points)
     assert math.isclose(result["values"]["ANB"], result["values"]["SNA"] - result["values"]["SNB"])
+
+
+def test_upper_incisor_sn_angle_uses_steiner_obtuse_convention():
+    # A 76-degree line intersection is reported as the 104-degree supplementary angle.
+    points = {
+        "S": (0, 0), "N": (1, 0),
+        "U1_apex": (0, 0), "U1_tip": (math.cos(math.radians(76)), math.sin(math.radians(76))),
+    }
+    result = calculate_cephalometry(points)
+    assert math.isclose(result["values"]["U1SN"], 104.0, abs_tol=1e-8)
