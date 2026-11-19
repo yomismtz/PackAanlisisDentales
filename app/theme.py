@@ -31,6 +31,8 @@ def stylesheet():
     QTabBar::tab {{ background:{c['surface_alt']}; color:{c['muted']}; padding:9px 14px; margin-right:3px; border-top-left-radius:7px; border-top-right-radius:7px; }}
     QTabBar::tab:selected {{ background:{c['primary']}; color:{c['surface']}; }}
     QToolTip {{ background:{c['surface_alt']}; color:{c['text']}; border:1px solid {c['secondary']}; padding:5px; }}
+    QSlider::handle:horizontal {{ background:{c['accent']}; border:1px solid {c['primary']}; width:14px; margin:-5px 0; border-radius:7px; }}
+    QSlider::handle:vertical {{ background:{c['accent']}; border:1px solid {c['primary']}; height:14px; margin:0 -5px; border-radius:7px; }}
     QScrollBar:vertical {{ background:{c['background']}; width:11px; margin:2px; }}
     QScrollBar::handle:vertical {{ background:{c['secondary']}; min-height:24px; border-radius:5px; }}
     QScrollBar:horizontal {{ background:{c['background']}; height:11px; margin:2px; }}
