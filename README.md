@@ -44,3 +44,7 @@ La corrección de perspectiva endereza la imagen, pero no calibra su escala. Las
 
 ## Estado
 Base funcional inicial: expedientes locales, catálogo de estudios, captura por cámara, carga de archivos, ajustes de imagen, rectificación de perspectiva, formularios de análisis y exportación de resumen PDF. Se requiere prueba de ejecución y empaquetado en Windows antes de considerar estable esta versión. Los análisis y conclusiones deben ser validados por el profesional responsable.
+
+## Seguridad
+
+La primera versión guarda datos en el perfil local de Windows, pero todavía no cifra a nivel de aplicación la base SQLite ni los archivos clínicos y no incorpora autenticación propia. Consulta [SECURITY.md](SECURITY.md) antes de usarla con información identificable de pacientes. No debe considerarse una solución clínica de producción hasta implementar y validar esos controles.
