@@ -343,7 +343,7 @@ def export_academic_report(path, patient, student_name, teacher_email,
             "Los resultados y las interpretaciones corresponden a los registros guardados en el expediente. "
             "El informe tiene finalidad académica y requiere revisión y validación del docente responsable; "
             "no constituye por sí solo un diagnóstico ni una indicación terapéutica.",
-            styles["YSMBody",
+            styles["YSMBody"],
         ),
     ])
 
