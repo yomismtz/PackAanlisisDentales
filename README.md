@@ -21,6 +21,11 @@ Aplicación de escritorio para Windows, en español, para expediente odontológi
 Steiner; posición craneofacial y postura cráneo-cervical; maduración vertebral cervical CS1–CS6; revisión sistemática panorámica; Levandoski; edad dental por Nolla; integración de maduración; relaciones intermaxilares; Moyers I (75 %); Nance y Carey; Tanaka-Johnston; Baumé; altura del paladar; análisis facial frontal y de perfil; líneas medias; sonrisa y simetrías horizontales; radiografía carpal.
 
 
+
+## Cefalometría de Steiner simplificada
+
+La radiografía lateral de cráneo abre un trazador interactivo. El estudiante coloca manualmente S, N, A, B, D, Ar, Go, Gn, Me, Pog, Co y los puntos del incisivo superior. El programa dibuja planos, calcula SNA, SNB, ANB, SND, Ar-Go-Me, Go-Gn/SN, AB-Go-Gn e IS-SN, y calcula SL/SE solo cuando existe calibración con una distancia conocida. SL utiliza la proyección perpendicular de Pog sobre SN; SE utiliza la proyección perpendicular del contorno posterior condilar sobre SN. Las coordenadas y la escala se guardan con el análisis.
+
 ## Edad dental por Nolla
 
 El módulo permite elegir un cuadrante y registrar los estadios 0–10 de sus siete dientes permanentes, excluyendo terceros molares. Usa la tabla de sumatorias aportada por la propietaria del proyecto, con columnas por sexo y la misma referencia para cuadrantes maxilares y mandibulares. La edad se estima por interpolación entre las dos filas de referencia que contienen la sumatoria; no se extrapola fuera del intervalo de la tabla. La estimación debe interpretarse como apoyo didáctico y validarse por el profesional responsable.
