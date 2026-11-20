@@ -59,6 +59,38 @@ def _analysis_display_rows(key, record):
     """Return readable label/value pairs, omitting internal image coordinates."""
     values = record.get("values", {}) or {}
     rows = []
+    if key == "panoramic_systematic":
+        phases = values.get("Fases", {}) or {}
+        for phase_key in sorted(phases):
+            phase = phases[phase_key] or {}
+            phase_title = phase.get("Apartado", f"Fase {phase_key}")
+            responses = phase.get("Respuestas", {}) or {}
+            for label, value in responses.items():
+                if value in (None, ""):
+                    continue
+                if isinstance(value, list) and value and all(isinstance(item, dict) for item in value):
+                    for index, item in enumerate(value, start=1):
+                        for sublabel, subvalue in item.items():
+                            rows.append((
+                                f"{phase_title} · {label} {index} · {sublabel}",
+                                subvalue,
+                            ))
+                elif isinstance(value, (list, tuple, set)):
+                    rows.append((f"{phase_title} · {label}", " · ".join(str(item) for item in value)))
+                elif isinstance(value, dict):
+                    import json
+                    rows.append((f"{phase_title} · {label}", json.dumps(value, ensure_ascii=False)))
+                else:
+                    rows.append((f"{phase_title} · {label}", value))
+        legacy = values.get("Registro previo (formato anterior)", {}) or {}
+        for label, value in legacy.items():
+            if value not in (None, "", [], {}):
+                if isinstance(value, (list, tuple, dict)):
+                    import json
+                    value = json.dumps(value, ensure_ascii=False)
+                rows.append((f"Registro previo · {label}", value))
+        return rows, False
+
     if key == "steiner":
         results = values.get("Resultados", {}) or {}
         for measure, result in results.items():
