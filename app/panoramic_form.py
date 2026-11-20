@@ -107,7 +107,7 @@ PANORAMIC_PHASES = [
             ("erupcionados", "Dientes erupcionados (FDI)", "teeth", FDI_TEETH),
             ("desarrollo", "Dientes en desarrollo / no erupcionados", "teeth", FDI_TEETH),
             ("retencion", "Dientes retenidos o posiblemente incluidos", "teeth", FDI_TEETH),
-            ("ausentes", "Dientes no identificados en imagen", "teeth", FDI_TEETH),
+            ("ausentes", "Dientes no identificados en imagen (no confirma agenesia)", "teeth", FDI_TEETH),
             ("supernumerarios", "Regiones/dientes supernumerarios sospechados", "multi", ("Mesiodens", "Sector anterior maxilar", "Sector anterior mandibular", "Premolar superior", "Premolar inferior", "Región molar", "Otra región")),
             ("ectopicos", "Erupción ectópica / posición atípica", "teeth", FDI_TEETH),
             ("anatomia_atipica", "Anomalías morfológicas sospechadas", "multi", ("Microdoncia", "Macrodoncia", "Dilaceración", "Taurodontismo", "Fusión", "Geminación", "Raíz adicional", "Raíces fusionadas", "Otra")),
