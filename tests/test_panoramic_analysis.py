@@ -2,10 +2,10 @@ from app.panoramic_form import PANORAMIC_PHASES
 from app.export_report import _analysis_display_rows
 
 
-def test_panoramic_protocol_has_sixteen_defined_phases():
-    assert len(PANORAMIC_PHASES) == 16
+def test_panoramic_protocol_has_nineteen_defined_phases():
+    assert len(PANORAMIC_PHASES) == 19
     assert PANORAMIC_PHASES[0]["title"].startswith("01")
-    assert PANORAMIC_PHASES[-1]["title"].startswith("16")
+    assert PANORAMIC_PHASES[-1]["title"].startswith("19")
 
 
 def test_panoramic_phase_fields_have_unique_keys_and_supported_controls():
