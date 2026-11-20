@@ -2,7 +2,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QFormLayout, QGroupBox,
-    QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+    QGridLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QPushButton, QScrollArea, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
 
@@ -26,6 +26,7 @@ NORMAL_VARIANT = ("Habitual aparente", "Variación anatómica", "Alterada", "No 
 PANORAMIC_PHASES = [
     {
         "title": "01 · Calidad técnica",
+        "help": "Antes de interpretar, comprueba nitidez, contraste, exposición, movimiento, posicionamiento y cobertura. Decide si la imagen permite un análisis completo o solo parcial.",
         "fields": [
             ("aceptacion", "Aceptación de la imagen", "choice", ("Adecuada", "Adecuada con limitaciones", "No diagnóstica")),
             ("nitidez", "Nitidez", "choice", ("Adecuada", "Disminuida", "Muy disminuida", "No evaluable")),
@@ -40,6 +41,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "02 · Orientación y regiones",
+        "help": "Confirma derecha e izquierda desde la perspectiva del paciente, localiza la línea media y recorre las seis regiones para evitar omisiones.",
         "fields": [
             ("orientacion", "Orientación derecha–izquierda", "choice", ("Correcta", "Dudosa", "Invertida", "No determinable")),
             ("linea_media", "Identificación de línea media", "choice", ("Centrada", "Desviada", "No identificable", "No evaluable")),
@@ -52,6 +54,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "03 · Anatomía maxilar",
+        "help": "Identifica primero las estructuras anatómicas normales. Registra variantes o cambios aparentes sin etiquetarlos automáticamente como enfermedad.",
         "fields": [
             ("cavidad_nasal", "Cavidad nasal", "choice", NORMAL_VARIANT),
             ("tabique_nasal", "Tabique nasal", "choice", NORMAL_VARIANT),
@@ -67,6 +70,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "04 · Anatomía mandibular",
+        "help": "Sigue el contorno mandibular y localiza cuerpo, sínfisis, ángulos, ramas, cóndilos, forámenes y conducto mandibular.",
         "fields": [
             ("cuerpo", "Cuerpo mandibular", "choice", EVALUABILITY),
             ("borde_inferior", "Borde inferior mandibular", "choice", ("Continuo", "Irregular", "Interrumpido", "No evaluable")),
@@ -81,6 +85,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "05 · Anatomía dentaria",
+        "help": "Revisa coronas, cámaras pulpares, raíces, ápices, espacio periodontal, lámina dura y furcaciones. Recuerda que la panorámica tiene límites para detalles finos.",
         "fields": [
             ("coronas", "Coronas", "choice", ("Contornos habituales", "Alteraciones aparentes", "No evaluables")),
             ("esmalte_dentina", "Esmalte y dentina", "choice", ("Diferenciación aparente conservada", "Alteración de densidad", "No evaluable")),
@@ -97,6 +102,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "06 · Inventario y anomalías dentales",
+        "help": "Revisa diente por diente con nomenclatura FDI. Distingue ausencia aparente, falta de erupción, retención, ectopia y posible anomalía del desarrollo.",
         "fields": [
             ("erupcionados", "Dientes erupcionados (FDI)", "teeth", FDI_TEETH),
             ("desarrollo", "Dientes en desarrollo / no erupcionados", "teeth", FDI_TEETH),
@@ -111,6 +117,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "07 · Soporte óseo alveolar",
+        "help": "Observa crestas, nivel óseo, patrón y distribución. La panorámica no sustituye el sondaje periodontal.",
         "fields": [
             ("nivel_cresta", "Nivel de cresta alveolar", "choice", ("Conservado aparente", "Disminución leve", "Disminución moderada", "Disminución marcada", "No evaluable")),
             ("patron_perdida", "Patrón de pérdida ósea aparente", "choice", ("Sin pérdida evidente", "Horizontal", "Vertical/angular", "Mixto", "No concluyente")),
@@ -123,6 +130,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "08 · Terceros molares",
+        "help": "Registra 18, 28, 38 y 48 por separado: presencia, erupción, orientación, desarrollo radicular y relaciones anatómicas.",
         "fields": [
             ("18_estado", "18 · Estado", "choice", ("Ausente", "Erupcionado", "Parcialmente erupcionado", "No erupcionado", "Retenido/incluido sospechado", "No evaluable")),
             ("18_posicion", "18 · Orientación", "choice", ("Vertical", "Mesioangular", "Distoangular", "Horizontal", "Invertido", "Transversal", "No aplica / no evaluable")),
@@ -140,6 +148,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "09 · Anatomía adyacente",
+        "help": "Vuelve a revisar senos, cavidad nasal, estructuras cigomáticas, forámenes, conducto mandibular y espacios anatómicos.",
         "fields": [
             ("senos", "Senos maxilares", "choice", ("Sin alteración aparente", "Engrosamiento mucoso sospechado", "Opacidad", "Asimetría", "No evaluables")),
             ("cavidad_nasal", "Cavidad nasal y tabique", "choice", NORMAL_VARIANT),
@@ -153,6 +162,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "10 · Integración y reporte",
+        "help": "Comprueba que todas las regiones se revisaron y resume los hallazgos sin convertir una observación radiográfica en diagnóstico definitivo.",
         "fields": [
             ("revision_regiones", "Regiones revisadas", "multi", REGIONS),
             ("clasificacion_global", "Clasificación global de hallazgos", "multi", ("Anatomía / estructura normal aparente", "Variación anatómica", "Hallazgo radiográfico", "Hallazgo sospechoso para correlación", "No concluyente", "No evaluable")),
@@ -163,6 +173,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "11 · Hallazgos radiolúcidos / radiopacos",
+        "help": "Describe cada hallazgo individualmente: tipo, localización, forma, límites, tamaño aparente, relación anatómica y certeza.",
         "fields": [
             ("tipos", "Tipos identificados", "multi", ("Radiolúcido", "Radiopaco", "Mixto", "Calcificación / estructura superpuesta", "Ninguno identificado")),
             ("regiones", "Regiones con hallazgos", "multi", REGIONS),
@@ -184,6 +195,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "12 · Región periapical",
+        "help": "Relaciona el ápice con el espacio periodontal y la lámina dura. Registra cada diente afectado y evita diferenciar quiste y granuloma solo por la panorámica.",
         "fields": [
             ("revision_apical", "Revisión periapical global", "choice", ("Sin cambios relevantes aparentes", "Con alteraciones", "Limitada / no evaluable")),
             ("patrones", "Patrones encontrados", "multi", ("Ensanchamiento del LPD", "Interrupción de lámina dura", "Radiolucidez periapical", "Radiopacidad periapical", "Alteración apical", "Ninguno identificado")),
@@ -200,6 +212,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "13 · Reabsorciones radiculares",
+        "help": "Busca cambios de longitud y contorno. Diferencia patrones internos, externos, apicales y cervicales; la superficie vestibular o lingual puede no determinarse.",
         "fields": [
             ("revision", "Resultado de revisión", "choice", ("Sin reabsorción aparente", "Sospecha de reabsorción", "No evaluable")),
             ("patron", "Patrón general", "multi", ("Interna", "Externa", "Apical", "Cervical externa", "No clasificable")),
@@ -217,6 +230,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "14 · Morfología radicular",
+        "help": "Describe curvaturas, número, fusión, divergencia, longitud y variantes del desarrollo. No confundas una variante anatómica con una alteración adquirida.",
         "fields": [
             ("variantes", "Variantes morfológicas", "multi", ("Dilaceración", "Taurodontismo sospechado", "Raíces fusionadas", "Raíces divergentes", "Raíces convergentes", "Raíz adicional sospechada", "Número radicular atípico", "Raíces cortas aparentes", "Raíces largas aparentes", "Geminación / fusión dentaria sospechada", "Concrescencia no confirmable", "Ninguna identificada")),
             ("curvatura", "Curvatura radicular", "choice", ("Recta", "Leve", "Moderada", "Marcada / abrupta", "No evaluable")),
@@ -228,6 +242,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "15 · Periodonto y relación diente-hueso",
+        "help": "Evalúa conjuntamente espacio periodontal, lámina dura, cresta y furcaciones. Registra el patrón y su distribución.",
         "fields": [
             ("espacio", "Espacio del ligamento periodontal", "choice", ("Uniforme aparente", "Ensanchado apical", "Ensanchado lateral", "Ensanchado generalizado", "Irregular", "No evaluable")),
             ("lamina_dura", "Lámina dura", "choice", ("Continua", "Engrosada", "Interrumpida", "Irregular", "No identificable", "No evaluable")),
@@ -239,6 +254,7 @@ PANORAMIC_PHASES = [
     },
     {
         "title": "16 · Corticales y arquitectura ósea",
+        "help": "Sigue las corticales visibles y revisa continuidad, grosor, contorno, expansión, simetría y patrón trabecular.",
         "fields": [
             ("regiones", "Regiones evaluadas", "multi", ("Borde inferior mandibular derecho", "Borde inferior mandibular izquierdo", "Cuerpo mandibular", "Sínfisis", "Ángulo derecho", "Ángulo izquierdo", "Rama derecha", "Rama izquierda", "Piso del seno maxilar", "Paredes sinusales", "Piso nasal", "Paladar")),
             ("continuidad", "Continuidad cortical", "choice", ("Conservada", "Irregular", "Interrumpida", "No evaluable")),
@@ -289,6 +305,9 @@ class PanoramicAnalysisDialog(QDialog):
             page_layout = QVBoxLayout(page)
             page_layout.setContentsMargins(10, 10, 10, 10)
             page_layout.setSpacing(9)
+            guidance = QLabel(phase.get("help", ""))
+            guidance.setWordWrap(True)
+            page_layout.addWidget(guidance)
             form = QFormLayout()
             form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
             phase_key = f"{phase_index:02d}"
@@ -407,25 +426,28 @@ class PanoramicAnalysisDialog(QDialog):
     def _add_repeater_row(self, phase_key, field_key, saved=None):
         saved = saved or {}
         descriptor = self.controls[(phase_key, field_key)]
-        row_widget = QWidget()
-        row_layout = QHBoxLayout(row_widget)
-        row_layout.setContentsMargins(0, 3, 0, 3)
+        row_widget = QGroupBox(f"Registro {len(self.repeaters[(phase_key, field_key)]) + 1}")
+        row_layout = QGridLayout(row_widget)
+        row_layout.setContentsMargins(8, 8, 8, 8)
         row_controls = {}
         row_labels = {}
-        for key, label, options in descriptor["definitions"]:
+        for index, (key, label, options) in enumerate(descriptor["definitions"]):
             field = QComboBox()
             field.addItem("Sin seleccionar")
             field.addItems([str(option) for option in options])
-            index = field.findText(str(saved.get(label, saved.get(key, ""))))
-            if index >= 0:
-                field.setCurrentIndex(index)
+            index_saved = field.findText(str(saved.get(label, saved.get(key, ""))))
+            if index_saved >= 0:
+                field.setCurrentIndex(index_saved)
             field.setToolTip(label)
-            row_layout.addWidget(field, 1)
+            grid_row = index // 2
+            grid_col = (index % 2) * 2
+            row_layout.addWidget(QLabel(label), grid_row, grid_col)
+            row_layout.addWidget(field, grid_row, grid_col + 1)
             row_controls[key] = field
             row_labels[key] = label
-        remove_button = QPushButton("Quitar")
-        remove_button.setMaximumWidth(72)
-        row_layout.addWidget(remove_button)
+        remove_button = QPushButton("Quitar registro")
+        remove_button.setMaximumWidth(120)
+        row_layout.addWidget(remove_button, (len(descriptor["definitions"]) + 1) // 2, 0, 1, 4)
         entry = {"widget": row_widget, "controls": row_controls, "labels": row_labels}
         self.repeaters[(phase_key, field_key)].append(entry)
 
