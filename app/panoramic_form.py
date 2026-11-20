@@ -266,6 +266,50 @@ PANORAMIC_PHASES = [
             ("alertas", "Cambios que requieren correlación", "multi", ("Adelgazamiento marcado", "Interrupción cortical", "Expansión", "Desplazamiento", "Erosión / destrucción sospechada", "Cambio trabecular focal", "Ninguno identificado")),
         ],
     },
+    {
+        "title": "17 · Articulaciones temporomandibulares",
+        "help": "Compara ambos cóndilos y sus contornos en la imagen disponible. La panorámica ofrece una evaluación limitada de la ATM; registra diferencias aparentes y evita concluir patología sin correlación clínica o estudios indicados.",
+        "fields": [
+            ("atm_derecha", "ATM derecha", "choice", ("Contorno habitual aparente", "Aplanamiento aparente", "Irregularidad cortical", "Erosión sospechada", "Esclerosis sospechada", "Osteofito sospechado", "No evaluable")),
+            ("atm_izquierda", "ATM izquierda", "choice", ("Contorno habitual aparente", "Aplanamiento aparente", "Irregularidad cortical", "Erosión sospechada", "Esclerosis sospechada", "Osteofito sospechado", "No evaluable")),
+            ("condilos_simetria", "Comparación bilateral", "choice", ("Simétricos en forma y tamaño aparente", "Asimetría leve", "Asimetría marcada", "No confiable por posicionamiento")),
+            ("espacio_articular", "Espacio articular aparente", "choice", ("Comparable bilateralmente", "Diferencia aparente", "No evaluable")),
+            ("correlacion_atm", "Correlación clínica sugerida", "multi", ("Dolor referido", "Ruidos articulares", "Limitación de apertura", "Desviación al abrir", "Antecedentes de trauma", "Sin datos clínicos", "No aplica")),
+            ("nota_atm", "Comentario opcional", "line", ()),
+        ],
+    },
+    {
+        "title": "18 · Vías aéreas y espacios anatómicos",
+        "help": "Observa de manera descriptiva los espacios aéreos visibles y sus límites. La panorámica no permite cuantificar ni diagnosticar obstrucción; registra únicamente aspectos que ameriten correlación.",
+        "fields": [
+            ("nasofaringe", "Espacio nasofaríngeo", "choice", ("Sin estrechamiento aparente", "Estrechamiento aparente", "Asimetría", "No evaluable")),
+            ("orofaringe", "Espacio orofaríngeo", "choice", ("Sin estrechamiento aparente", "Estrechamiento aparente", "Asimetría", "No evaluable")),
+            ("paladar_blando", "Paladar blando / región posterior", "choice", ("Contorno identificable", "Contorno parcialmente visible", "No evaluable")),
+            ("hioides", "Hueso hioides", "choice", ("Identificable", "Posición / superposición asimétrica aparente", "No identificable")),
+            ("espacios_aereos", "Espacios aéreos superpuestos", "multi", ("Nasofaringe", "Orofaringe", "Espacio palatogloso", "Espacio palatofaríngeo", "Otros", "No evaluables")),
+            ("limitacion_via", "Limitación interpretativa", "choice", ("No permite evaluación funcional", "Superposición / posicionamiento limita", "No evaluable")),
+            ("correlacion_via", "¿Requiere correlación clínica?", "choice", ("Sí", "No evidente", "Según síntomas y exploración")),
+            ("nota_via", "Comentario opcional", "line", ()),
+        ],
+    },
+    {
+        "title": "19 · Revisión final por regiones y hallazgos incidentales",
+        "help": "Haz un último barrido de toda la imagen. Registra hallazgos incidentales o regiones no cubiertas por fases previas; describe localización, aspecto y necesidad de correlación, sin asignar diagnóstico definitivo.",
+        "fields": [
+            ("region_final", "Región de interés", "multi", ("Maxilar", "Mandíbula", "ATM derecha", "ATM izquierda", "Cavidad nasal", "Seno maxilar derecho", "Seno maxilar izquierdo", "Tejidos blandos", "Cervicales", "Otra región")),
+            ("incidental", "Hallazgos incidentales / adicionales", "multi", ("Calcificación de tejidos blandos sospechada", "Cuerpo extraño / material radiopaco", "Asimetría no descrita previamente", "Alteración de contorno óseo", "Opacidad / radiolucidez focal", "No se identifican adicionales", "No evaluable")),
+            ("descripcion_incidental", "Descripción por registro", "repeater", (
+                ("tipo", "Tipo", ("Radiolúcido", "Radiopaco", "Mixto", "Calcificación sospechada", "Alteración de contorno", "Otro")),
+                ("region", "Localización", ("Maxilar", "Mandíbula", "ATM derecha", "ATM izquierda", "Cavidad nasal", "Seno maxilar", "Tejidos blandos", "Cervicales", "Otra / no determinada")),
+                ("forma", "Forma / apariencia", ("Redondeada", "Ovalada", "Lineal", "Irregular", "Difusa", "No determinable")),
+                ("certeza", "Certeza", CONFIDENCE),
+                ("correlacion", "Seguimiento", ("Correlación clínica", "Estudio complementario según criterio profesional", "Seguimiento / comparación", "Sin acción sugerida por imagen", "No determinable")),
+            )),
+            ("revision_completa", "Barrido final", "choice", ("Realizado", "Realizado con limitaciones", "Pendiente")),
+            ("nota_final", "Comentario opcional", "line", ()),
+        ],
+    },
+
 ]
 
 
