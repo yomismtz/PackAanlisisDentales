@@ -7,10 +7,9 @@ from PySide6.QtWidgets import (
 )
 
 STATUS_OPTIONS = ("Pendiente", "En proceso", "Completo")
-FDI_TEETH = tuple(
-    str(q) + str(n)
-    for q in (1, 2, 3, 4)
-    for n in range(1, 9)
+FDI_TEETH = (
+    tuple(str(q) + str(n) for q in (1, 2, 3, 4) for n in range(1, 9))
+    + tuple(str(q) + str(n) for q in (5, 6, 7, 8) for n in range(1, 6))
 )
 REGIONS = (
     "Maxilar posterior derecho", "Maxilar anterior", "Maxilar posterior izquierdo",
@@ -412,20 +411,22 @@ class PanoramicAnalysisDialog(QDialog):
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 3, 0, 3)
         row_controls = {}
+        row_labels = {}
         for key, label, options in descriptor["definitions"]:
             field = QComboBox()
             field.addItem("Sin seleccionar")
             field.addItems([str(option) for option in options])
-            index = field.findText(str(saved.get(key, "")))
+            index = field.findText(str(saved.get(label, saved.get(key, ""))))
             if index >= 0:
                 field.setCurrentIndex(index)
             field.setToolTip(label)
             row_layout.addWidget(field, 1)
             row_controls[key] = field
+            row_labels[key] = label
         remove_button = QPushButton("Quitar")
         remove_button.setMaximumWidth(72)
         row_layout.addWidget(remove_button)
-        entry = {"widget": row_widget, "controls": row_controls}
+        entry = {"widget": row_widget, "controls": row_controls, "labels": row_labels}
         self.repeaters[(phase_key, field_key)].append(entry)
 
         def remove_row():
@@ -449,7 +450,7 @@ class PanoramicAnalysisDialog(QDialog):
                     rows = []
                     for entry in self.repeaters[(phase_key, key)]:
                         result = {
-                            field_key: combo.currentText()
+                            entry["labels"][field_key]: combo.currentText()
                             for field_key, combo in entry["controls"].items()
                             if combo.currentText() != "Sin seleccionar"
                         }
