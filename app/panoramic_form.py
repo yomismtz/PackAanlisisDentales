@@ -37,6 +37,8 @@ PANORAMIC_PHASES = [
             ("errores", "Errores técnicos identificados", "multi", ("Rotación", "Inclinación", "Mentón alto", "Mentón bajo", "Paciente adelantado", "Paciente retrasado", "Lengua fuera del paladar", "Movimiento", "Artefacto", "Exposición inadecuada", "Otro")),
             ("cobertura", "Regiones comprometidas o no incluidas", "multi", REGIONS + ("Cóndilos", "Ramas mandibulares", "Bordes inferiores")),
             ("evaluabilidad_general", "Evaluabilidad global", "choice", ("Evaluable", "Evaluable con limitaciones", "No evaluable")),
+            ("calidad_detalle", "Comprobación de calidad (detalle)", "multi", ("Cresta nítida y distinguible", "Contraste suficiente entre estructuras", "Exposición permite valorar densidades", "Sin movimiento que comprometa lectura", "Sin artefactos relevantes", "Cobertura anatómica suficiente", "Una o más condiciones no se cumplen")),
+            ("limitaciones_calidad", "Limitaciones que afectan la interpretación", "multi", ("Región anterior distorsionada", "Región posterior distorsionada", "Cóndilos recortados", "Bordes mandibulares recortados", "Superposición marcada", "Movimiento", "Artefacto", "Exposición", "Otra limitación", "Sin limitaciones relevantes")),
         ],
     },
     {
@@ -50,6 +52,9 @@ PANORAMIC_PHASES = [
             ("mandibula", "Identificación de la mandíbula", "choice", EVALUABILITY),
             ("distorsion", "Distorsión o superposición relevante", "choice", ("No evidente", "Leve", "Moderada", "Marcada", "No evaluable")),
             ("nota_orientacion", "Comentario opcional", "line", ()),
+            ("verificacion_orientacion", "Verificación antes de interpretar", "multi", ("Marcador R/L confirmado", "Derecha e izquierda desde perspectiva del paciente", "Línea media ubicada", "Orientación de imagen confiable", "Orientación dudosa; evitar asignación lateral")),
+            ("evaluabilidad_region", "Mapa de evaluabilidad por región", "multi", ("Maxilar posterior derecho · evaluable", "Maxilar anterior · evaluable", "Maxilar posterior izquierdo · evaluable", "Mandíbula posterior izquierda · evaluable", "Mandíbula anterior · evaluable", "Mandíbula posterior derecha · evaluable", "Maxilar posterior derecho · limitado", "Maxilar anterior · limitado", "Maxilar posterior izquierdo · limitado", "Mandíbula posterior izquierda · limitado", "Mandíbula anterior · limitado", "Mandíbula posterior derecha · limitado", "Maxilar posterior derecho · no evaluable", "Maxilar anterior · no evaluable", "Maxilar posterior izquierdo · no evaluable", "Mandíbula posterior izquierda · no evaluable", "Mandíbula anterior · no evaluable", "Mandíbula posterior derecha · no evaluable")),
+            ("recorrido_guiado", "Recorrido sistemático inicial", "multi", ("1 · Confirmar calidad técnica y cobertura", "2 · Confirmar orientación y línea media", "3 · Revisar maxilar de derecha a izquierda", "4 · Revisar mandíbula de izquierda a derecha", "5 · Marcar regiones limitadas y pendientes")),
         ],
     },
     {
