@@ -52,7 +52,9 @@ def test_panoramic_report_flattens_selected_values_and_repeatable_findings():
     assert rendered["01 · Calidad técnica · Errores técnicos identificados"] == "Rotación · Movimiento"
     assert rendered["11 · Hallazgos radiolúcidos / radiopacos · Registros individuales 1 · Tipo"] == "Radiolúcido"
 
-\n\ndef test_stage_one_quality_orientation_has_guided_review_and_evaluability_fields():
+
+
+def test_stage_one_quality_orientation_has_guided_review_and_evaluability_fields():
     quality_fields = {field[0] for field in PANORAMIC_PHASES[0]["fields"]}
     orientation_fields = {field[0] for field in PANORAMIC_PHASES[1]["fields"]}
     assert {"calidad_detalle", "limitaciones_calidad"} <= quality_fields
