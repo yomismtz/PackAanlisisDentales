@@ -32,7 +32,7 @@ class LevandoskiCanvas(QGraphicsView):
  point_clicked=Signal(float,float)
  def __init__(self,parent=None):
   super().__init__(parent); self.scene=QGraphicsScene(self); self.setScene(self.scene)
-  self.setBackgroundBrush(QColor("#22262e")); self.image_item=None; self.pix=None
+  self.setBackgroundBrush(QColor("#22262e")); self.image_item=None; self.pix=None; self.active_point=False
   self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
   self.annotation_items=[]
  def show_image(self,image):
