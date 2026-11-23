@@ -1,5 +1,6 @@
 """Formulario panorámico académico estructurado y basado en selecciones."""
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QFormLayout, QGroupBox,
     QGridLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
@@ -326,8 +327,15 @@ class PanoramicAnalysisDialog(QDialog):
         self.existing = existing or {}
         self.saved_values = self.existing.get("values", {}) or {}
         self.setWindowTitle("Análisis sistemático de radiografía panorámica")
-        self.resize(1120, 820)
-        self.setMinimumSize(900, 660)
+        # Adapt to the available screen area; forms remain scrollable on smaller displays.
+        screen = QGuiApplication.primaryScreen()
+        available = screen.availableGeometry() if screen else None
+        target_width = min(1120, available.width() - 48) if available else 1120
+        target_height = min(820, available.height() - 48) if available else 820
+        self.setMinimumSize(640, 460)
+        self.resize(max(640, target_width), max(460, target_height))
+        if available:
+            self.setMaximumSize(max(640, available.width() - 16), max(460, available.height() - 16))
 
         self.status = QComboBox()
         self.status.addItems(STATUS_OPTIONS)
@@ -335,6 +343,8 @@ class PanoramicAnalysisDialog(QDialog):
 
         self.tabs = QTabWidget()
         self.tabs.setUsesScrollButtons(True)
+        self.tabs.setDocumentMode(True)
+        self.tabs.setMovable(False)
         self.controls = {}
         self.repeaters = {}
 
@@ -413,10 +423,12 @@ class PanoramicAnalysisDialog(QDialog):
 
         self.observations = QTextEdit(self.existing.get("observations", ""))
         self.observations.setPlaceholderText("Opcional: solo información que no esté contemplada en las selecciones.")
-        self.observations.setMaximumHeight(62)
+        self.observations.setMinimumHeight(48)
+        self.observations.setMaximumHeight(96)
         self.conclusion = QTextEdit(self.existing.get("conclusion", ""))
         self.conclusion.setPlaceholderText("Conclusión breve del estudiante. Puede apoyarse en las opciones seleccionadas.")
-        self.conclusion.setMaximumHeight(72)
+        self.conclusion.setMinimumHeight(52)
+        self.conclusion.setMaximumHeight(112)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
