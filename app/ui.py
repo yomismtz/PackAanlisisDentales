@@ -9,6 +9,7 @@ from PySide6.QtWidgets import *
 from .catalog import GROUPS, SLOTS, ANALYSES, analyses_for_slot, CARPAL_STAGES
 from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
+from .levandoski import LevandoskiDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
@@ -1223,6 +1224,10 @@ class Workspace(QWidget):
             dlg=CervicalMaturationDialog(image_path,existing,self)
         elif key=="panoramic_systematic":
             dlg=PanoramicAnalysisDialog(existing,self)
+        elif key=="levandoski":
+            media=self.db.get_media_for_slot(self.pid,"panoramic")
+            image_path=media["current_path"] if media else None
+            dlg=LevandoskiDialog(image_path,existing,self)
         else:
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
