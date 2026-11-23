@@ -1,7 +1,7 @@
 """Trazado guiado y comparación bilateral del análisis panorámico de Levandoski."""
 import math
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPen
+from PySide6.QtGui import QColor, QPen, QImage, QPixmap
 from PySide6.QtWidgets import (QDialog, QGraphicsView, QGraphicsScene, QGraphicsEllipseItem,
  QGraphicsLineItem, QGraphicsTextItem, QLabel, QComboBox, QPushButton, QGridLayout,
  QVBoxLayout, QHBoxLayout, QSplitter, QTableWidget, QTableWidgetItem, QHeaderView,
@@ -36,12 +36,23 @@ class LevandoskiCanvas(QGraphicsView):
   self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
   self.annotation_items=[]
  def show_image(self,image):
+  import cv2
   from .imaging import load_image
   from PySide6.QtGui import QPixmap
   if isinstance(image,str):
    self.pix=QPixmap(image)
   else:
-   self.pix=QPixmap.fromImage(image)
+   import numpy as np
+   arr=image
+   if arr.ndim==2:
+    h,w=arr.shape; q=QImage(arr.data,w,h,w,QImage.Format.Format_Grayscale8).copy()
+   else:
+    h,w,c=arr.shape
+    if c==3:
+     arr=cv2.cvtColor(arr,cv2.COLOR_BGR2RGB); q=QImage(arr.data,w,h,3*w,QImage.Format.Format_RGB888).copy()
+    else:
+     arr=cv2.cvtColor(arr,cv2.COLOR_BGRA2RGBA); q=QImage(arr.data,w,h,4*w,QImage.Format.Format_RGBA8888).copy()
+   self.pix=QPixmap.fromImage(q)
   self.scene.clear(); self.image_item=self.scene.addPixmap(self.pix)
   self.scene.setSceneRect(self.image_item.boundingRect())
   self.fitInView(self.scene.sceneRect(),Qt.AspectRatioMode.KeepAspectRatio)
