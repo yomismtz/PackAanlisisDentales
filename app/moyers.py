@@ -289,5 +289,5 @@ class MoyersDialog(QDialog):
             "Predicción inferior por hemiarcada (mm)":predictions["inferior"],"Resultados por hemiarcada":results,
             "Puntos":self.points,"Calibración mm/px":{k:float(v.text().replace(",",".")) for k,v in self.scales.items()},
             "Incisivos inferiores erupcionados":self.incisors_present.isChecked(),
-            "Fuente incisivos": "Radiografía periapical" if self.periapical_image else "Modelo inferior"}
+            "Fuente incisivos": "Radiografía periapical" if self.periapical_image else "Modelo inferior",\n            "Radiografía periapical": self.periapical_image or ""}
         return self.status.currentText(),values,self.obs.toPlainText().strip(),self.conclusion.toPlainText().strip()
