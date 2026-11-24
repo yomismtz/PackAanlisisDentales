@@ -578,11 +578,19 @@ class NollaAnalysisDialog(QDialog):
         self.age_years = QSpinBox()
         self.age_years.setRange(0, 30)
         self.age_years.setSuffix(" años")
-        self.age_years.setValue(int(self.saved_values.get("Edad cronológica · años", 0) or 0))
+        birth = self.patient.get("birth_date", "")
+        default_years, default_months = 0, 0
+        if birth:
+            try:
+                chrono = chronological_age(birth)
+                default_years, default_months = chrono["years"], chrono["months"]
+            except ValueError:
+                pass
+        self.age_years.setValue(int(self.saved_values.get("Edad cronológica · años", default_years) or 0))
         self.age_months = QSpinBox()
         self.age_months.setRange(0, 11)
         self.age_months.setSuffix(" meses")
-        self.age_months.setValue(int(self.saved_values.get("Edad cronológica · meses", 0) or 0))
+        self.age_months.setValue(int(self.saved_values.get("Edad cronológica · meses", default_months) or 0))
 
         self.canvas = Canvas()
         self.canvas.setMinimumSize(520, 500)
