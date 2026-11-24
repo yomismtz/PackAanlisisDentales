@@ -11,6 +11,7 @@ from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
 from .little import LittleDialog
+from .moyers import MoyersDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
@@ -1235,10 +1236,27 @@ class Workspace(QWidget):
             media = self.db.get_media_for_slot(self.pid, slot)
             image_path = media["current_path"] if media else None
             dlg = LittleDialog(image_path, existing, arch, self)
+        elif key == "moyers":
+            upper = self.db.get_media_for_slot(self.pid, "model_upper_occlusal")
+            lower = self.db.get_media_for_slot(self.pid, "model_lower_occlusal")
+            periapical = self.db.get_media_for_slot(self.pid, "moyers_periapical")
+            dlg = MoyersDialog(
+                upper["current_path"] if upper else None,
+                lower["current_path"] if lower else None,
+                existing, self.patient.get("sex", ""),
+                periapical["current_path"] if periapical else None, self
+            )
         else:
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
-            status,vals,obs,con=dlg.values(); self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
+            status,vals,obs,con=dlg.values()
+            if key == "moyers" and vals.get("Radiografía periapical"):
+                source = vals.pop("Radiografía periapical")
+                current = self.db.get_media_for_slot(self.pid, "moyers_periapical")
+                if not current or Path(current["current_path"]) != Path(source):
+                    stored = import_media(self.pid, source, "moyers_periapical")
+                    self.db.add_media(self.pid, "moyers_periapical", stored, stored, Path(source).name)
+            self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
     def export_pdf(self):
         self.tabs.setCurrentWidget(self.reports_page)
 
