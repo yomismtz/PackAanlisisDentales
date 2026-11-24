@@ -12,6 +12,7 @@ from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
 from .little import LittleDialog
 from .moyers import MoyersDialog
+from .photo_analysis import PhotoAnalysisDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
@@ -1246,6 +1247,17 @@ class Workspace(QWidget):
                 existing, self.patient.get("sex", ""),
                 periapical["current_path"] if periapical else None, self
             )
+        elif key in ("facial_frontal","facial_profile","facial_midlines","facial_levels",
+                     "facial_contour","powell","smile","facial_projections","facial_symmetry"):
+            photo_slot = {
+                "facial_frontal":"extra_frontal","facial_midlines":"extra_frontal",
+                "facial_levels":"extra_frontal","facial_contour":"extra_frontal",
+                "facial_symmetry":"extra_frontal","facial_profile":"extra_profile",
+                "powell":"extra_profile","facial_projections":"extra_profile","smile":"extra_smiling"
+            }[key]
+            media = self.db.get_media_for_slot(self.pid, photo_slot)
+            dlg = PhotoAnalysisDialog(key, media["current_path"] if media else None,
+                                      existing, self.patient.get("sex", ""), self)
         else:
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
