@@ -12,7 +12,7 @@ REPORT_MODULES = {
     },
     "models": {
         "title": "Análisis de modelos",
-        "analysis_keys": ("intermaxillary", "moyers", "tanaka_johnston"),
+        "analysis_keys": ("intermaxillary", "moyers", "tanaka_johnston", "little_upper", "little_lower"),
         "media_slots": (
             "model_upper_right", "model_upper_left", "model_upper_front", "model_upper_occlusal",
             "model_lower_right", "model_lower_left", "model_lower_front", "model_lower_occlusal",
