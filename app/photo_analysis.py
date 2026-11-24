@@ -92,11 +92,16 @@ MIDLINE_FIELDS = {
  "Línea media incisivos inferiores": ["Derecha","Centrada","Izquierda"]
 }
 LEVEL_FIELDS = {
- "Ojos": ["Derecha","Centrada","Izquierda","Arriba","Abajo"],
- "Caninos superiores": ["Derecha","Centrados","Izquierda","Arriba","Abajo"],
- "Caninos inferiores": ["Derecha","Centrados","Izquierda","Arriba","Abajo"],
- "Nivel del cuerpo de la mandíbula": ["Derecha","Centrado","Izquierda","Arriba","Abajo"],
- "Nivel mentoniano": ["Derecha","Centrado","Izquierda","Arriba","Abajo"]
+ "Ojos · desviación": ["Derecha","Centrada","Izquierda"],
+ "Ojos · inclinación": ["Arriba","Abajo","Sin inclinación"],
+ "Caninos superiores · desviación": ["Derecha","Centrados","Izquierda"],
+ "Caninos superiores · inclinación": ["Arriba","Abajo","Sin inclinación"],
+ "Caninos inferiores · desviación": ["Derecha","Centrados","Izquierda"],
+ "Caninos inferiores · inclinación": ["Arriba","Abajo","Sin inclinación"],
+ "Cuerpo mandibular · desviación": ["Derecha","Centrado","Izquierda"],
+ "Cuerpo mandibular · inclinación": ["Arriba","Abajo","Sin inclinación"],
+ "Nivel mentoniano · desviación": ["Derecha","Centrado","Izquierda"],
+ "Nivel mentoniano · inclinación": ["Arriba","Abajo","Sin inclinación"]
 }
 SMILE_FIELDS = {
  "Línea de los labios":["Alta","Media","Baja"],
