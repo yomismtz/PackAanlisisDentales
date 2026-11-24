@@ -84,6 +84,20 @@ CONFIG = {
   "formula":"symmetry"
  }
 }
+MIDLINE_FIELDS = {
+ "Punta de la nariz": ["Derecha","Centrada","Izquierda"],
+ "Filtro": ["Derecha","Centrado","Izquierda"],
+ "Mentón": ["Derecha","Centrado","Izquierda"],
+ "Línea media incisivos superiores": ["Derecha","Centrada","Izquierda"],
+ "Línea media incisivos inferiores": ["Derecha","Centrada","Izquierda"]
+}
+LEVEL_FIELDS = {
+ "Ojos": ["Derecha","Centrada","Izquierda","Arriba","Abajo"],
+ "Caninos superiores": ["Derecha","Centrados","Izquierda","Arriba","Abajo"],
+ "Caninos inferiores": ["Derecha","Centrados","Izquierda","Arriba","Abajo"],
+ "Nivel del cuerpo de la mandíbula": ["Derecha","Centrado","Izquierda","Arriba","Abajo"],
+ "Nivel mentoniano": ["Derecha","Centrado","Izquierda","Arriba","Abajo"]
+}
 SMILE_FIELDS = {
  "Línea de los labios":["Alta","Media","Baja"],
  "Arco de sonrisa":["Consonante","Paralelo","No consonante"],
@@ -168,7 +182,10 @@ class PhotoAnalysisDialog(QDialog):
   self.conclusion=QTextEdit(self.existing.get("conclusion","")); self.conclusion.setMaximumHeight(65)
   self.fields={}
   extra=QWidget(); grid=QGridLayout(extra); grid.setContentsMargins(0,0,0,0)
-  choices=SMILE_FIELDS if self.cfg["formula"]=="smile" else CONTOUR_FIELDS if self.cfg["formula"]=="contour" else {}
+  choices=(SMILE_FIELDS if self.cfg["formula"]=="smile" else
+           CONTOUR_FIELDS if self.cfg["formula"]=="contour" else
+           MIDLINE_FIELDS if self.cfg["formula"]=="midlines" else
+           LEVEL_FIELDS if self.cfg["formula"]=="levels" else {})
   for i,(label,opts) in enumerate(choices.items()):
    cb=QComboBox(); cb.addItems(["Sin evaluar"]+opts); cb.setCurrentText(self.saved.get("Evaluación visual",{}).get(label,"Sin evaluar"))
    cb.currentTextChanged.connect(self.update_results); self.fields[label]=cb
@@ -245,38 +262,30 @@ class PhotoAnalysisDialog(QDialog):
    if formula=="profile" and "Sts" in self.points and "Sti" in self.points:
     gap=abs(self.points["Sts"][1]-self.points["Sti"][1])*(scale or 1)
     self.add_result(rows,"Espacio interlabial",f"{gap:.2f} {'mm' if scale else 'px'}","Norma indicada: 0–3 mm")
-  elif formula=="smile":
-   # La fuente define la simetría como paralelismo entre línea bipupilar
-   # y línea comisural. No se impone una tolerancia clínica no documentada.
-   def line_angle(a,b):
-    if a not in self.points or b not in self.points:return None
-    p,q=self.points[a],self.points[b]
-    return math.degrees(math.atan2(q[1]-p[1],q[0]-p[0]))
-   pup=line_angle("PUP_R","PUP_L")
-   com=line_angle("LC_R","LC_L")
-   if pup is not None:
-    self.add_result(rows,"Inclinación de línea bipupilar",f"{pup:.2f}°","Centros pupilares")
-   if com is not None:
-    self.add_result(rows,"Inclinación de línea comisural",f"{com:.2f}°","Comisura derecha–izquierda")
-   if pup is not None and com is not None:
-    delta=abs((com-pup)%180)
-    delta=min(delta,180-delta)
-    self.add_result(rows,"Diferencia angular entre líneas",f"{delta:.2f}°",
-                    "0° = líneas paralelas; valorar simetría de sonrisa")
   elif formula=="midlines":
+   # Eje de referencia: centro del puente nasal (punto medio intercantal)
+   # y centro del labio superior. La desviación se calcula perpendicularmente.
    if all(k in self.points for k in ("ICD","ICI","LS")):
-    xref=(self.points["ICD"][0]+self.points["ICI"][0])/2
-    for label,key in (("Punta nasal","NAR"),("Filtro / labio superior","LS"),("Mentón","MENT"),("Incisivos superiores","UIS"),("Incisivos inferiores","LIS")):
-     if key in self.points:
-      delta=(self.points[key][0]-xref)*(scale or 1)
-      self.add_result(rows,label,f"{delta:+.2f} {'mm' if scale else 'px'}","Derecha / izquierda respecto a línea media")
+    bridge=((self.points["ICD"][0]+self.points["ICI"][0])/2,
+            (self.points["ICD"][1]+self.points["ICI"][1])/2)
+    lip=self.points["LS"]
+    vx,vy=lip[0]-bridge[0],lip[1]-bridge[1]
+    norm=math.hypot(vx,vy)
+    if norm:
+     for label,key in (("Punta de la nariz","NAR"),("Filtro","LS"),("Mentón","MENT"),
+                       ("Línea media incisivos superiores","UIS"),("Línea media incisivos inferiores","LIS")):
+      if key in self.points:
+       p=self.points[key]
+       signed=(vx*(p[1]-bridge[1])-vy*(p[0]-bridge[0]))/norm
+       self.add_result(rows,label,f"{signed*(scale or 1):+.2f} {'mm' if scale else 'px'}",
+                       "Desviación perpendicular al eje puente nasal–labio superior")
   elif formula=="levels":
    for label,a,b in self.cfg["measures"]:
     if a in self.points and b in self.points:
      dy=(self.points[b][1]-self.points[a][1])*(scale or 1)
      dx=self.points[b][0]-self.points[a][0]
      ang=math.degrees(math.atan2(dy,dx))
-     self.add_result(rows,label,f"{ang:.2f}°",f"Desnivel {abs(dy):.2f} {'mm' if scale else 'px'}")
+     self.add_result(rows,label,f"{ang:.2f}°",f"Desnivel {abs(dy):.2f} {'mm' if scale else 'px'}; registrar lado y dirección en evaluación visual")
   elif formula=="powell":
    for label,a,b,c,norm in (("Nasofrontal","G","N","R","115°–130°"),("Mesofacial","N","Pg","Prn","Mujer 30° · Hombre 40°"),("Nasomentón","Prn","Pg","N","120°–132°"),("Mentocervical","N","Pg","C","80°–95°")):
     val=self.angle(a,b,c)
@@ -309,13 +318,6 @@ class PhotoAnalysisDialog(QDialog):
    "Mediciones":{self.results.item(r,0).text():{"resultado":self.results.item(r,1).text(),"referencia":self.results.item(r,2).text()}
     for r in range(self.results.rowCount())},
    "Evaluación visual":{k:v.currentText() for k,v in self.fields.items()}}
-  if self.cfg["formula"]=="smile":
-   vals["Criterio de simetría"]={
-    "referencia":"Paralelismo entre línea bipupilar y línea comisural",
-    "diferencia angular":next((self.results.item(r,1).text()
-      for r in range(self.results.rowCount())
-      if self.results.item(r,0).text()=="Diferencia angular entre líneas"),"Pendiente")
-   }
   self.accepted_values=vals; self.accept()
  def values(self):
   return self.status.currentText(),self.accepted_values,self.observations.toPlainText().strip(),self.conclusion.toPlainText().strip()
