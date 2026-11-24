@@ -7,14 +7,18 @@ from PySide6.QtWidgets import (QDialog, QGraphicsView, QGraphicsScene, QLabel, Q
     QHeaderView, QDialogButtonBox, QTextEdit, QFormLayout, QMessageBox)
 
 CONTACTS = [
-    ("C1", "Contacto canino–lateral derecho"),
-    ("C2", "Contacto lateral–central derecho"),
-    ("C3", "Contacto interincisivo"),
-    ("C4", "Contacto central–lateral izquierdo"),
-    ("C5", "Contacto lateral–canino izquierdo"),
+    ("P1", "Referencia en el sector del canino derecho"),
+    ("P2", "Referencia entre lateral y central derechos"),
+    ("P3", "Referencia interincisiva derecha"),
+    ("P4", "Referencia interincisiva izquierda"),
+    ("P5", "Referencia entre central y lateral izquierdos"),
+    ("P6", "Referencia en el sector del canino izquierdo"),
 ]
-SEGMENTS = [("C1–C2", "C1", "C2"), ("C2–C3", "C2", "C3"),
-            ("C3–C4", "C3", "C4"), ("C4–C5", "C4", "C5")]
+SEGMENTS = [
+    ("P1–P2", "P1", "P2"), ("P2–P3", "P2", "P3"),
+    ("P3–P4", "P3", "P4"), ("P4–P5", "P4", "P5"),
+    ("P5–P6", "P5", "P6"),
+]
 
 def little_measurements(points):
     measures = {}
@@ -22,7 +26,7 @@ def little_measurements(points):
         if first in points and second in points:
             measures[label] = math.hypot(points[second][0]-points[first][0],
                                          points[second][1]-points[first][1])
-    return measures, sum(measures.values()) if len(measures) == 4 else None
+    return measures, sum(measures.values()) if len(measures) == 5 else None
 
 class LittleCanvas(QGraphicsView):
     point_clicked = Signal(float, float)
@@ -119,7 +123,7 @@ class LittleDialog(QDialog):
         self.hint = QLabel("Selecciona un contacto, activa colocación y haz clic en la imagen. Rueda para zoom; arrastra para desplazarte.")
         self.hint.setWordWrap(True)
         self.progress = QLabel()
-        self.table = QTableWidget(4, 2)
+        self.table = QTableWidget(5, 2)
         self.table.setHorizontalHeaderLabels(["Segmento", "Distancia relativa (px)"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -167,7 +171,7 @@ class LittleDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(
-            "Little suma cuatro desplazamientos entre cinco puntos de contacto de los seis dientes anteriores. "
+            "Little suma cinco desplazamientos entre seis referencias de contacto de los seis dientes anteriores. "
             "Las distancias se expresan en píxeles relativos; no equivalen a milímetros."
         ))
         layout.addWidget(splitter, 1)
@@ -207,14 +211,14 @@ class LittleDialog(QDialog):
             self.update_view()
     def update_view(self):
         self.canvas.render_points(self.points)
-        self.progress.setText(f"Puntos colocados: {len(self.points)}/5")
+        self.progress.setText(f"Puntos colocados: {len(self.points)}/6")
         measures, total = little_measurements(self.points)
         for row, (name, _, _) in enumerate(SEGMENTS):
             self.table.setItem(row, 0, QTableWidgetItem(name))
             self.table.setItem(row, 1, QTableWidgetItem(f"{measures[name]:.2f}" if name in measures else "—"))
         if total is None:
             self.total.setText("Índice de Little: — (faltan puntos)")
-            self.diagnosis.setText("Coloca los cinco puntos para completar los cuatro segmentos.")
+            self.diagnosis.setText("Coloca los seis referencias para completar los cinco segmentos.")
         else:
             self.total.setText(f"Índice de Little: {total:.2f} px relativos")
             self.diagnosis.setText(
