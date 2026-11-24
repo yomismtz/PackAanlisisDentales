@@ -1120,6 +1120,8 @@ class MediaRow(QFrame):
         self.setObjectName("Panel"); self.media=None
         self.title=QLabel(slot.label); self.title.setStyleSheet("font-weight:600")
         self.filename=QLabel("Sin archivo"); self.filename.setWordWrap(True)
+        self.capture_guide=QLabel(slot.capture_guide); self.capture_guide.setWordWrap(True)
+        self.capture_guide.setStyleSheet("color:#48263F;background:#eee8f5;padding:8px;border-radius:5px")
         self.state=QLabel("Pendiente")
         self.up=QPushButton("Subir archivo"); self.cam=QPushButton("Tomar foto"); self.edit=QPushButton("Ver / editar")
         self.analyze=QPushButton("Abrir análisis")
@@ -1128,7 +1130,7 @@ class MediaRow(QFrame):
         h=QHBoxLayout(); h.addWidget(self.title,1); h.addWidget(self.state)
         b=QHBoxLayout()
         for x in (self.up,self.cam,self.edit,self.analyze): b.addWidget(x)
-        l=QVBoxLayout(self); l.setContentsMargins(10,8,10,8); l.addLayout(h); l.addWidget(self.filename); l.addLayout(b)
+        l=QVBoxLayout(self); l.setContentsMargins(10,8,10,8); l.addLayout(h); l.addWidget(self.capture_guide); l.addWidget(self.filename); l.addLayout(b)
         self.refresh()
     def refresh(self):
         self.media=self.ws.db.get_media_for_slot(self.ws.pid,self.slot.key)
