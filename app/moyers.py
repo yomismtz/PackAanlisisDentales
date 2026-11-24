@@ -126,6 +126,7 @@ class MoyersDialog(QDialog):
         if saved_sex in ("Masculino","Femenino"):self.sex.setCurrentText(saved_sex)
         self.incisors_present=QCheckBox("Los cuatro incisivos inferiores permanentes están erupcionados y medibles en el modelo")
         self.incisors_present.setChecked(self.saved.get("Incisivos inferiores erupcionados", False))
+        self.paths["incisors"] = periapical_image or (lower_image if self.incisors_present.isChecked() else None)
         self.incisors_present.toggled.connect(self._incisor_source_changed)
         self.tabs=QTabWidget(); self.views={}
         self.point_selects={};self.scales={}
