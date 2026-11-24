@@ -239,6 +239,10 @@ class PhotoAnalysisDialog(QDialog):
  def distance(self,a,b):
   d=self.distance_px(a,b); s=self.scale_value()
   return d*s if d is not None and s is not None else None
+ def vertical_distance(self,a,b):
+  if a not in self.points or b not in self.points:return None
+  s=self.scale_value()
+  return abs(self.points[b][1]-self.points[a][1])*(s or 1)
  def angle(self,a,b,c):
   if any(x not in self.points for x in (a,b,c)):return None
   p,q,r=self.points[a],self.points[b],self.points[c]
@@ -252,21 +256,21 @@ class PhotoAnalysisDialog(QDialog):
   rows=[]; formula=self.cfg["formula"]; scale=self.scale_value()
   if formula in ("frontal","profile"):
    for label,a,b in self.cfg["measures"]:
-    d=self.distance(a,b)
-    self.add_result(rows,label,f"{d:.2f} mm" if d is not None else "Pendiente")
+    d=self.vertical_distance(a,b)
+    self.add_result(rows,label,f"{d:.2f} {'mm' if scale else 'px'}" if d is not None else "Pendiente")
    total=self.distance("N","Me")
    ns=self.distance("N","Sn"); sm=self.distance("Sn","Me")
    if total and ns is not None and sm is not None:
     p1=ns/total*100;p2=sm/total*100
     self.add_result(rows,"N–Sn (%)",f"{p1:.1f} %","Ideal 43 %")
     self.add_result(rows,"Sn–Me (%)",f"{p2:.1f} %","Ideal 57 %")
-   snst=self.distance("Sn","Sts"); stme=self.distance("Sti","Me")
-   if snst is not None and stme is not None and snst+stme:
-    self.add_result(rows,"Sn–St (%)",f"{snst/(snst+stme)*100:.1f} %","Referencia 1/3")
-    self.add_result(rows,"St–Me (%)",f"{stme/(snst+stme)*100:.1f} %","Referencia 2/3")
-   if formula=="profile" and "Sts" in self.points and "Sti" in self.points:
-    gap=abs(self.points["Sts"][1]-self.points["Sti"][1])*(scale or 1)
-    self.add_result(rows,"Espacio interlabial",f"{gap:.2f} {'mm' if scale else 'px'}","Norma indicada: 0–3 mm")
+   if all(k in self.points for k in ("Sn","Sts","Sti","Me")):
+    st_y=(self.points["Sts"][1]+self.points["Sti"][1])/2
+    sn_y=self.points["Sn"][1]; me_y=self.points["Me"][1]
+    snst=abs(st_y-sn_y)*(scale or 1); stme=abs(me_y-st_y)*(scale or 1)
+    if snst+stme:
+     self.add_result(rows,"Sn–St (%)",f"{snst/(snst+stme)*100:.1f} %","Ideal 1/3")
+     self.add_result(rows,"St–Me (%)",f"{stme/(snst+stme)*100:.1f} %","Ideal 2/3")
   elif formula=="midlines":
    # Eje de referencia: centro del puente nasal (punto medio intercantal)
    # y centro del labio superior. La desviación se calcula perpendicularmente.
