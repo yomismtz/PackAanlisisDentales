@@ -5,12 +5,13 @@ import './style.css';
 function App() {
   return <main className="shell">
     <header>
-      <img className="brand-mark" src="/avis-agapornis.svg" alt="Mascota agapornis de AVIS" />
+      <img className="brand-mark" src="/avis-icon.svg" alt="Icono de AVIS con colibrí" />
       <div className="brand-copy"><strong>AVIS</strong><small>ANÁLISIS ODONTOLÓGICO INTEGRAL</small></div>
       <span className="local"><i /> DATOS LOCALES</span>
     </header>
     <section className="hero">
-      <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral · Observa, Analiza, Integra" />
+      <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral" />
+      <img className="hero-slogan" src="/avis-slogan.svg" alt="Observa, Analiza, Integra" />
       <p className="eyebrow">PLATAFORMA DE ANÁLISIS ODONTOLÓGICO</p>
       <h1>Observa. Analiza. Integra.</h1>
       <p>Expedientes, estudios y análisis en un entorno local. Esta versión no sincroniza datos ni los envía a servidores.</p>
