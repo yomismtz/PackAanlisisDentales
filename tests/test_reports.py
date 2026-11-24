@@ -8,8 +8,8 @@ from app.reports import (
 )
 
 
-def test_report_modules_match_the_requested_four_sections():
-    assert tuple(REPORT_MODULES) == ("ceph", "pan", "models", "age")
+def test_report_modules_include_photos_and_four_core_sections():
+    assert tuple(REPORT_MODULES) == ("ceph", "pan", "models", "age", "photos")
 
 
 def test_only_completed_analysis_is_available_in_a_module():
