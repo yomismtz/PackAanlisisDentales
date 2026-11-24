@@ -10,6 +10,7 @@ from .catalog import GROUPS, SLOTS, ANALYSES, analyses_for_slot, CARPAL_STAGES
 from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
+from .little import LittleDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
@@ -1228,6 +1229,12 @@ class Workspace(QWidget):
             media=self.db.get_media_for_slot(self.pid,"panoramic")
             image_path=media["current_path"] if media else None
             dlg=LevandoskiDialog(image_path,existing,self)
+        elif key in ("little_upper", "little_lower"):
+            arch = "Superior" if key == "little_upper" else "Inferior"
+            slot = "model_upper_occlusal" if key == "little_upper" else "model_lower_occlusal"
+            media = self.db.get_media_for_slot(self.pid, slot)
+            image_path = media["current_path"] if media else None
+            dlg = LittleDialog(image_path, existing, arch, self)
         else:
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
