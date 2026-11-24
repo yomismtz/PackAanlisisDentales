@@ -23,7 +23,7 @@ SLOTS = {s.key:s for _,group in GROUPS for s in group}
 ANALYSES = {
  "steiner":"Cefalometría de Steiner","cranio_cervical":"Posición craneofacial y postura cráneo-cervical",
  "cervical_maturation":"Maduración vertebral cervical · CS1–CS6","panoramic_systematic":"Análisis sistemático panorámico",
- "levandoski":"Análisis de Levandoski","dental_age":"Edad dental · Método de Nolla",
+ "levandoski":"Análisis de Levandoski","little_upper":"Índice de Little · modelo superior","little_lower":"Índice de Little · modelo inferior","dental_age":"Edad dental · Método de Nolla",
  "maturation_integration":"Integración de maduración","carpal":"Maduración esquelética · radiografía carpal",
  "intermaxillary":"Relaciones intermaxilares","moyers":"Moyers I · 75 %",
  "nance_carey":"Discrepancia óseo-dentaria · Nance y Carey","tanaka_johnston":"Tanaka-Johnston",
@@ -44,6 +44,8 @@ for key in ("intra_right","intra_left","intra_frontal","intra_upper","intra_lowe
  "model_lower_right","model_lower_left","model_lower_front","model_lower_occlusal",
  "model_both_right","model_both_left","model_both_front"):
     BY_SLOT[key]=["intermaxillary","moyers","nance_carey","tanaka_johnston","baume","palatal_height"]
+BY_SLOT["model_upper_occlusal"].append("little_upper")
+BY_SLOT["model_lower_occlusal"].append("little_lower")
 
 def analyses_for_slot(key):
     return [(k,ANALYSES[k]) for k in BY_SLOT.get(key,[])]
