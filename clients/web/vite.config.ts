@@ -5,16 +5,16 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [react(), VitePWA({
     registerType: 'autoUpdate',
-    includeAssets: [],
+    includeAssets: ['avis-agapornis.svg', 'avis-logo.svg'],
     manifest: {
-      name: 'AVIS · Análisis Dentales',
+      name: 'AVIS · Análisis Odontológico Integral',
       short_name: 'AVIS',
-      description: 'Expediente y análisis odontológicos locales',
-      theme_color: '#6D45A6',
-      background_color: '#FFFFFF',
+      description: 'Observa • Analiza • Integra',
+      theme_color: '#073C5A',
+      background_color: '#F4F8F9',
       display: 'standalone',
       start_url: '/',
-      icons: []
+      icons: [{ src: '/avis-agapornis.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
     },
     workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] }
   })],
