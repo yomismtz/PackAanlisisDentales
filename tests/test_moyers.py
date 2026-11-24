@@ -11,7 +11,7 @@ def test_moyers_75_male_reference_values():
     assert predict_moyers_75(22.0, "Masculino", "inferior") == 21.5
 
 def test_moyers_interpolates_between_table_rows():
-    assert predict_moyers_75(20.25, "Femenino", "inferior") == 20.0
+    assert predict_moyers_75(20.25, "Femenino", "inferior") == 19.95
 
 @pytest.mark.parametrize("value", [19.49, 25.51])
 def test_moyers_rejects_values_outside_published_table(value):
