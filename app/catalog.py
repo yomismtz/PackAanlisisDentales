@@ -35,9 +35,9 @@ BY_SLOT = {
  "ceph_lateral":["steiner","cranio_cervical","cervical_maturation","maturation_integration"],
  "panoramic":["panoramic_systematic","levandoski","dental_age","maturation_integration"],
  "carpal":["carpal","maturation_integration"],
- "extra_frontal":["facial_frontal","facial_midlines","facial_symmetry"],
+ "extra_frontal":["facial_frontal","facial_midlines","facial_levels","facial_contour","facial_symmetry"],
  "extra_smiling":["smile"],
- "extra_profile":["facial_profile"]
+ "extra_profile":["facial_profile","powell","facial_projections"]
 }
 for key in ("intra_right","intra_left","intra_frontal","intra_upper","intra_lower","intra_extra",
  "model_upper_right","model_upper_left","model_upper_front","model_upper_occlusal",
