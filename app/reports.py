@@ -24,6 +24,12 @@ REPORT_MODULES = {
         "analysis_keys": ("dental_age", "cervical_maturation"),
         "media_slots": ("panoramic", "ceph_lateral"),
     },
+    "photos": {
+        "title": "Análisis fotográfico",
+        "analysis_keys": ("facial_frontal", "facial_profile", "facial_midlines", "facial_levels",
+                         "facial_contour", "powell", "smile", "facial_projections", "facial_symmetry"),
+        "media_slots": ("extra_frontal", "extra_profile", "extra_smiling"),
+    },
 }
 
 
