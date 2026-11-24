@@ -21,7 +21,7 @@ REPORT_MODULES = {
     },
     "age": {
         "title": "Análisis de edad",
-        "analysis_keys": ("dental_age", "cervical_maturation"),
+        "analysis_keys": ("dental_age", "cervical_maturation", "carpal", "maturation_integration"),
         "media_slots": ("panoramic", "ceph_lateral"),
     },
     "photos": {
