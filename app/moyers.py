@@ -114,7 +114,7 @@ class MoyersDialog(QDialog):
         self.points={k:{p:tuple(v) for p,v in self.saved.get(k,{}).items()
                         if isinstance(v,(list,tuple)) and len(v)==2}
                      for k in ("incisors","upper","lower")}
-        self.paths={"incisors":periapical_image or lower_image,"upper":upper_image,"lower":lower_image}
+        self.paths={"incisors":periapical_image,"upper":upper_image,"lower":lower_image}
         self.periapical_image=periapical_image
         self._active_view=None; self._active_key=None
         self.setWindowTitle("AVIS · Análisis de dentición mixta · Moyers 75 %")
@@ -125,7 +125,7 @@ class MoyersDialog(QDialog):
         saved_sex=self.saved.get("Sexo",patient_sex)
         if saved_sex in ("Masculino","Femenino"):self.sex.setCurrentText(saved_sex)
         self.incisors_present=QCheckBox("Los cuatro incisivos inferiores permanentes están erupcionados y medibles en el modelo")
-        self.incisors_present.setChecked(self.saved.get("Incisivos inferiores erupcionados", bool(lower_image)))
+        self.incisors_present.setChecked(self.saved.get("Incisivos inferiores erupcionados", False))
         self.incisors_present.toggled.connect(self._incisor_source_changed)
         self.tabs=QTabWidget(); self.views={}
         self.point_selects={};self.scales={}
