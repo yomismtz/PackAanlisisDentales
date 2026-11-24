@@ -128,6 +128,12 @@ CONTOUR_FIELDS = {
  "Base alar izquierda":["Grande","Ancha","Normal","Estrecha"]
 }
 
+PHOTO_GUIDES = {
+ "extra_frontal": "FOTOGRAFÍA REQUERIDA · FRONTAL EN REPOSO. Rostro de frente, cabeza en posición natural, mirada al frente y labios relajados, sin sonreír. Cabello recogido, frente completamente despejada y ambas orejas descubiertas. Iluminación uniforme y fondo neutro.",
+ "extra_profile": "FOTOGRAFÍA REQUERIDA · PERFIL LATERAL EN REPOSO. Mantener siempre el mismo lado, cabeza en posición natural, mirada al frente y labios relajados. Cabello recogido, frente despejada y oreja del lado fotografiado descubierta. Deben verse nariz, labios, mentón y cuello.",
+ "extra_smiling": "FOTOGRAFÍA REQUERIDA · FRONTAL SONRIENDO. Sonrisa amplia y natural, mostrando dientes y encía visible. Rostro de frente, cabeza sin inclinación, mirada al frente, cabello recogido, frente despejada y ambas orejas descubiertas. Deben verse ambas comisuras."
+}
+
 class PhotoCanvas(QGraphicsView):
  point_clicked=Signal(float,float)
  def __init__(self,parent=None):
@@ -204,7 +210,11 @@ class PhotoAnalysisDialog(QDialog):
    )
    self.smile_hint.setWordWrap(True)
    grid.addWidget(self.smile_hint, len(choices)//2+1, 0, 1, 4)
-  left=QVBoxLayout(); left.addWidget(QLabel("Selecciona un punto, activa la colocación y haz clic sobre la fotografía. Rueda: zoom · arrastrar: desplazamiento."))
+  left=QVBoxLayout()
+  guide=QLabel(PHOTO_GUIDES[self.cfg["slot"]]); guide.setWordWrap(True)
+  guide.setStyleSheet("background:#eee8f5;color:#48263F;padding:10px;border-radius:6px;font-weight:600")
+  left.addWidget(guide)
+  left.addWidget(QLabel("Selecciona un punto, activa la colocación y haz clic sobre la fotografía. Rueda: zoom · arrastrar: desplazamiento."))
   row=QHBoxLayout(); row.addWidget(self.point_select,2); row.addWidget(self.place); row.addWidget(self.delete); left.addLayout(row)
   left.addWidget(self.canvas,1)
   right=QVBoxLayout(); form=QFormLayout(); form.addRow("Estado",self.status); form.addRow("Calibración (mm/px)",self.scale); right.addLayout(form)
