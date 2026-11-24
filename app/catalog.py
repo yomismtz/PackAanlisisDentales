@@ -6,10 +6,11 @@ class Slot:
     label: str
     group: str
     required: bool = True
+    capture_guide: str = ""
 
 GROUPS = [
  ("Radiografías", [Slot("ceph_lateral","Lateral de cráneo","Radiografías"),Slot("panoramic","Panorámica","Radiografías")]),
- ("Fotografías extraorales", [Slot("extra_frontal","Frontal en reposo","Fotografías extraorales"),Slot("extra_smiling","Frontal sonriendo","Fotografías extraorales"),Slot("extra_profile","Perfil lateral","Fotografías extraorales")]),
+ ("Fotografías extraorales", [Slot("extra_frontal","Frontal en reposo · seria","Fotografías extraorales", True, "Fotografía frontal en reposo: rostro de frente, cabeza en posición natural y sin inclinación, mirada al frente, labios relajados y sin sonreír. Cabello recogido, frente completamente despejada y ambas orejas descubiertas. Iluminación uniforme y fondo neutro."),Slot("extra_smiling","Frontal sonriendo","Fotografías extraorales", True, "Fotografía frontal con sonrisa amplia y natural, mostrando dientes y encía visible. Rostro de frente, cabeza sin inclinación, mirada al frente, cabello recogido, frente despejada y ambas orejas descubiertas. Deben verse completas las dos comisuras."),Slot("extra_profile","Perfil lateral · serio","Fotografías extraorales", True, "Fotografía lateral de perfil en reposo. Mantener siempre el mismo lado (derecho o izquierdo), cabeza en posición natural, mirada al frente y labios relajados. Cabello recogido, frente despejada y oreja del lado fotografiado descubierta. Deben verse nariz, labios, mentón y contorno cervical.")]),
  ("Fotografías intraorales", [
   Slot("intra_right","Lateral derecha","Fotografías intraorales"),Slot("intra_left","Lateral izquierda","Fotografías intraorales"),
   Slot("intra_frontal","Frontal en oclusión","Fotografías intraorales"),Slot("intra_upper","Oclusal superior","Fotografías intraorales"),
