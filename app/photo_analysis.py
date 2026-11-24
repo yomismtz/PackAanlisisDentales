@@ -131,8 +131,11 @@ class PhotoCanvas(QGraphicsView):
    dot=self.scene_obj.addEllipse(x-5,y-5,10,10,pen,QColor("#FFFFFF"))
    label=self.scene_obj.addText(key); label.setDefaultTextColor(QColor("#FFFFFF")); label.setPos(x+7,y-18)
    self.marks.extend([dot,label])
-  if "N" in points and self.parent() is not None:
-   pass
+  # En sonrisa se dibujan las dos referencias que se comparan.
+  for a,b in (("PUP_R","PUP_L"),("LC_R","LC_L")):
+   if a in points and b in points:
+    line=self.scene_obj.addLine(points[a][0],points[a][1],points[b][0],points[b][1],pen)
+    line.setZValue(4); self.marks.append(line)
  def set_point_mode(self,enabled):
   self.active=enabled; self.setDragMode(QGraphicsView.DragMode.NoDrag if enabled else QGraphicsView.DragMode.ScrollHandDrag)
  def mousePressEvent(self,event):
@@ -170,7 +173,15 @@ class PhotoAnalysisDialog(QDialog):
    cb=QComboBox(); cb.addItems(["Sin evaluar"]+opts); cb.setCurrentText(self.saved.get("Evaluación visual",{}).get(label,"Sin evaluar"))
    cb.currentTextChanged.connect(self.update_results); self.fields[label]=cb
    grid.addWidget(QLabel(label),i//2,(i%2)*2); grid.addWidget(cb,i//2,(i%2)*2+1)
-  extra_box=QGroupBox("Evaluación visual · sin cálculo automático"); extra_box.setLayout(grid)
+  extra_box=QGroupBox("Criterios visuales"); extra_box.setLayout(grid)
+  if self.cfg["formula"]=="smile":
+   self.smile_hint=QLabel(
+    "Simetría: marca el centro de cada pupila y ambas comisuras. "
+    "Se trazan la línea bipupilar y la línea comisural; se calcula la diferencia angular. "
+    "La clasificación clínica se registra en el criterio visual."
+   )
+   self.smile_hint.setWordWrap(True)
+   grid.addWidget(self.smile_hint, len(choices)//2+1, 0, 1, 4)
   left=QVBoxLayout(); left.addWidget(QLabel("Selecciona un punto, activa la colocación y haz clic sobre la fotografía. Rueda: zoom · arrastrar: desplazamiento."))
   row=QHBoxLayout(); row.addWidget(self.point_select,2); row.addWidget(self.place); row.addWidget(self.delete); left.addLayout(row)
   left.addWidget(self.canvas,1)
@@ -234,6 +245,24 @@ class PhotoAnalysisDialog(QDialog):
    if formula=="profile" and "Sts" in self.points and "Sti" in self.points:
     gap=abs(self.points["Sts"][1]-self.points["Sti"][1])*(scale or 1)
     self.add_result(rows,"Espacio interlabial",f"{gap:.2f} {'mm' if scale else 'px'}","Norma indicada: 0–3 mm")
+  elif formula=="smile":
+   # La fuente define la simetría como paralelismo entre línea bipupilar
+   # y línea comisural. No se impone una tolerancia clínica no documentada.
+   def line_angle(a,b):
+    if a not in self.points or b not in self.points:return None
+    p,q=self.points[a],self.points[b]
+    return math.degrees(math.atan2(q[1]-p[1],q[0]-p[0]))
+   pup=line_angle("PUP_R","PUP_L")
+   com=line_angle("LC_R","LC_L")
+   if pup is not None:
+    self.add_result(rows,"Inclinación de línea bipupilar",f"{pup:.2f}°","Centros pupilares")
+   if com is not None:
+    self.add_result(rows,"Inclinación de línea comisural",f"{com:.2f}°","Comisura derecha–izquierda")
+   if pup is not None and com is not None:
+    delta=abs((com-pup)%180)
+    delta=min(delta,180-delta)
+    self.add_result(rows,"Diferencia angular entre líneas",f"{delta:.2f}°",
+                    "0° = líneas paralelas; valorar simetría de sonrisa")
   elif formula=="midlines":
    if all(k in self.points for k in ("ICD","ICI","LS")):
     xref=(self.points["ICD"][0]+self.points["ICI"][0])/2
@@ -280,6 +309,13 @@ class PhotoAnalysisDialog(QDialog):
    "Mediciones":{self.results.item(r,0).text():{"resultado":self.results.item(r,1).text(),"referencia":self.results.item(r,2).text()}
     for r in range(self.results.rowCount())},
    "Evaluación visual":{k:v.currentText() for k,v in self.fields.items()}}
+  if self.cfg["formula"]=="smile":
+   vals["Criterio de simetría"]={
+    "referencia":"Paralelismo entre línea bipupilar y línea comisural",
+    "diferencia angular":next((self.results.item(r,1).text()
+      for r in range(self.results.rowCount())
+      if self.results.item(r,0).text()=="Diferencia angular entre líneas"),"Pendiente")
+   }
   self.accepted_values=vals; self.accept()
  def values(self):
   return self.status.currentText(),self.accepted_values,self.observations.toPlainText().strip(),self.conclusion.toPlainText().strip()
