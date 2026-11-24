@@ -18,6 +18,7 @@ from .storage import database_path, import_media, save_processed
 from . import imaging
 from .theme import PALETTE, stylesheet
 from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_stages, format_age
+from .age_calculation import chronological_age, CERVICAL_STAGE_REFERENCE, CERVICAL_REFERENCE_NOTE
 from .cephalometry import LANDMARKS, TRACE_PAIRS, REFERENCES, calculate_cephalometry, distance as ceph_distance
 from .reports import REPORT_MODULES, available_modules, completed_keys, build_report_snapshot
 
@@ -840,9 +841,10 @@ class CervicalMaturationDialog(QDialog):
         "CS6": ("Pospuberal", "C3 o C4 presenta una forma rectangular vertical, compatible con maduración vertebral avanzada."),
     }
 
-    def __init__(self, image_path=None, existing=None, parent=None):
+    def __init__(self, image_path=None, existing=None, patient=None, parent=None):
         super().__init__(parent)
         self.existing = existing or {}
+        self.patient = patient or {}
         saved = self.existing.get("values", {})
         self.setWindowTitle("Maduración vertebral cervical · CS1–CS6")
         self.resize(1120, 760)
@@ -868,6 +870,18 @@ class CervicalMaturationDialog(QDialog):
             except Exception:
                 pass
         self.period = QLabel("")
+        self.chrono = QLabel("")
+        self.reference_age = QLabel("")
+        self.reference_age.setWordWrap(True)
+        birth = self.patient.get("birth_date", "")
+        if birth:
+            try:
+                age = chronological_age(birth)
+                self.chrono.setText(f"Edad cronológica: {age['years']} años, {age['months']} meses y {age['days']} días")
+            except ValueError:
+                self.chrono.setText("Fecha de nacimiento inválida; corrígela en los datos del paciente.")
+        else:
+            self.chrono.setText("Registra día, mes y año de nacimiento en los datos del paciente.")
         self.morphology = QLabel("")
         self.morphology.setWordWrap(True)
         self.interpretation = QTextEdit(saved.get("Interpretación", ""))
@@ -889,7 +903,9 @@ class CervicalMaturationDialog(QDialog):
         form.addRow("Estado", self.status)
         form.addRow("Estadio vertebral", self.stage)
         right_layout.addLayout(form)
+        right_layout.addWidget(self.chrono)
         right_layout.addWidget(self.period)
+        right_layout.addWidget(self.reference_age)
         right_layout.addWidget(self.morphology)
         right_layout.addWidget(QLabel("Interpretación / diagnóstico del estudiante"))
         right_layout.addWidget(self.interpretation)
@@ -918,9 +934,12 @@ class CervicalMaturationDialog(QDialog):
         if stage in self.STAGES:
             period, morphology = self.STAGES[stage]
             self.period.setText("Periodo: " + period)
+            mean_age = CERVICAL_STAGE_REFERENCE.get(stage)
+            self.reference_age.setText(f"Edad media poblacional de referencia para {stage}: {mean_age:.1f} años. {CERVICAL_REFERENCE_NOTE}")
             self.morphology.setText(morphology)
         else:
             self.period.setText("Periodo: sin clasificar")
+            self.reference_age.setText("Sin estimación de referencia hasta seleccionar CS1–CS6.")
             self.morphology.setText("No se ha seleccionado un estadio.")
         self.period.setStyleSheet(f"font-weight:700;color:{PALETTE['primary']}")
 
@@ -930,6 +949,8 @@ class CervicalMaturationDialog(QDialog):
         values = {
             "Estadio vertebral": stage or "No evaluable",
             "Periodo de maduración": period,
+            "Edad media poblacional de referencia · años": CERVICAL_STAGE_REFERENCE.get(stage, ""),
+            "Referencia científica": "Baccetti, Franchi y McNamara (2005); revisión sistemática y metaanálisis (2022). " + CERVICAL_REFERENCE_NOTE,
             "Descripción morfológica": morphology,
             "Interpretación": self.interpretation.toPlainText().strip(),
             "Tratamiento / observación": self.treatment.toPlainText().strip(),
@@ -1226,7 +1247,7 @@ class Workspace(QWidget):
         elif key=="cervical_maturation":
             media=self.db.get_media_for_slot(self.pid,"ceph_lateral")
             image_path=media["current_path"] if media else None
-            dlg=CervicalMaturationDialog(image_path,existing,self)
+            dlg=CervicalMaturationDialog(image_path,existing,self.patient,self)
         elif key=="panoramic_systematic":
             dlg=PanoramicAnalysisDialog(existing,self)
         elif key=="levandoski":
