@@ -30,7 +30,9 @@ ANALYSES = {
  "nance_carey":"Discrepancia óseo-dentaria · Nance y Carey","tanaka_johnston":"Tanaka-Johnston",
  "baume":"Baumé","palatal_height":"Altura del paladar","facial_frontal":"Análisis facial frontal",
  "facial_profile":"Análisis facial de perfil","facial_midlines":"Líneas medias",
- "smile":"Análisis de sonrisa","facial_symmetry":"Simetrías horizontales · quintos"
+ "smile":"Análisis de sonrisa","facial_symmetry":"Simetrías horizontales · quintos",
+ "facial_levels":"Análisis de niveles faciales","facial_contour":"Análisis de contorno facial",
+ "powell":"Análisis de Powell","facial_projections":"Análisis de proyecciones"
 }
 BY_SLOT = {
  "ceph_lateral":["steiner","cranio_cervical","cervical_maturation","maturation_integration"],
