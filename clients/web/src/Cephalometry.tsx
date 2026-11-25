@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { buildPhotoReportPdf } from "./pdfReport";
+import { getAvisPalette } from "./themePalettes";
 
 type XY = { x: number; y: number };
 type PointMap = Record<string, XY>;
@@ -8,6 +10,7 @@ const LANDMARKS: Array<[string, string]> = [
   ["Ar", "Articulare"], ["Go", "Gonion"], ["Gn", "Gnathion"], ["Me", "Menton"],
   ["Pog", "Pogonion"], ["Co", "Contorno posterior del cóndilo"],
   ["U1_tip", "Borde incisal del incisivo superior"], ["U1_apex", "Ápice radicular del incisivo superior"],
+  ["L1_tip", "Borde incisal del incisivo inferior"], ["L1_apex", "Ápice radicular del incisivo inferior"],
 ];
 const REFERENCES: RefRow[] = [
   {key:"SNA",label:"SNA",normal:"82° ± 2°",min:80,max:84,unit:"°",low:"Tendencia a retrusión maxilar.",normalText:"Posición maxilar dentro del intervalo de referencia.",high:"Tendencia a protrusión maxilar."},
@@ -18,6 +21,9 @@ const REFERENCES: RefRow[] = [
   {key:"GoGnSN",label:"Go-Gn / SN",normal:"32° ± 5°",min:27,max:37,unit:"°",low:"Tendencia a patrón horizontal o rotación anterior.",normalText:"Tendencia a patrón mesofacial.",high:"Tendencia a patrón vertical o rotación posterior."},
   {key:"ABGoGn",label:"AB-Go-Gn",normal:"74° ± 2°",min:72,max:76,unit:"°",low:"Tendencia a mordida abierta.",normalText:"Relación vertical maxilomandibular dentro del intervalo.",high:"Tendencia a mordida profunda."},
   {key:"U1SN",label:"Incisivo superior / SN",normal:"104° ± 2°",min:102,max:106,unit:"°",low:"Tendencia a retroinclinación del incisivo superior.",normalText:"Inclinación del incisivo superior dentro del intervalo.",high:"Tendencia a proinclinación del incisivo superior."},
+  {key:"L1NB",label:"Incisivo inferior / NB",normal:"25° ± 4°",min:21,max:29,unit:"°",low:"Tendencia a retroinclinación del incisivo inferior respecto a NB.",normalText:"Inclinación del incisivo inferior respecto a NB dentro de la referencia de trabajo.",high:"Tendencia a proinclinación del incisivo inferior respecto a NB."},
+  {key:"IMPA",label:"IMPA · incisivo inferior / Go-Gn",normal:"90° ± 5°",min:85,max:95,unit:"°",low:"Incisivo inferior más retroinclinado respecto al plano mandibular.",normalText:"Inclinación del incisivo inferior respecto al plano mandibular dentro de la referencia de trabajo.",high:"Incisivo inferior más proinclinado respecto al plano mandibular."},
+  {key:"Interincisal",label:"Ángulo interincisal U1-L1",normal:"131° ± 6°",min:125,max:137,unit:"°",low:"Ángulo interincisal disminuido; mayor convergencia de los ejes incisales.",normalText:"Relación angular interincisal dentro de la referencia de trabajo.",high:"Ángulo interincisal aumentado; menor convergencia de los ejes incisales."},
   {key:"SL",label:"Segmento SL",normal:"51 mm ± 2 mm",min:49,max:53,unit:" mm",low:"Mandíbula corta o posición de Pogonion más retruida.",normalText:"Posición de Pogonion dentro del intervalo de referencia.",high:"Mandíbula larga o posición de Pogonion más adelantada."},
   {key:"SE",label:"Segmento SE",normal:"23 mm ± 2 mm",min:21,max:25,unit:" mm",low:"Cóndilo en posición más adelantada respecto a SN.",normalText:"Posición condilar dentro del intervalo de referencia.",high:"Cóndilo en posición más retrasada respecto a SN."},
 ];
@@ -25,6 +31,12 @@ const distance = (a: XY,b: XY) => Math.hypot(b.x-a.x,b.y-a.y);
 function angleAt(a: XY,v: XY,b: XY) {
   const ax=a.x-v.x, ay=a.y-v.y, bx=b.x-v.x, by=b.y-v.y, den=Math.hypot(ax,ay)*Math.hypot(bx,by);
   if (!den) return null;
+  return Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/den)))*180/Math.PI;
+}
+function angleBetweenAxes(apex1: XY, tip1: XY, apex2: XY, tip2: XY) {
+  const ax=tip1.x-apex1.x, ay=tip1.y-apex1.y, bx=tip2.x-apex2.x, by=tip2.y-apex2.y;
+  const den=Math.hypot(ax,ay)*Math.hypot(bx,by);
+  if(!den)return null;
   return Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/den)))*180/Math.PI;
 }
 function angleLines(a: XY,b: XY,c: XY,d: XY) {
@@ -50,6 +62,9 @@ function calculate(points: PointMap, pxPerMm: number | null) {
   if(p("S")&&p("N")&&p("Go")&&p("Gn")) put("GoGnSN",angleLines(p("S"),p("N"),p("Go"),p("Gn")));
   if(p("A")&&p("B")&&p("Go")&&p("Gn")) put("ABGoGn",angleLines(p("A"),p("B"),p("Go"),p("Gn")));
   if(p("S")&&p("N")&&p("U1_apex")&&p("U1_tip")) put("U1SN",180-angleLines(p("S"),p("N"),p("U1_apex"),p("U1_tip")));
+  if(p("N")&&p("B")&&p("L1_apex")&&p("L1_tip")) put("L1NB",angleLines(p("N"),p("B"),p("L1_apex"),p("L1_tip")));
+  if(p("Go")&&p("Gn")&&p("L1_apex")&&p("L1_tip")) put("IMPA",angleLines(p("Go"),p("Gn"),p("L1_apex"),p("L1_tip")));
+  if(p("U1_apex")&&p("U1_tip")&&p("L1_apex")&&p("L1_tip")) put("Interincisal",angleBetweenAxes(p("U1_apex"),p("U1_tip"),p("L1_apex"),p("L1_tip")));
   const calculated: PointMap = {};
   if(p("S")&&p("N")&&p("Pog")) { const l=project(p("Pog"),p("S"),p("N")); if(l){calculated.L=l;if(pxPerMm)put("SL",distance(p("S"),l)/pxPerMm);} }
   if(p("S")&&p("N")&&p("Co")) { const e=project(p("Co"),p("S"),p("N")); if(e){calculated.E=e;if(pxPerMm)put("SE",distance(p("S"),e)/pxPerMm);} }
@@ -78,7 +93,7 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
     canvas.width=imageSize.width;canvas.height=imageSize.height;const ctx=canvas.getContext("2d");if(!ctx)return;
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
     const palette=getComputedStyle(document.documentElement);const accent=palette.getPropertyValue("--avis-accent").trim()||"#22B8B0";const primary=palette.getPropertyValue("--avis-primary").trim()||"#6D45A6";const plum=palette.getPropertyValue("--avis-plum").trim()||"#48263F";
-    const lines:Array<[string,string]>=[["S","N"],["N","A"],["N","B"],["N","D"],["Ar","Go"],["Go","Me"],["Go","Gn"],["A","B"],["U1_apex","U1_tip"],["S","L"],["S","E"]];
+    const lines:Array<[string,string]>=[["S","N"],["N","A"],["N","B"],["N","D"],["Ar","Go"],["Go","Me"],["Go","Gn"],["A","B"],["U1_apex","U1_tip"],["L1_apex","L1_tip"],["N","B"],["Go","Gn"],["S","L"],["S","E"]];
     ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,imageSize.width/1200);
     for(const [a,b] of lines){const p1=points[a]??result.calculated[a],p2=points[b]??result.calculated[b];if(p1&&p2){ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}}
     for(const [code,p] of Object.entries(points)){const r=Math.max(3,imageSize.width/550);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle=primary;ctx.lineWidth=Math.max(1,imageSize.width/1500);ctx.stroke();ctx.fillStyle=plum;ctx.font=`bold ${Math.max(12,imageSize.width/100)}px system-ui`;ctx.fillText(code,p.x+r+4,p.y-r-4);}
@@ -98,6 +113,20 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
     if(placing){setPoints(prev=>({...prev,[selected]:p}));setPlacing(false);setError("");}
   }
   function removePoint(){setPoints(prev=>{const next={...prev};delete next[selected];return next;});}
+  function exportPdf(){
+    const canvas=canvasRef.current;
+    if(!canvas||!imageSize){setError("Carga una radiografía antes de generar el informe.");return;}
+    try{
+      const paletteId=(()=>{try{return window.localStorage.getItem("avis.palette")??"colibri";}catch{return "colibri";}})();
+      const palette=getAvisPalette(paletteId).colors;
+      const rows=REFERENCES.map(r=>({label:r.label,value:result.values[r.key]===undefined?"Pendiente":result.values[r.key].toFixed(2)+r.unit,reference:r.normal}));
+      const conclusions=REFERENCES.filter(r=>result.values[r.key]!==undefined).map(r=>{const v=result.values[r.key];return `${r.label}: ${v<r.min?r.low:v>r.max?r.high:r.normalText} Resultado: ${v.toFixed(2)}${r.unit}.`;});
+      if(!conclusions.length)conclusions.push("No hay mediciones completas. Coloca los puntos anatómicos requeridos para obtener resultados.");
+      conclusions.push("Interpretación descriptiva generada a partir de los puntos colocados. Las referencias son orientativas y deben validarse según edad, población, método cefalométrico y criterio profesional.");
+      const pdf=buildPhotoReportPdf({title:"Radiografía lateral de cráneo · Análisis cefalométrico de Steiner",mode:"cephalometry",fileName,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",0.92),photoWidth:imageSize.width,photoHeight:imageSize.height,horizontalGuides:false,points,results:rows,conclusions,visualAssessment:{},observations:pxPerMm?`Calibración registrada: ${pxPerMm.toFixed(4)} px/mm. Distancia patrón: ${knownDistance} mm.`:"Sin calibración métrica. Las distancias lineales permanecen pendientes.",professionalConclusion:"Informe de apoyo académico y registro cefalométrico. Verificar la identificación de los puntos, la orientación de los ejes y las referencias antes de tomar decisiones clínicas.",generatedAt:new Date(),palette,reportLabel:"Reporte cefalométrico"});
+      const blob=new Blob([pdf],{type:"application/pdf"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Reporte_Cefalometria_Lateral.pdf";a.click();URL.revokeObjectURL(url);setError("");
+    }catch(e){setError(e instanceof Error?e.message:"No fue posible generar el informe PDF.");}
+  }
   function exportJson(){const payload={application:"AVIS",analysis:"Steiner · radiografía lateral de cráneo",image:{fileName,width:imageSize?.width??null,height:imageSize?.height??null},unit:pxPerMm?"mm_calibrados_y_grados":"px_relativos_y_grados",pixelsPerMm:pxPerMm,calibration:{points:calibrationPoints,knownDistanceMm:Number(knownDistance)||null},points,calculatedPoints:result.calculated,measurements:REFERENCES.map(r=>({key:r.key,label:r.label,value:result.values[r.key]??null,unit:r.unit.trim()||"°",reference:r.normal,status:result.values[r.key]===undefined?"Pendiente":result.values[r.key]<r.min?"Disminuido":result.values[r.key]>r.max?"Aumentado":"Dentro de norma"})),generatedAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Steiner_resultados.json";a.click();URL.revokeObjectURL(url);}
   return <section className="analysis-page">
     <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Reiniciar estudio</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Radiografía lateral de cráneo · Steiner</h1><p>Coloca manualmente los puntos anatómicos. Los cálculos se actualizan conforme completas el trazado.</p></div><span className="module-count">{placed} / {LANDMARKS.length} puntos</span></div>
@@ -124,7 +153,7 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
         <div className="unit-notice">Los ángulos son independientes de la escala. SL y SE requieren calibración válida; sin ella permanecen pendientes.</div>
         <div className="table-wrap"><table><thead><tr><th>Medición</th><th>Resultado</th><th>Referencia</th><th>Estado</th></tr></thead><tbody>{REFERENCES.map(r=>{const v=result.values[r.key];const state=v===undefined?"Pendiente":v<r.min?"Disminuido":v>r.max?"Aumentado":"Dentro de norma";return <tr key={r.key}><td>{r.label}</td><td className="result-value">{v===undefined?"—":v.toFixed(2)+r.unit}</td><td>{r.normal}</td><td>{state}</td></tr>;})}</tbody></table></div>
         <section className="automatic-conclusions"><div className="conclusions-heading"><h3>Lectura descriptiva</h3><span>Referencia de trabajo</span></div><ul>{REFERENCES.filter(r=>result.values[r.key]!==undefined).map(r=>{const v=result.values[r.key];return <li key={r.key}><strong>{r.key}:</strong> {v<r.min?r.low:v>r.max?r.high:r.normalText}</li>;})}</ul>{!Object.keys(result.values).length&&<p className="empty-conclusions">Coloca puntos anatómicos para iniciar los cálculos.</p>}</section>
-        <button className="primary download-button" disabled={!placed} onClick={exportJson}>Descargar resultados (JSON)</button><p className="clinical-note">Apoyo académico para trazado y medición. No constituye diagnóstico autónomo. Confirma puntos, referencias y calibración antes de interpretar. El JSON no incluye la radiografía.</p>
+        <button className="primary download-button" disabled={!imageUrl} onClick={exportPdf}>Descargar informe cefalométrico (PDF)</button><button className="secondary download-button" disabled={!placed} onClick={exportJson}>Descargar datos del análisis (JSON)</button><p className="clinical-note">Apoyo académico para trazado y medición. No constituye diagnóstico autónomo. Confirma puntos, referencias y calibración antes de interpretar. El JSON no incluye la radiografía.</p>
       </aside>
     </div>
   </section>;
