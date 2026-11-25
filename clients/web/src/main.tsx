@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { buildPhotoReportPdf } from "./pdfReport";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -191,6 +192,121 @@ function App() {
     setActivePoint("");
   }
 
+  function createAnnotatedPhoto() {
+    const source = imageRef.current;
+    if (!source) throw new Error("Primero carga la fotografía del análisis.");
+
+    const maxDimension = 1800;
+    const scale = Math.min(1, maxDimension / source.naturalWidth, maxDimension / source.naturalHeight);
+    const width = Math.max(1, Math.round(source.naturalWidth * scale));
+    const height = Math.max(1, Math.round(source.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("No fue posible preparar la fotografía para el reporte.");
+
+    context.drawImage(source, 0, 0, width, height);
+
+    // En el análisis facial frontal se proyecta una guía horizontal por cada punto colocado.
+    if (mode === "facial_frontal") {
+      context.save();
+      context.strokeStyle = "rgba(72, 38, 63, 0.58)";
+      context.lineWidth = Math.max(1, width / 1400);
+      context.setLineDash([Math.max(5, width / 150), Math.max(4, width / 220)]);
+      const horizontalPoints = Object.entries(points).sort((a, b) => a[1].y - b[1].y);
+      for (const [, point] of horizontalPoints) {
+        const y = point.y * scale;
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    if (mode === "smile") {
+      context.save();
+      context.strokeStyle = "#22B8B0";
+      context.lineWidth = Math.max(1.2, width / 1300);
+      for (const [a, b] of [["PUP_R", "PUP_L"], ["LC_R", "LC_L"]]) {
+        const first = points[a];
+        const second = points[b];
+        if (first && second) {
+          context.beginPath();
+          context.moveTo(first.x * scale, first.y * scale);
+          context.lineTo(second.x * scale, second.y * scale);
+          context.stroke();
+        }
+      }
+      context.restore();
+    }
+
+    const radius = Math.max(3, Math.min(6, width / 450));
+    context.font = `bold ${Math.max(14, width / 110)}px system-ui, sans-serif`;
+    context.textBaseline = "middle";
+    for (const [code, point] of Object.entries(points)) {
+      const x = point.x * scale;
+      const y = point.y * scale;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fillStyle = "#FFFFFF";
+      context.fill();
+      context.lineWidth = Math.max(1, width / 1600);
+      context.strokeStyle = "#22B8B0";
+      context.stroke();
+      context.fillStyle = "#48263F";
+      context.fillText(code, x + radius + 5, y - radius - 8);
+    }
+
+    return {
+      dataUrl: canvas.toDataURL("image/jpeg", 0.92),
+      width,
+      height,
+    };
+  }
+
+  function downloadReport() {
+    if (!imageRef.current || !imageSize) {
+      setImageError("Carga la fotografía y coloca los puntos antes de generar el reporte PDF.");
+      return;
+    }
+    try {
+      const photo = createAnnotatedPhoto();
+      const pdfBytes = buildPhotoReportPdf({
+        title: config.title,
+        mode,
+        fileName,
+        status,
+        photoDataUrl: photo.dataUrl,
+        photoWidth: photo.width,
+        photoHeight: photo.height,
+        horizontalGuides: mode === "facial_frontal",
+        points,
+        results,
+        conclusions: automaticConclusions,
+        visualAssessment: visualValues,
+        observations,
+        professionalConclusion: conclusion,
+        generatedAt: new Date(),
+      });
+      const pdfBuffer = pdfBytes.buffer.slice(
+        pdfBytes.byteOffset,
+        pdfBytes.byteOffset + pdfBytes.byteLength,
+      ) as ArrayBuffer;
+      const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `AVIS_${mode}_reporte.pdf`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      setImageError("");
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "No fue posible generar el reporte PDF.");
+    }
+  }
+
   function downloadResults() {
     const payload = {
       application: "AVIS · Análisis Odontológico Integral",
@@ -377,7 +493,8 @@ function App() {
               <div className="form-field"><label htmlFor="status">Estado</label><select id="status" value={status} onChange={(event) => setStatus(event.target.value)}><option>Pendiente</option><option>En proceso</option><option value="Completo" disabled={!canComplete}>Completo</option></select>{!canComplete && <small className="completion-hint">{missingPhotoPoints.length ? "Faltan puntos: " + missingPhotoPoints.slice(0, 6).join(", ") + (missingPhotoPoints.length > 6 ? "…" : "") : ""}{missingPhotoPoints.length && pendingVisualFields.length ? " · " : ""}{pendingVisualFields.length ? "Criterios sin evaluar: " + pendingVisualFields.slice(0, 4).join(", ") + (pendingVisualFields.length > 4 ? "…" : "") : ""}</small>}</div>
               <div className="form-field"><label htmlFor="observations">Observaciones</label><textarea id="observations" rows={3} value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Registra observaciones…" /></div>
               <div className="form-field"><label htmlFor="conclusion">Conclusión profesional</label><textarea id="conclusion" rows={3} value={conclusion} onChange={(event) => setConclusion(event.target.value)} placeholder="Integra aquí tu interpretación profesional…" /></div>
-              <button className="primary download-button" onClick={downloadResults}>Descargar resultados (JSON)</button>
+              <button className="primary download-button" onClick={downloadReport}>Descargar reporte PDF</button>
+              <button className="secondary download-button json-download" onClick={downloadResults}>Descargar resultados (JSON)</button>
               <p className="clinical-note">Herramienta de apoyo para medición y registro. No emite diagnóstico autónomo ni sustituye la valoración profesional. El archivo JSON contiene puntos y resultados, no la fotografía.</p>
             </aside>
           </div>
