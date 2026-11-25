@@ -123,6 +123,10 @@ class CareySpaceDialog(QDialog):
         super().__init__(parent)
         self.existing = existing or {}
         saved = self.existing.get("values", {}) or {}
+        self.legacy_values = dict(saved.get("Registro previo (formato anterior)", {}) or {})
+        for label, value in saved.items():
+            if label not in ("Arcadas", "Método", "Unidad", "Limitación", "Registro previo (formato anterior)") and value not in (None, ""):
+                self.legacy_values[label] = value
         arches = saved.get("Arcadas", {}) or {}
         self.points = {
             arch: {
@@ -174,6 +178,11 @@ class CareySpaceDialog(QDialog):
             "ni asigna indicaciones de extracción."
         )
         self.note.setWordWrap(True)
+        if self.legacy_values:
+            self.note.setText(
+                self.note.text()
+                + " Hay valores manuales de una versión anterior; se conservarán como antecedente."
+            )
         self.nance_note = QLabel(
             "Nance en dentición mixta no se automatiza aquí: requiere estimar el tamaño "
             "de caninos y premolares no erupcionados mediante una fuente radiográfica y "
@@ -371,6 +380,7 @@ class CareySpaceDialog(QDialog):
                     "El método Nance para dentición mixta no está automatizado; "
                     "requiere medición radiográfica corregida de dientes no erupcionados."
                 ),
+                **({"Registro previo (formato anterior)": self.legacy_values} if self.legacy_values else {}),
             },
             self.observations.toPlainText().strip(),
             self.conclusion.toPlainText().strip(),
