@@ -60,10 +60,10 @@ function App() {
     if (!context) return;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, imageSize.width, imageSize.height);
-    context.lineWidth = Math.max(2, imageSize.width / 700);
+    context.lineWidth = Math.max(1, imageSize.width / 1600);
     context.strokeStyle = "#22B8B0";
     context.fillStyle = "#22B8B0";
-    context.font = `bold ${Math.max(15, imageSize.width / 65)}px system-ui, sans-serif`;
+    context.font = `bold ${Math.max(7, imageSize.width / 180)}px system-ui, sans-serif`;
     context.textBaseline = "middle";
 
     if (mode === "smile") {
@@ -79,12 +79,12 @@ function App() {
       }
     }
     for (const [code, point] of Object.entries(points)) {
-      const radius = Math.max(5, imageSize.width / 180);
+      const radius = Math.max(2, imageSize.width / 600);
       context.beginPath();
       context.arc(point.x, point.y, radius, 0, Math.PI * 2);
       context.fillStyle = "#FFFFFF";
       context.fill();
-      context.lineWidth = Math.max(2, imageSize.width / 700);
+      context.lineWidth = Math.max(1, imageSize.width / 1600);
       context.strokeStyle = "#22B8B0";
       context.stroke();
       context.fillStyle = "#48263F";
