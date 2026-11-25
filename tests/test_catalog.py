@@ -75,9 +75,16 @@ def test_intermaxillary_has_two_complete_alternative_study_sources():
     assert "intermaxillary" in keys_for(occlusion_models)
 
 
-def test_baume_requires_complete_primary_dentition_views():
-    assert "baume" not in keys_for({"intra_right", "intra_left"})
-    assert "baume" in keys_for({"intra_right", "intra_left", "intra_frontal"})
+def test_baume_requires_occlusal_arches_and_both_lateral_occlusion_views():
+    assert "baume" not in keys_for({"intra_right", "intra_left", "intra_frontal"})
+    assert "baume" not in keys_for({"intra_upper", "intra_lower", "intra_right"})
+    assert "baume" in keys_for({
+        "intra_upper", "intra_lower", "intra_right", "intra_left"
+    })
+    assert "baume" in keys_for({
+        "model_upper_occlusal", "model_lower_occlusal",
+        "model_both_right", "model_both_left",
+    })
 
 
 def test_maturation_integration_requires_panorama_and_lateral_cephalogram():
