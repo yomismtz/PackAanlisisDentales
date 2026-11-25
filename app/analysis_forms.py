@@ -26,7 +26,7 @@ FIELDS = {
   "Overjet · categoría descriptiva","Sobremordida vertical · categoría descriptiva","Relación transversal",
   "Línea media superior","Línea media inferior","Desviación mandibular al cierre"]],
  "moyers":[(x,"") for x in ["OD 42 (mm)","OD 41 (mm)","OD 31 (mm)","OD 32 (mm)","Suma incisivos inferiores (mm)","Valor tabular Moyers 75 % superior (mm)","Valor tabular Moyers 75 % inferior (mm)","Espacio disponible (mm)","Discrepancia (mm)"]],
- "nance_carey":[(x,"") for x in ["Espacio requerido superior (mm)","Espacio requerido inferior (mm)","Espacio disponible superior (mm)","Espacio disponible inferior (mm)","Discrepancia superior (mm)","Discrepancia inferior (mm)"]],
+ "nance_carey":[(x,"") for x in ["Método de análisis aplicado","Resultado por arcada","Observaciones del trazado"]],
  "tanaka_johnston":[(x,"") for x in ["Suma de incisivos inferiores (mm)","Predicción superior por lado (mm)","Predicción inferior por lado (mm)","Espacio disponible superior (mm)","Espacio disponible inferior (mm)"]],
  "baume":[(x,"") for x in [
   "Tipo de arcada superior","Tipo de arcada inferior",
