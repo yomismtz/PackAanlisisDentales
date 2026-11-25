@@ -286,35 +286,113 @@ class CareySpaceDialog(QDialog):
         self.canvases[arch] = canvas
 
         selector = QComboBox()
-        selector.addItem("Selecciona un punto mesial o distal", "")
+        selector.addItem("Selecciona el punto que deseas corregir", "")
         for tooth in CAREY_TEETH[arch]:
             selector.addItem(f"{tooth} · mesial", f"{tooth}_M")
             selector.addItem(f"{tooth} · distal", f"{tooth}_D")
         self.point_selects[arch] = selector
 
-        place = QPushButton("Colocar / corregir punto")
-        place.clicked.connect(lambda checked=False, key=arch: self._activate_point(key))
-        trace = QPushButton("Trazar perímetro disponible")
+        next_button = QPushButton("Colocar siguiente punto")
+        next_button.clicked.connect(
+            lambda checked=False, key=arch: self._activate_next_point(key)
+        )
+        correct_button = QPushButton("Corregir punto seleccionado")
+        correct_button.clicked.connect(
+            lambda checked=False, key=arch: self._activate_point(key)
+        )
+        trace = QPushButton("Iniciar trazado del perímetro")
         trace.clicked.connect(lambda checked=False, key=arch: self._toggle_trace(key))
         self.trace_buttons[arch] = trace
-        clear = QPushButton("Borrar perímetro")
+        clear = QPushButton("Borrar trazado")
         clear.clicked.connect(lambda checked=False, key=arch: self._clear_trace(key))
 
         row = QHBoxLayout()
         row.addWidget(selector, 2)
-        row.addWidget(place)
-        row.addWidget(trace)
-        row.addWidget(clear)
+        row.addWidget(next_button)
+        row.addWidget(correct_button)
         layout.addLayout(row)
-        layout.addWidget(QLabel(
-            "Marca los extremos mesial y distal de cada uno de los diez dientes 5–5. "
-            "Para el perímetro, coloca varios puntos consecutivos siguiendo la arcada."
-        ))
+
+        progress = QLabel()
+        progress.setWordWrap(True)
+        self.point_progress = getattr(self, "point_progress", {})
+        self.point_progress[arch] = progress
+        layout.addWidget(progress)
+
+        trace_row = QHBoxLayout()
+        trace_row.addWidget(trace)
+        trace_row.addWidget(clear)
+        layout.addLayout(trace_row)
+
+        trace_progress = QLabel()
+        trace_progress.setWordWrap(True)
+        self.trace_progress = getattr(self, "trace_progress", {})
+        self.trace_progress[arch] = trace_progress
+        layout.addWidget(trace_progress)
+
+        instruction = QLabel(
+            "Primero coloca, en orden, mesial y después distal de cada diente: "
+            "15-M, 15-D, 14-M, 14-D… hasta 25-D (o 45-D en la arcada inferior). "
+            "Después inicia el perímetro en mesial del primer molar de un lado y "
+            "coloca puntos sucesivos por la curvatura de la arcada hasta mesial "
+            "del primer molar contrario. Los puntos deben ir siguiendo el arco; "
+            "no traces una cuerda recta ni cierres un círculo."
+        )
+        instruction.setWordWrap(True)
+        layout.addWidget(instruction)
+
         if self.images.get(arch):
             layout.addWidget(canvas, 1)
         else:
             layout.addWidget(QLabel("No se encontró la imagen oclusal de esta arcada."), 1)
         self.tabs.addTab(page, title)
+        self._update_point_progress(arch, choose_next=True)
+        self._update_trace_progress(arch)
+
+    def _update_point_progress(self, arch, choose_next=False):
+        order = carey_point_order(arch)
+        points = self.points[arch]
+        next_code = next_missing_carey_point(points, arch)
+        selector = self.point_selects[arch]
+        if choose_next and next_code:
+            selector.blockSignals(True)
+            index = selector.findData(next_code)
+            if index >= 0:
+                selector.setCurrentIndex(index)
+            selector.blockSignals(False)
+        placed = sum(code in points for code in order)
+        if next_code:
+            tooth, side = next_code.rsplit("_", 1)
+            side_label = "mesial" if side == "M" else "distal"
+            message = (
+                f"Puntos mesiodistales: {placed}/20 · Siguiente: "
+                f"{tooth} {side_label}. Mantén el orden mesial → distal "
+                f"de cada diente."
+            )
+        else:
+            message = (
+                "20/20 puntos mesiodistales colocados. Puedes seleccionar "
+                "cualquiera para corregirlo."
+            )
+        self.point_progress[arch].setText(message)
+
+    def _update_trace_progress(self, arch):
+        count = len(self.traces[arch])
+        if count == 0:
+            message = (
+                "Perímetro: sin puntos. Comienza en mesial del primer molar "
+                "y avanza por el contorno hasta el primer molar del lado opuesto."
+            )
+        elif count < 5:
+            message = (
+                f"Perímetro: {count} puntos. Continúa colocando puntos sobre "
+                "la curva de la arcada para representar el recorrido."
+            )
+        else:
+            message = (
+                f"Perímetro: {count} puntos conectados en orden. "
+                "La línea amarilla representa el recorrido curvo entre ambos lados."
+            )
+        self.trace_progress[arch].setText(message)
 
     def _stop_capture(self):
         if not self.capture:
@@ -322,17 +400,36 @@ class CareySpaceDialog(QDialog):
         arch, mode, _ = self.capture
         self.canvases[arch].set_point_mode(False)
         if mode == "trace":
-            self.trace_buttons[arch].setText("Continuar perímetro")
+            self.trace_buttons[arch].setText("Continuar trazado")
         self.capture = None
+
+    def _activate_next_point(self, arch):
+        code = next_missing_carey_point(self.points[arch], arch)
+        if code is None:
+            QMessageBox.information(
+                self, "Puntos completos",
+                "Ya están colocados los veinte puntos mesiodistales. "
+                "Selecciona un punto y usa «Corregir punto seleccionado» para ajustarlo."
+            )
+            return
+        selector = self.point_selects[arch]
+        index = selector.findData(code)
+        if index >= 0:
+            selector.setCurrentIndex(index)
+        self._activate_point(arch)
 
     def _activate_point(self, arch):
         code = self.point_selects[arch].currentData()
         if not code:
-            QMessageBox.information(self, "Punto", "Selecciona primero el punto dentario.")
+            QMessageBox.information(
+                self, "Punto", "Selecciona primero el punto mesial o distal que vas a corregir."
+            )
             return
         canvas = self.canvases[arch]
         if canvas.pixmap_item is None:
-            QMessageBox.warning(self, "Modelo requerido", "Carga la vista oclusal correspondiente.")
+            QMessageBox.warning(
+                self, "Modelo requerido", "Carga la vista oclusal correspondiente."
+            )
             return
         self._stop_capture()
         canvas.set_point_mode(True)
@@ -342,17 +439,20 @@ class CareySpaceDialog(QDialog):
         if self.capture == (arch, "trace", None):
             self._stop_capture()
             self.update_results()
+            self._update_trace_progress(arch)
             return
         canvas = self.canvases[arch]
         if canvas.pixmap_item is None:
-            QMessageBox.warning(self, "Modelo requerido", "Carga la vista oclusal correspondiente.")
+            QMessageBox.warning(
+                self, "Modelo requerido", "Carga la vista oclusal correspondiente."
+            )
             return
         self._stop_capture()
-        self.traces[arch] = []
         self.capture = (arch, "trace", None)
         canvas.set_point_mode(True)
-        self.trace_buttons[arch].setText("Finalizar perímetro")
+        self.trace_buttons[arch].setText("Finalizar trazado")
         self._redraw(arch)
+        self._update_trace_progress(arch)
 
     def _on_click(self, arch, x, y):
         if not self.capture or self.capture[0] != arch:
