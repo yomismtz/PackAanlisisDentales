@@ -115,6 +115,14 @@ def _analysis_display_rows(key, record):
             ))
         return rows, True
 
+    if key in ("moyers", "tanaka_johnston"):
+        results = values.get("Resultado por hemiarcada", {}) or {}
+        for label, classification in results.items():
+            rows.append((label, classification))
+        if not rows:
+            rows.append(("Resultado", "Pendiente"))
+        return rows, False
+
     if key == "dental_age":
         for label in (
             "Cuadrante", "Sexo", "Edad cronológica · años", "Edad cronológica · meses",
