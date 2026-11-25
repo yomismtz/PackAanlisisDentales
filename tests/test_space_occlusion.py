@@ -2,8 +2,8 @@ from app.catalog import ANALYSES
 from app.completion import analysis_completion_issue
 from app.reports import REPORT_MODULES
 from app.space_analysis import (
-    CAREY_TEETH, MIN_ARCH_TRACE_POINTS, carey_point_order,
-    calculate_carey_arch, next_missing_carey_point, polyline_length,
+    CAREY_TEETH, carey_point_order, calculate_carey_arch,
+    next_missing_carey_point, polyline_length,
 )
 from app.export_report import _analysis_display_rows
 from app.occlusion_analysis import BaumeDialog, IntermaxillaryDialog
@@ -91,14 +91,24 @@ def test_next_missing_carey_point_advances_in_the_required_order():
     assert next_missing_carey_point(complete, "inferior") is None
 
 
-def test_carey_perimeter_requires_multiple_ordered_points_not_a_short_chord():
+def test_carey_perimeter_accepts_two_points_and_keeps_additional_points():
     points = make_carey_points(CAREY_TEETH["superior"])
-    assert calculate_carey_arch(
-        points,
-        [(0, 0), (30, 0), (60, 0), (90, 0)],
-        CAREY_TEETH["superior"],
-    ) is None
-    assert MIN_ARCH_TRACE_POINTS == 5
+    two_points = calculate_carey_arch(
+        points, [(0, 0), (100, 0)], CAREY_TEETH["superior"]
+    )
+    assert two_points is not None
+    assert two_points["available_px"] == 100.0
+
+    dense_curve = [
+        (0, 0), (10, 6), (20, 12), (30, 18), (40, 22),
+        (50, 24), (60, 22), (70, 18), (80, 12), (90, 6), (100, 0),
+    ]
+    dense_result = calculate_carey_arch(
+        points, dense_curve, CAREY_TEETH["superior"]
+    )
+    assert dense_result is not None
+    assert dense_result["available_px"] == round(polyline_length(dense_curve), 2)
+    assert dense_result["available_px"] > 100.0
 
 
 def test_curved_perimeter_length_follows_each_consecutive_point():
@@ -106,11 +116,10 @@ def test_curved_perimeter_length_follows_each_consecutive_point():
     assert polyline_length(curve) > 80.0
 
 
-def test_carey_completion_rejects_only_two_points_for_perimeter():
+def test_carey_completion_accepts_two_point_minimum_without_a_fixed_maximum():
     values = make_carey_values()
     values["Arcadas"]["superior"]["Recorrido disponible"] = [[0, 0], [100, 0]]
-    issue = analysis_completion_issue("nance_carey", values)
-    assert "5 puntos" in issue
+    assert analysis_completion_issue("nance_carey", values) is None
 
 
 def test_carey_compares_available_perimeter_with_ten_tooth_widths():
