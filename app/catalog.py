@@ -27,7 +27,7 @@ ANALYSES = {
  "levandoski":"Análisis de Levandoski","little_upper":"Índice de Little · modelo superior","little_lower":"Índice de Little · modelo inferior","dental_age":"Edad dental · Método de Nolla",
  "maturation_integration":"Integración de maduración","carpal":"Maduración esquelética · radiografía carpal",
  "intermaxillary":"Relaciones intermaxilares","moyers":"Moyers I · 75 %",
- "nance_carey":"Carey · discrepancia de espacio (dentición permanente)","tanaka_johnston":"Tanaka-Johnston",
+ "nance_carey":"Carey mandibular y perímetro maxilar (dentición permanente)","tanaka_johnston":"Tanaka-Johnston",
  "baume":"Baumé","palatal_height":"Altura del paladar","facial_frontal":"Análisis facial frontal",
  "facial_profile":"Análisis facial de perfil","facial_midlines":"Líneas medias",
  "smile":"Análisis de sonrisa","facial_symmetry":"Simetrías horizontales · quintos",
