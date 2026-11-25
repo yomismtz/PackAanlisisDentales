@@ -1,7 +1,10 @@
 from app.catalog import ANALYSES
 from app.completion import analysis_completion_issue
 from app.reports import REPORT_MODULES
-from app.space_analysis import CAREY_TEETH, calculate_carey_arch, polyline_length
+from app.space_analysis import (
+    CAREY_TEETH, MIN_ARCH_TRACE_POINTS, carey_point_order,
+    calculate_carey_arch, next_missing_carey_point, polyline_length,
+)
 from app.export_report import _analysis_display_rows
 from app.occlusion_analysis import BaumeDialog, IntermaxillaryDialog
 from app.ui import Workspace
@@ -20,7 +23,7 @@ def make_carey_values():
     arches = {}
     for arch in ("superior", "inferior"):
         points = make_carey_points(CAREY_TEETH[arch])
-        trace = [[0.0, 0.0], [120.0, 0.0]]
+        trace = [[0.0, 0.0], [30.0, 0.0], [60.0, 0.0], [90.0, 0.0], [120.0, 0.0]]
         result = calculate_carey_arch(points, trace, CAREY_TEETH[arch])
         arches[arch] = {
             "Puntos": points,
@@ -67,10 +70,53 @@ def test_polyline_length_requires_two_distinct_points():
     assert polyline_length([(1, 1), (1, 1)]) is None
 
 
+
+
+def test_carey_landmark_sequence_is_mesial_then_distal_for_each_tooth():
+    order = carey_point_order("superior")
+    assert order[:6] == ("15_M", "15_D", "14_M", "14_D", "13_M", "13_D")
+    assert order[-4:] == ("24_M", "24_D", "25_M", "25_D")
+    assert len(order) == 20
+
+
+def test_next_missing_carey_point_advances_in_the_required_order():
+    points = {"15_M": (1, 1), "15_D": (2, 2), "14_M": (3, 3)}
+    assert next_missing_carey_point(points, "superior") == "14_D"
+    points.update({"14_D": (4, 4)})
+    assert next_missing_carey_point(points, "superior") == "13_M"
+    complete = {
+        code: (index, index)
+        for index, code in enumerate(carey_point_order("inferior"))
+    }
+    assert next_missing_carey_point(complete, "inferior") is None
+
+
+def test_carey_perimeter_requires_multiple_ordered_points_not_a_short_chord():
+    points = make_carey_points(CAREY_TEETH["superior"])
+    assert calculate_carey_arch(
+        points,
+        [(0, 0), (30, 0), (60, 0), (90, 0)],
+        CAREY_TEETH["superior"],
+    ) is None
+    assert MIN_ARCH_TRACE_POINTS == 5
+
+
+def test_curved_perimeter_length_follows_each_consecutive_point():
+    curve = [(0, 0), (20, 10), (40, 20), (60, 10), (80, 0)]
+    assert polyline_length(curve) > 80.0
+
+
+def test_carey_completion_rejects_only_two_points_for_perimeter():
+    values = make_carey_values()
+    values["Arcadas"]["superior"]["Recorrido disponible"] = [[0, 0], [100, 0]]
+    issue = analysis_completion_issue("nance_carey", values)
+    assert "5 puntos" in issue
+
+
 def test_carey_compares_available_perimeter_with_ten_tooth_widths():
     result = calculate_carey_arch(
         make_carey_points(CAREY_TEETH["superior"]),
-        [(0, 0), (120, 0)],
+        [(0, 0), (30, 0), (60, 0), (90, 0), (120, 0)],
         CAREY_TEETH["superior"],
     )
     assert result["available_px"] == 120.0
@@ -82,7 +128,7 @@ def test_carey_compares_available_perimeter_with_ten_tooth_widths():
 def test_carey_reports_deficit_without_assigning_treatment():
     result = calculate_carey_arch(
         make_carey_points(CAREY_TEETH["inferior"]),
-        [(0, 0), (90, 0)],
+        [(0, 0), (22.5, 0), (45, 0), (67.5, 0), (90, 0)],
         CAREY_TEETH["inferior"],
     )
     assert result["discrepancy_px"] == -10.0
@@ -92,7 +138,7 @@ def test_carey_reports_deficit_without_assigning_treatment():
 
 def test_carey_returns_pending_for_missing_tooth_width_or_trace():
     assert calculate_carey_arch(
-        {}, [(0, 0), (100, 0)], CAREY_TEETH["superior"]
+        {}, [(0, 0), (25, 0), (50, 0), (75, 0), (100, 0)], CAREY_TEETH["superior"]
     ) is None
     assert calculate_carey_arch(
         make_carey_points(CAREY_TEETH["superior"]),
