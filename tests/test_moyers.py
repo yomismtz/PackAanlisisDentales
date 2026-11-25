@@ -24,3 +24,5 @@ def test_moyers_discrepancy_interpretation():
     assert value == 2 and "excedente" in label
     value, label = moyers_discrepancy(18,20)
     assert value == -2 and "déficit" in label
+
+# internal scale classification tests follow
