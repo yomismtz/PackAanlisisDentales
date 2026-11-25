@@ -678,6 +678,12 @@ export function summarizePhotoAnalysis(
       );
       if (observation) conclusions.push(observation);
     }
+    for (const label of ["Forma facial", "Tamaño facial"]) {
+      const value = visualValues[label];
+      if (value && value !== "Sin evaluar") {
+        conclusions.push(`${label}: ${value.toLowerCase()}.`);
+      }
+    }
     const contourPairs: Array<[string, string, string]> = [
       ["Cigomático", "Cigomático derecho", "Cigomático izquierdo"],
       ["Ángulo mandibular", "Ángulo mandibular derecho", "Ángulo mandibular izquierdo"],
