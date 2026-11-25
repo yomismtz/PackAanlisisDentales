@@ -5,6 +5,7 @@ import { buildPhotoReportPdf } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
+import Cephalometry from "./Cephalometry";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -19,7 +20,7 @@ import {
 const PHOTO_MODES = Object.keys(PHOTO_CONFIG) as PhotoMode[];
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "photo">("home");
+  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry">("home");
   const [mode, setMode] = useState<PhotoMode>("facial_frontal");
   const [imageUrl, setImageUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -432,18 +433,35 @@ function App() {
               <button disabled>En desarrollo</button>
             </article>
             <article className="module-card module-card-active">
-              <span>02</span><h2>Análisis fotográfico</h2>
+              <span>02</span><h2>Radiografía lateral</h2>
+              <p>Trazado de Steiner, puntos anatómicos, mediciones angulares y calibración para SL y SE.</p>
+              <button className="primary" onClick={() => setScreen("cephalometry")}>Abrir análisis lateral</button>
+            </article>
+            <article className="module-card module-card-active">
+              <span>03</span><h2>Análisis fotográfico</h2>
               <p>Nueve modalidades con carga de fotografía, colocación de puntos, mediciones y criterios visuales.</p>
               <button className="primary" onClick={() => openPhotoAnalysis()}>Abrir análisis fotográfico</button>
             </article>
             <article className="module-card">
-              <span>03</span><h2>Informes</h2>
+              <span>04</span><h2>Panorámica</h2>
+              <p>Formulario sistemático y trazado de Levandoski. En integración para web.</p>
+              <button disabled>Próxima integración</button>
+            </article>
+            <article className="module-card">
+              <span>05</span><h2>Modelos dentales</h2>
+              <p>Little, Moyers, Tanaka-Johnston y análisis de espacio. En integración para web.</p>
+              <button disabled>Próxima integración</button>
+            </article>
+            <article className="module-card">
+              <span>06</span><h2>Informes</h2>
               <p>Integración de informes y respaldos locales.</p>
               <button disabled>En desarrollo</button>
             </article>
           </section>
           <footer className="home-footer">Versión web de prueba. Utiliza fotografías ficticias o desidentificadas.</footer>
         </>
+      ) : screen === "cephalometry" ? (
+        <Cephalometry onBack={returnHome} />
       ) : (
         <section className="analysis-page">
           <div className="analysis-heading">
