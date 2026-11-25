@@ -5,6 +5,7 @@ import {
   calculatePhotoResults,
   PHOTO_CONFIG,
   PHOTO_GUIDES,
+  summarizePhotoAnalysis,
   VISUAL_OPTIONS,
   type PhotoMode,
   type Point,
@@ -35,6 +36,10 @@ function App() {
   const config = PHOTO_CONFIG[mode];
   const visualFields = VISUAL_OPTIONS[config.formula] ?? {};
   const results = useMemo(() => calculatePhotoResults(mode, points), [mode, points]);
+  const automaticConclusions = useMemo(
+    () => summarizePhotoAnalysis(mode, points, visualValues),
+    [mode, points, visualValues],
+  );
   const placedCount = Object.keys(points).length;
   const missingPhotoPoints = config.points.filter((point) => !points[point.code]).map((point) => point.code);
   const pendingVisualFields = Object.keys(visualFields).filter((label) => !visualValues[label] || visualValues[label] === "Sin evaluar");
@@ -201,6 +206,7 @@ function App() {
       unit: "px_relativos",
       points,
       measurements: results,
+      automaticConclusions,
       visualAssessment: visualValues,
       observations,
       professionalConclusion: conclusion,
@@ -333,6 +339,29 @@ function App() {
                   </tbody>
                 </table>
               </div>
+
+              <section className="automatic-conclusions" aria-live="polite">
+                <div className="conclusions-heading">
+                  <h3>Conclusiones descriptivas automáticas</h3>
+                  <span>Interpretación de la tabla</span>
+                </div>
+                {automaticConclusions.length ? (
+                  <ul>
+                    {automaticConclusions.map((item, index) => <li key={index}>{item}</li>)}
+                  </ul>
+                ) : (
+                  <p className="empty-conclusions">Coloca los puntos anatómicos para generar conclusiones a partir de las mediciones.</p>
+                )}
+                <button
+                  className="secondary copy-conclusions"
+                  onClick={() => setConclusion((previous) =>
+                    [previous.trim(), ...automaticConclusions].filter(Boolean).join("\\n")
+                  )}
+                  disabled={!automaticConclusions.length}
+                >
+                  Incorporar al registro profesional
+                </button>
+              </section>
 
               {Object.keys(visualFields).length > 0 && (
                 <div className="visual-box">
