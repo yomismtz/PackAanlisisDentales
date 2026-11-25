@@ -70,7 +70,13 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       const url = String(reader.result ?? "");
       const image = new Image();
       image.onload = () => {
-        setPhotoDataUrl(url);
+        const normalized = document.createElement("canvas");
+        normalized.width = image.naturalWidth;
+        normalized.height = image.naturalHeight;
+        const context = normalized.getContext("2d");
+        if (!context) { setError("No fue posible preparar la imagen panorámica."); return; }
+        context.drawImage(image, 0, 0);
+        setPhotoDataUrl(normalized.toDataURL("image/jpeg", 0.94));
         setImageSize({ width: image.naturalWidth, height: image.naturalHeight });
         setFileName(file.name);
         setError("");
