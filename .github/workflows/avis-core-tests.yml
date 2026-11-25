@@ -22,9 +22,15 @@ permissions:
 jobs:
   python-tests:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install Linux libraries required by Qt/OpenCV
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libglib2.0-0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -48,11 +54,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: clients/web/package.json
-      - name: Install dependencies
-        run: npm install
+          node-version: "22"
+      - name: Generate deterministic npm lockfile
+        run: npm install --package-lock-only
+      - name: Install exact locked dependencies
+        run: npm ci
       - name: Build AVIS web/PWA
         run: npm run build
       - name: Upload web build
@@ -60,5 +66,12 @@ jobs:
         with:
           name: AVIS-Web-PWA
           path: clients/web/dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload npm lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: AVIS-Web-Lockfile
+          path: clients/web/package-lock.json
           if-no-files-found: error
           retention-days: 14
