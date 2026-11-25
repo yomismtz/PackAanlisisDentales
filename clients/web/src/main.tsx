@@ -33,6 +33,8 @@ function App() {
   const [conclusion, setConclusion] = useState("");
   const [status, setStatus] = useState("En proceso");
   const [reportFormat, setReportFormat] = useState<"pdf" | "png" | "jpeg">("pdf");
+  const [paletteAudioNotice, setPaletteAudioNotice] = useState("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [paletteId, setPaletteId] = useState(() => {
     try {
       return window.localStorage.getItem("avis.palette") ?? "colibri";
@@ -46,6 +48,24 @@ function App() {
 
   const config = PHOTO_CONFIG[mode];
   const activePalette = getAvisPalette(paletteId);
+
+  function changePalette(nextId: string) {
+    const nextPalette = getAvisPalette(nextId);
+    setPaletteId(nextPalette.id);
+    setPaletteAudioNotice("");
+
+    // La reproducción ocurre dentro del gesto del selector para cumplir las reglas de autoplay del navegador.
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    const birdAudio = new Audio(`/audio/aves/${nextPalette.audioFile}`);
+    birdAudio.preload = "auto";
+    audioRef.current = birdAudio;
+    void birdAudio.play().catch(() => {
+      setPaletteAudioNotice("El navegador bloqueó el sonido. Comprueba que el dispositivo tenga audio habilitado.");
+    });
+  }
   const visualFields = VISUAL_OPTIONS[config.formula] ?? {};
   const results = useMemo(() => calculatePhotoResults(mode, points), [mode, points]);
   const automaticConclusions = useMemo(
@@ -389,7 +409,7 @@ function App() {
             <select
               id="palette-select"
               value={paletteId}
-              onChange={(event) => setPaletteId(event.target.value)}
+              onChange={(event) => changePalette(event.target.value)}
               aria-label="Seleccionar paleta de colores"
             >
               {AVIS_PALETTES.map((palette) => (
@@ -405,6 +425,7 @@ function App() {
           <span className="local"><i /> DATOS LOCALES</span>
         </div>
       </header>
+      {paletteAudioNotice && <p className="audio-notice" role="status">{paletteAudioNotice}</p>}
 
       {screen === "home" ? (
         <>
