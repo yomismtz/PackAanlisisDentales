@@ -65,8 +65,7 @@ def analysis_completion_issue(key, values):
         if values.get("Método") != "Carey · dentición permanente":
             return "Carey requiere seleccionar el método de dentición permanente."
         from .space_analysis import (
-            CAREY_TEETH, MIN_ARCH_TRACE_POINTS, carey_point_order,
-            calculate_carey_arch,
+            CAREY_TEETH, carey_point_order, calculate_carey_arch,
         )
         arches = values.get("Arcadas", {}) or {}
         for arch in ("superior", "inferior"):
@@ -77,10 +76,11 @@ def analysis_completion_issue(key, values):
             missing = required - set(points)
             if missing:
                 return f"Carey: faltan puntos mesiales/distales en la secuencia de la arcada {arch}."
-            if len(trace) < MIN_ARCH_TRACE_POINTS:
+            if len(trace) < 2:
                 return (
-                    f"Carey: el perímetro de la arcada {arch} requiere al menos "
-                    f"{MIN_ARCH_TRACE_POINTS} puntos siguiendo su curvatura."
+                    f"Carey: agrega al menos dos puntos para iniciar el recorrido "
+                    f"del perímetro de la arcada {arch}; puedes añadir tantos como "
+                    "necesites para seguir su curvatura."
                 )
             if calculate_carey_arch(points, trace, CAREY_TEETH[arch]) is None:
                 return f"Carey: no se pudo calcular la comparación geométrica de la arcada {arch}."
