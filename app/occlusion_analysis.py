@@ -2,6 +2,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QSplitter, QWidget,
     QLabel, QComboBox, QTabWidget, QTextEdit, QPushButton, QDialogButtonBox,
+    QScrollArea,
 )
 from .moyers import MoyersCanvas
 
@@ -88,9 +89,12 @@ class StructuredOcclusionDialog(QDialog):
         right.addWidget(self.conclusion)
         right.addStretch()
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(right_widget)
         split = QSplitter()
         split.addWidget(left_widget)
-        split.addWidget(right_widget)
+        split.addWidget(scroll)
         split.setStretchFactor(0, 3)
         split.setStretchFactor(1, 2)
 
