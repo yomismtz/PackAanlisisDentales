@@ -535,3 +535,288 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
   }
   return rows;
 }
+
+
+function describeBilateralPair(
+  label: string,
+  right: number | null,
+  left: number | null,
+): string | null {
+  if (right === null || left === null) return null;
+  const difference = Math.abs(right - left);
+  const mean = (right + left) / 2;
+  const relative = mean > 0 ? (difference / mean) * 100 : null;
+  if (difference.toFixed(2) === "0.00") {
+    return `${label}: las medidas derecha e izquierda coinciden a la precisión mostrada (${right.toFixed(2)} px).`;
+  }
+  return `${label}: las medidas no coinciden; derecha ${right.toFixed(2)} px e izquierda ${left.toFixed(2)} px. Diferencia: ${difference.toFixed(2)} px${relative === null ? "" : ` (${relative.toFixed(1)} % relativo)`}.`;
+}
+
+function describeProportions(
+  label: string,
+  firstName: string,
+  first: number,
+  secondName: string,
+  second: number,
+): string {
+  const firstRounded = first.toFixed(1);
+  const secondRounded = second.toFixed(1);
+  if (firstRounded === secondRounded) {
+    return `${label}: ${firstName} y ${secondName} presentan proporciones equivalentes a la precisión mostrada (${firstRounded} % cada uno).`;
+  }
+  const larger = first > second ? firstName : secondName;
+  const smaller = first > second ? secondName : firstName;
+  const largerValue = Math.max(first, second);
+  const smallerValue = Math.min(first, second);
+  return `${label}: ${larger} representa una proporción mayor (${largerValue.toFixed(1)} %) que ${smaller} (${smallerValue.toFixed(1)} %).`;
+}
+
+/**
+ * Produce observaciones descriptivas derivadas de los mismos puntos y cálculos
+ * que aparecen en la tabla. No introduce umbrales clínicos nuevos.
+ */
+export function summarizePhotoAnalysis(
+  mode: PhotoMode,
+  points: PointMap,
+  visualValues: Record<string, string> = {},
+): string[] {
+  const conclusions: string[] = [];
+  const cfg = PHOTO_CONFIG[mode];
+
+  if (cfg.formula === "frontal" || cfg.formula === "profile") {
+    const thirdNames = ["Tercio superior", "Tercio medio", "Tercio inferior"];
+    const thirdValues = [
+      getVerticalDistance(points, "Tr", "Of"),
+      getVerticalDistance(points, "Of", "Sn"),
+      getVerticalDistance(points, "Sn", "Me"),
+    ];
+    if (thirdValues.every((value): value is number => value !== null)) {
+      const total = thirdValues.reduce((sum, value) => sum + value, 0);
+      const percentages = proportions(thirdValues);
+      if (total > 0 && percentages) {
+        const ranked = thirdValues
+          .map((value, index) => ({ name: thirdNames[index], value, percent: percentages[index] }))
+          .sort((a, b) => b.value - a.value);
+        const largest = ranked.filter((item) => item.percent.toFixed(1) === ranked[0].percent.toFixed(1));
+        const smallest = ranked.filter((item) => item.percent.toFixed(1) === ranked[2].percent.toFixed(1));
+        const largestNames = largest.map((item) => item.name.toLowerCase()).join(" y ");
+        const smallestNames = smallest.map((item) => item.name.toLowerCase()).join(" y ");
+        if (new Set(percentages.map((value) => value.toFixed(1))).size === 1) {
+          conclusions.push(
+            `Los tres tercios presentan proporciones equivalentes a la precisión mostrada: ${percentages.map((value) => value.toFixed(1) + " %").join(", ")}.`,
+          );
+        } else {
+          conclusions.push(
+            `${largestNames.charAt(0).toUpperCase() + largestNames.slice(1)} ${largest.length > 1 ? "comparten" : "es"} ${largest.length > 1 ? "la mayor proporción" : "el de mayor dimensión vertical"} (${largest.map((item) => item.value.toFixed(2) + " px / " + item.percent.toFixed(1) + " %").join(" y ")}).`,
+          );
+          conclusions.push(
+            `${smallestNames.charAt(0).toUpperCase() + smallestNames.slice(1)} ${smallest.length > 1 ? "comparten" : "es"} ${smallest.length > 1 ? "la menor proporción" : "el de menor dimensión vertical"} (${smallest.map((item) => item.value.toFixed(2) + " px / " + item.percent.toFixed(1) + " %").join(" y ")}).`,
+          );
+          conclusions.push(
+            `Las proporciones de los tres tercios no coinciden entre sí. La diferencia entre el mayor y el menor es ${(ranked[0].percent - ranked[2].percent).toFixed(1)} puntos porcentuales.`,
+          );
+        }
+      }
+    }
+
+    const totalNm = getVerticalDistance(points, "N", "Me");
+    const ns = getVerticalDistance(points, "N", "Sn");
+    const sm = getVerticalDistance(points, "Sn", "Me");
+    if (totalNm && ns !== null && sm !== null) {
+      conclusions.push(
+        describeProportions("Dentro del segmento N–Me", "N–Sn", (ns / totalNm) * 100, "Sn–Me", (sm / totalNm) * 100),
+      );
+    }
+
+    if (points.Sn && points.Sts && points.Sti && points.Me) {
+      const stomionY = (points.Sts.y + points.Sti.y) / 2;
+      const snSt = Math.abs(stomionY - points.Sn.y);
+      const stMe = Math.abs(points.Me.y - stomionY);
+      const sum = snSt + stMe;
+      if (sum > 0) {
+        conclusions.push(
+          describeProportions("Relación subnasal–mentón", "Sn–St", (snSt / sum) * 100, "St–Me", (stMe / sum) * 100),
+        );
+      }
+    }
+  } else if (cfg.formula === "symmetry") {
+    const comparisons: Array<[string, [string, string], [string, string]]> = [
+      ["Quintos laterales", ["F_R", "CL_R"], ["CL_L", "F_L"]],
+      ["Quintos oculares", ["CL_R", "CM_R"], ["CM_L", "CL_L"]],
+    ];
+    for (const [label, rightPair, leftPair] of comparisons) {
+      const observation = describeBilateralPair(
+        label,
+        getDistance(points, rightPair[0], rightPair[1]),
+        getDistance(points, leftPair[0], leftPair[1]),
+      );
+      if (observation) conclusions.push(observation);
+    }
+    if (!conclusions.length) {
+      conclusions.push("Aún faltan puntos para comparar las medidas bilaterales de los quintos faciales.");
+    } else if (conclusions.some((item) => item.includes("no coinciden"))) {
+      conclusions.push("En los segmentos bilaterales comparados se registran diferencias geométricas; esto describe los segmentos marcados y no determina por sí solo la simetría clínica de todo el rostro.");
+    } else {
+      conclusions.push("Los segmentos bilaterales comparados coinciden a la precisión mostrada; esto no equivale a una certificación de simetría facial completa.");
+    }
+  } else if (cfg.formula === "contour") {
+    const comparisons: Array<[string, [string, string], [string, string]]> = [
+      ["Segmento cigomático–ángulo mandibular", ["ZG_R", "MA_R"], ["ZG_L", "MA_L"]],
+      ["Segmento ángulo–cuerpo mandibular", ["MA_R", "CB_R"], ["MA_L", "CB_L"]],
+      ["Segmento cuerpo mandibular–mentón", ["CB_R", "ME_R"], ["CB_L", "ME_L"]],
+    ];
+    for (const [label, rightPair, leftPair] of comparisons) {
+      const observation = describeBilateralPair(
+        label,
+        getDistance(points, rightPair[0], rightPair[1]),
+        getDistance(points, leftPair[0], leftPair[1]),
+      );
+      if (observation) conclusions.push(observation);
+    }
+    const contourPairs: Array<[string, string, string]> = [
+      ["Cigomático", "Cigomático derecho", "Cigomático izquierdo"],
+      ["Ángulo mandibular", "Ángulo mandibular derecho", "Ángulo mandibular izquierdo"],
+      ["Cuerpo mandibular", "Cuerpo mandibular derecho", "Cuerpo mandibular izquierdo"],
+      ["Mentón", "Mentón derecho", "Mentón izquierdo"],
+      ["Base alar", "Base alar derecha", "Base alar izquierda"],
+    ];
+    for (const [label, rightKey, leftKey] of contourPairs) {
+      const rightValue = visualValues[rightKey];
+      const leftValue = visualValues[leftKey];
+      if (rightValue && leftValue && rightValue !== "Sin evaluar" && leftValue !== "Sin evaluar") {
+        conclusions.push(
+          rightValue === leftValue
+            ? `${label}: la descripción visual registrada coincide en ambos lados (${rightValue.toLowerCase()}).`
+            : `${label}: las descripciones visuales derecha e izquierda no coinciden (${rightValue.toLowerCase()} / ${leftValue.toLowerCase()}).`,
+        );
+      }
+    }
+    if (!conclusions.length) conclusions.push("Coloca los puntos bilaterales y registra los criterios visuales para comparar ambos lados del contorno.");
+  } else if (cfg.formula === "smile") {
+    const { PUP_R, PUP_L, LC_R, LC_L } = points;
+    if (PUP_R && PUP_L && LC_R && LC_L) {
+      const difference = angleDifference(PUP_R, PUP_L, LC_R, LC_L);
+      if (difference !== null) {
+        conclusions.push(
+          difference.toFixed(2) === "0.00"
+            ? "La línea bipupilar y la línea comisural son paralelas a la precisión mostrada (diferencia angular 0.00°)."
+            : `La línea bipupilar y la línea comisural no son paralelas; la diferencia angular registrada es de ${difference.toFixed(2)}°.`,
+        );
+      }
+    } else {
+      conclusions.push("Faltan puntos pupilares o comisurales para comparar la inclinación de ambas líneas.");
+    }
+  } else if (cfg.formula === "midlines") {
+    if (points.ICD && points.ICI && points.LS) {
+      const bridge = {
+        x: (points.ICD.x + points.ICI.x) / 2,
+        y: (points.ICD.y + points.ICI.y) / 2,
+      };
+      const vx = points.LS.x - bridge.x;
+      const vy = points.LS.y - bridge.y;
+      const norm = Math.hypot(vx, vy);
+      if (norm > 0) {
+        const landmarks: Array<[string, string]> = [
+          ["Punta nasal", "NAR"],
+          ["Filtro", "LS"],
+          ["Mentón", "MENT"],
+          ["Línea media incisivos superiores", "UIS"],
+          ["Línea media incisivos inferiores", "LIS"],
+        ];
+        const deviations = landmarks.flatMap(([label, key]) => {
+          const point = points[key];
+          if (!point) return [];
+          const signed = (vx * (point.y - bridge.y) - vy * (point.x - bridge.x)) / norm;
+          return [{ label, signed }];
+        });
+        const displaced = deviations.filter((item) => Math.abs(item.signed) >= 0.01);
+        if (displaced.length) {
+          conclusions.push(
+            `Puntos que se apartan del eje puente nasal–labio superior: ${displaced.map((item) => `${item.label} (${item.signed >= 0 ? "+" : ""}${item.signed.toFixed(2)} px)`).join("; ")}.`,
+          );
+        } else if (deviations.length) {
+          conclusions.push("Los puntos de línea media colocados coinciden con el eje de referencia a la precisión de 0.01 px.");
+        }
+      }
+    }
+    if (!conclusions.length) conclusions.push("Coloca los puntos intercantales y el centro del labio superior para establecer el eje de referencia de las líneas medias.");
+  } else if (cfg.formula === "levels") {
+    for (const measure of cfg.measures) {
+      const a = points[measure.a];
+      const b = points[measure.b];
+      if (!a || !b) continue;
+      const inclination = lineInclination(a, b);
+      if (inclination === null) continue;
+      const verticalDifference = Math.abs(b.y - a.y);
+      conclusions.push(
+        verticalDifference.toFixed(2) === "0.00"
+          ? `${measure.label}: los dos puntos se encuentran al mismo nivel vertical en la imagen.`
+          : `${measure.label}: se registra un desnivel vertical de ${verticalDifference.toFixed(2)} px y una inclinación de ${inclination.toFixed(2)}°.`,
+      );
+    }
+    if (!conclusions.length) conclusions.push("Coloca los pares de puntos anatómicos para describir los niveles faciales.");
+  } else if (cfg.formula === "powell") {
+    const measurements: Array<[string, string, string, string, number, number]> = [
+      ["Nasofrontal", "G", "N", "R", 115, 130],
+      ["Nasomentón", "Prn", "Pg", "N", 120, 132],
+      ["Mentocervical", "N", "Pg", "C", 80, 95],
+    ];
+    for (const [label, a, b, c, min, max] of measurements) {
+      const value = getAngle(points, a, b, c);
+      if (value === null) continue;
+      const position = value < min ? "por debajo" : value > max ? "por encima" : "dentro";
+      conclusions.push(
+        `Ángulo ${label.toLowerCase()}: ${value.toFixed(2)}°; se encuentra ${position} del intervalo de referencia mostrado en la tabla (${min}°–${max}°).`,
+      );
+    }
+    const mesofacial = getAngle(points, "N", "Pg", "Prn");
+    if (mesofacial !== null) {
+      conclusions.push(
+        `Ángulo mesofacial: ${mesofacial.toFixed(2)}°. La tabla muestra referencias distintas por sexo (mujer 30° y hombre 40°); selecciona la referencia correspondiente antes de interpretarlo.`,
+      );
+    }
+    if (!conclusions.length) conclusions.push("Faltan puntos anatómicos para calcular los ángulos del análisis de Powell.");
+  } else if (cfg.formula === "projections") {
+    if (points.N) {
+      const projections: Array<[string, string]> = [
+        ["Glabela", "G"],
+        ["Reborde orbitario", "OR"],
+        ["Pómulo", "MAL"],
+        ["Punto subpupilar", "SUBP"],
+        ["Base basal", "BB"],
+        ["Labio superior", "LS"],
+        ["Punta nasal", "PRN"],
+        ["Labio inferior", "LI"],
+        ["Pogonion", "PG"],
+      ];
+      const placed = projections.flatMap(([label, key]) => {
+        const point = points[key];
+        return point ? [{ label, offset: point.x - points.N.x }] : [];
+      });
+      if (placed.length) {
+        conclusions.push(
+          `Proyecciones horizontales respecto a la vertical que pasa por N (eje de la imagen): ${placed.map((item) => `${item.label} ${item.offset >= 0 ? "+" : ""}${item.offset.toFixed(2)} px`).join("; ")}.`,
+        );
+      }
+    }
+    if (!conclusions.length) conclusions.push("Coloca Nasion blando y los puntos de proyección para obtener sus desviaciones horizontales relativas.");
+  }
+
+  const recordedVisualValues = Object.entries(visualValues).filter(
+    ([, value]) => Boolean(value) && value !== "Sin evaluar",
+  );
+  if (recordedVisualValues.length && cfg.formula !== "contour") {
+    conclusions.push(
+      "Criterios visuales registrados: " +
+        recordedVisualValues.map(([label, value]) => `${label}: ${value.toLowerCase()}`).join("; ") +
+        ".",
+    );
+  }
+
+  if (conclusions.length) {
+    conclusions.push(
+      "Interpretación descriptiva basada en los puntos colocados y las medidas relativas de esta fotografía. No aplica umbrales clínicos automáticos ni sustituye la valoración profesional.",
+    );
+  }
+  return conclusions;
+}
