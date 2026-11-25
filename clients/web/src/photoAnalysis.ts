@@ -718,7 +718,6 @@ export function summarizePhotoAnalysis(
       if (norm > 0) {
         const landmarks: Array<[string, string]> = [
           ["Punta nasal", "NAR"],
-          ["Filtro", "LS"],
           ["Mentón", "MENT"],
           ["Línea media incisivos superiores", "UIS"],
           ["Línea media incisivos inferiores", "LIS"],
@@ -730,6 +729,7 @@ export function summarizePhotoAnalysis(
           return [{ label, signed }];
         });
         const displaced = deviations.filter((item) => Math.abs(item.signed) >= 0.01);
+        conclusions.push("El punto LS (filtro / centro del labio superior) define el eje de referencia y no se interpreta como una desviación independiente.");
         if (displaced.length) {
           conclusions.push(
             `Puntos que se apartan del eje puente nasal–labio superior: ${displaced.map((item) => `${item.label} (${item.signed >= 0 ? "+" : ""}${item.signed.toFixed(2)} px)`).join("; ")}.`,
