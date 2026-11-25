@@ -17,6 +17,8 @@ export default defineConfig({
       icons: [{ src: '/avis-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]
     },
     workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] }
-  })],
+  
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+})],
   server: { host: '0.0.0.0' }
 });
