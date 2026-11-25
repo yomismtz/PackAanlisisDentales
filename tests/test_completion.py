@@ -44,7 +44,7 @@ def test_photo_analysis_requires_all_defined_landmarks():
     points = {code: [index, index] for index, (code, _) in enumerate(CONFIG[key]["points"])}
     assert analysis_completion_issue(key, {"Puntos": points}) is None
     points.pop(next(iter(points)))
-    assert "Faltan puntos" in analysis_completion_issue(key, {"Puntos": points})
+    assert "faltan puntos" in analysis_completion_issue(key, {"Puntos": points}).lower()
 
 
 def test_photo_visual_criteria_must_be_evaluated():
