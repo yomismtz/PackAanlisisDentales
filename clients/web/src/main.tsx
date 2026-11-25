@@ -116,7 +116,7 @@ function App() {
       context.fillStyle = activePalette.colors.plum;
       context.fillText(code, point.x + radius + 5, point.y - radius - 8);
     }
-  }, [imageUrl, imageSize, points, mode]);
+  }, [imageUrl, imageSize, points, mode, activePalette.id]);
 
   function clearImage() {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -396,6 +396,11 @@ function App() {
                 <option key={palette.id} value={palette.id}>{palette.bird} {palette.name}</option>
               ))}
             </select>
+            <span className="palette-swatches" aria-label="Colores de la paleta activa">
+              {[activePalette.colors.plum, activePalette.colors.primary, activePalette.colors.accent, activePalette.colors.mint].map((value) => (
+                <i key={value} style={{ backgroundColor: value }} />
+              ))}
+            </span>
           </label>
           <span className="local"><i /> DATOS LOCALES</span>
         </div>
