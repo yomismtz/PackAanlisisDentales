@@ -40,7 +40,7 @@ def analysis_completion_issue(key, values):
             return "Nolla requiere sexo y una edad estimada dentro del rango de referencia."
         return None
     if key=="cervical_maturation":
-        return None if values.get("Estadio vertebral") in {"CS1","CS2","CS3","CS4","CS5","CS6"} else "Selecciona un estadio cervical CS1–CS6."
+        return None if values.get("Estadio vertebral") in {"CS1","CS2","CS3","CS4","CS5","CS6","No evaluable"} else "Selecciona un estadio CS1–CS6 o registra que la imagen no es evaluable."
     if key=="levandoski":
         from .levandoski import POINTS
         points=values.get("Puntos",{}) or {}
