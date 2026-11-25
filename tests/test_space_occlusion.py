@@ -31,7 +31,11 @@ def make_carey_values():
             "Espacio disponible px": result["available_px"],
             "Espacio requerido px": result["required_px"],
             "Discrepancia px": result["discrepancy_px"],
+            "Cobertura dentaria (%)": result["coverage_percent"],
+            "Déficit relativo (%)": result["deficit_percent"],
+            "Excedente relativo (%)": result["excess_percent"],
             "Resultado": result["classification"],
+            "Conclusión automática": result["conclusion"],
         }
     return {
         "Método": "Carey · dentición permanente",
@@ -132,6 +136,10 @@ def test_carey_compares_available_perimeter_with_ten_tooth_widths():
     assert result["required_px"] == 100.0
     assert result["discrepancy_px"] == 20.0
     assert result["classification"] == "Exceso de espacio relativo"
+    assert result["coverage_percent"] == 120.0
+    assert result["deficit_percent"] == 0.0
+    assert result["excess_percent"] == 20.0
+    assert "no se estima déficit" in result["conclusion"].lower()
 
 
 def test_carey_reports_deficit_without_assigning_treatment():
@@ -142,7 +150,24 @@ def test_carey_reports_deficit_without_assigning_treatment():
     )
     assert result["discrepancy_px"] == -10.0
     assert result["classification"] == "Déficit de espacio relativo"
+    assert result["coverage_percent"] == 90.0
+    assert result["deficit_percent"] == 10.0
+    assert result["excess_percent"] == 0.0
+    assert "apiñamiento geométrico relativo" in result["conclusion"].lower()
+    assert "cubre 90.0%" in result["conclusion"]
     assert "extracción" not in result["classification"].lower()
+
+
+def test_carey_detects_relative_geometric_balance():
+    result = calculate_carey_arch(
+        make_carey_points(CAREY_TEETH["superior"]),
+        [(0, 0), (25, 0), (50, 0), (75, 0), (100, 0)],
+        CAREY_TEETH["superior"],
+    )
+    assert result["coverage_percent"] == 100.0
+    assert result["deficit_percent"] == 0.0
+    assert result["excess_percent"] == 0.0
+    assert result["classification"] == "Equilibrio geométrico relativo"
 
 
 def test_carey_returns_pending_for_missing_tooth_width_or_trace():
@@ -195,6 +220,8 @@ def test_carey_pdf_summary_omits_raw_landmark_coordinates():
     assert "120.0" in rendered
     assert "15_M" not in rendered
     assert "Recorrido disponible" not in rendered
+    assert "Déficit relativo respecto al material dentario (%)" in rendered
+    assert "Conclusión automática" in rendered
 
 
 def test_baume_pdf_summary_exports_classifications_only():
