@@ -3,6 +3,8 @@ from app.completion import analysis_completion_issue
 from app.reports import REPORT_MODULES
 from app.space_analysis import CAREY_TEETH, calculate_carey_arch, polyline_length
 from app.export_report import _analysis_display_rows
+from app.occlusion_analysis import BaumeDialog, IntermaxillaryDialog
+from app.ui import Workspace
 
 
 def make_carey_points(teeth, width=10.0):
@@ -146,3 +148,34 @@ def test_intermaxillary_pdf_summary_exports_structured_findings():
     rendered = " ".join(str(value) for row in rows for value in row)
     assert "Relación molar derecha" in rendered
     assert "Sobremordida vertical" in rendered
+
+
+def test_dedicated_dialogs_and_workspace_routing_import():
+    assert BaumeDialog.TITLE.endswith("Baumé")
+    assert IntermaxillaryDialog.TITLE.endswith("intermaxilares")
+    assert callable(Workspace.open_analysis_item)
+
+
+def test_baume_form_exposes_both_arches_and_bilateral_terminal_planes():
+    labels = {
+        label
+        for _, definitions in BaumeDialog.GROUPS
+        for label, _ in definitions
+    }
+    assert {
+        "Tipo de arcada superior", "Tipo de arcada inferior",
+        "Plano terminal derecho", "Plano terminal izquierdo",
+    } <= labels
+
+
+def test_intermaxillary_form_exposes_sagittal_vertical_and_transverse_fields():
+    labels = {
+        label
+        for _, definitions in IntermaxillaryDialog.GROUPS
+        for label, _ in definitions
+    }
+    assert {
+        "Relación molar derecha", "Relación canina izquierda",
+        "Overjet", "Sobremordida vertical", "Relación transversal",
+        "Línea media superior", "Línea media inferior",
+    } <= labels
