@@ -6,6 +6,7 @@ import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
 import Cephalometry from "./Cephalometry";
+import Panoramic from "./Panoramic";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -20,7 +21,7 @@ import {
 const PHOTO_MODES = Object.keys(PHOTO_CONFIG) as PhotoMode[];
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry">("home");
+  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry" | "panoramic">("home");
   const [mode, setMode] = useState<PhotoMode>("facial_frontal");
   const [imageUrl, setImageUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -445,7 +446,7 @@ function App() {
             <article className="module-card">
               <span>04</span><h2>Panorámica</h2>
               <p>Formulario sistemático y trazado de Levandoski. En integración para web.</p>
-              <button disabled>Próxima integración</button>
+              <button className="primary" onClick={() => setScreen("panoramic")}>Abrir análisis panorámico</button>
             </article>
             <article className="module-card">
               <span>05</span><h2>Modelos dentales</h2>
@@ -462,6 +463,8 @@ function App() {
         </>
       ) : screen === "cephalometry" ? (
         <Cephalometry onBack={returnHome} />
+      ) : screen === "panoramic" ? (
+        <Panoramic onBack={returnHome} />
       ) : (
         <section className="analysis-page">
           <div className="analysis-heading">
