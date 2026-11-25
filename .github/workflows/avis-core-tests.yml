@@ -7,6 +7,7 @@ on:
     branches: [develop/desktop-foundation]
     paths:
       - "app/**"
+      - "avis_core/**"
       - "tests/**"
       - "clients/**"
       - "docs/**"
