@@ -1189,68 +1189,117 @@ class MediaRow(QFrame):
 
 class Workspace(QWidget):
     def __init__(self,db,pid,back):
-        super().__init__(); self.db=db; self.pid=pid; self.back=back; self.patient=db.get_patient(pid); self.rows={}\n        self.available_analysis_keys=set()
-        if not self.patient: raise ValueError("No se encontró el expediente.")
+        super().__init__()
+        self.db=db; self.pid=pid; self.back=back
+        self.patient=db.get_patient(pid); self.rows={}
+        self.available_analysis_keys=set()
+        if not self.patient:
+            raise ValueError("No se encontró el expediente.")
         head=QHBoxLayout(); btn=QPushButton("← Expedientes"); btn.clicked.connect(back)
-        title=QLabel(f"{self.patient['full_name']}  ·  {self.patient['record_number']}"); title.setStyleSheet("font-size:16pt;font-weight:700")
+        title=QLabel(f"{self.patient['full_name']}  ·  {self.patient['record_number']}")
+        title.setStyleSheet("font-size:16pt;font-weight:700")
         pdf=QPushButton("Exportar informe PDF"); pdf.clicked.connect(self.export_pdf)
         head.addWidget(btn); head.addWidget(title,1); head.addWidget(pdf)
-        self.tabs=QTabWidget(); self.files=self.build_files(); self.analyses=QListWidget()
+        self.tabs=QTabWidget()
+        self.files=self.build_files()
+        self.analyses=QListWidget()
         self.analyses.itemDoubleClicked.connect(self.open_analysis_item)
-        self.tabs.addTab(self.build_overview(),"Resumen"); self.tabs.addTab(self.files,"Radiografías, fotografías y modelos")
-        page=QWidget(); pl=QVBoxLayout(page); pl.addWidget(QLabel("Los análisis disponibles se activan al cargar el estudio correspondiente.")); pl.addWidget(self.analyses)
-        openbtn=QPushButton("Abrir análisis seleccionado"); openbtn.clicked.connect(self.open_selected); pl.addWidget(openbtn)
+        self.tabs.addTab(self.build_overview(),"Resumen")
+        self.tabs.addTab(self.files,"Radiografías, fotografías y modelos")
+        page=QWidget(); pl=QVBoxLayout(page)
+        pl.addWidget(QLabel("Los análisis se habilitan cuando están cargadas todas las vistas necesarias."))
+        pl.addWidget(self.analyses)
+        openbtn=QPushButton("Abrir análisis seleccionado")
+        openbtn.clicked.connect(self.open_selected); pl.addWidget(openbtn)
         self.tabs.addTab(page,"Análisis")
         self.reports_page=ReportsPage(self)
         self.tabs.addTab(self.reports_page,"Informes")
-        l=QVBoxLayout(self); l.addLayout(head); l.addWidget(self.tabs,1); self.refresh()
+        layout=QVBoxLayout(self); layout.addLayout(head); layout.addWidget(self.tabs,1)
+        self.refresh()
+
     def build_overview(self):
-        w=QWidget(); l=QVBoxLayout(w); self.summary=QLabel(); self.summary.setWordWrap(True); l.addWidget(self.summary)
-        for label,key in [("Nacimiento","birth_date"),("Sexo","sex"),("Teléfono","phone"),("Correo","email"),("Notas","notes")]:
-            l.addWidget(QLabel(label+": "+(self.patient.get(key) or "—")))
-        go=QPushButton("Comenzar carga de estudios"); go.clicked.connect(lambda:self.tabs.setCurrentWidget(self.files)); l.addWidget(go); l.addStretch()
-        return w
+        widget=QWidget(); layout=QVBoxLayout(widget)
+        self.summary=QLabel(); self.summary.setWordWrap(True); layout.addWidget(self.summary)
+        for label,key in [
+            ("Nacimiento","birth_date"),("Sexo","sex"),("Teléfono","phone"),
+            ("Correo","email"),("Notas","notes")
+        ]:
+            layout.addWidget(QLabel(label+": "+(self.patient.get(key) or "—")))
+        go=QPushButton("Comenzar carga de estudios")
+        go.clicked.connect(lambda:self.tabs.setCurrentWidget(self.files))
+        layout.addWidget(go); layout.addStretch()
+        return widget
+
     def build_files(self):
-        w=QWidget(); l=QVBoxLayout(w); scroll=QScrollArea(); scroll.setWidgetResizable(True); inner=QWidget(); il=QVBoxLayout(inner)
+        widget=QWidget(); layout=QVBoxLayout(widget)
+        scroll=QScrollArea(); scroll.setWidgetResizable(True)
+        inner=QWidget(); inner_layout=QVBoxLayout(inner)
         for group,slots in GROUPS:
-            box=QGroupBox(group); bl=QVBoxLayout(box)
+            box=QGroupBox(group); box_layout=QVBoxLayout(box)
             for slot in slots:
-                row=MediaRow(self,slot); self.rows[slot.key]=row; bl.addWidget(row)
-            il.addWidget(box)
-        il.addStretch(); scroll.setWidget(inner); l.addWidget(QLabel("En cada vista puedes subir un archivo o tomar una fotografía con la cámara conectada.")); l.addWidget(scroll)
-        return w
+                row=MediaRow(self,slot)
+                self.rows[slot.key]=row
+                box_layout.addWidget(row)
+            inner_layout.addWidget(box)
+        inner_layout.addStretch(); scroll.setWidget(inner)
+        layout.addWidget(QLabel("En cada vista puedes subir un archivo o tomar una fotografía con una cámara conectada."))
+        layout.addWidget(scroll)
+        return widget
+
     def add_file(self,slot,src):
         try:
-            stored=import_media(self.pid,src,slot); self.db.add_media(self.pid,slot,stored,stored,Path(src).name); self.refresh()
-        except Exception as e: QMessageBox.critical(self,"No se pudo guardar",str(e))
+            stored=import_media(self.pid,src,slot)
+            self.db.add_media(self.pid,slot,stored,stored,Path(src).name)
+            self.refresh()
+        except Exception as exc:
+            QMessageBox.critical(self,"No se pudo guardar",str(exc))
+
     def refresh(self):
-        media_items = self.db.media_for_patient(self.pid)
-        available = analyses_for_available_slots(item["slot_key"] for item in media_items)
-        self.available_analysis_keys = {key for key, _ in available}
-        for row in self.rows.values(): row.refresh()
-        required=[s for _,group in GROUPS for s in group if s.required]
-        done=sum(bool(self.db.get_media_for_slot(self.pid,s.key)) for s in required)
+        media_items=self.db.media_for_patient(self.pid)
+        available=analyses_for_available_slots(item["slot_key"] for item in media_items)
+        self.available_analysis_keys={key for key,_ in available}
+        for row in self.rows.values():
+            row.refresh()
+        required=[slot for _,group in GROUPS for slot in group if slot.required]
+        done=sum(bool(self.db.get_media_for_slot(self.pid,slot.key)) for slot in required)
         counts=self.db.counts_for_patient(self.pid)
-        self.summary.setText(f"Vistas requeridas cargadas: {done}/{len(required)}\\nArchivos: {counts['media']} · Análisis registrados: {counts['analyses']} · Completos: {counts['complete']}\\nLos archivos anteriores de una vista se conservan como historial.")
-        self.analyses.clear(); saved=self.db.analysis_for_patient(self.pid)
+        self.summary.setText(
+            f"Vistas requeridas cargadas: {done}/{len(required)}\\n"
+            f"Archivos: {counts['media']} · Análisis registrados: {counts['analyses']} · "
+            f"Completos: {counts['complete']}\\n"
+            "Los archivos anteriores de una vista se conservan como historial."
+        )
+        saved=self.db.analysis_for_patient(self.pid)
+        self.analyses.clear()
         for key,title in available:
-            entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}"); entry.setData(Qt.ItemDataRole.UserRole,key); self.analyses.addItem(entry)
-        if hasattr(self, "reports_p    def open_slot(self,slot):
+            entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}")
+            entry.setData(Qt.ItemDataRole.UserRole,key)
+            self.analyses.addItem(entry)
+        if hasattr(self,"reports_page"):
+            self.reports_page.refresh()
+
+    def open_slot(self,slot):
         options=[key for key,_ in analyses_for_slot(slot) if key in self.available_analysis_keys]
-        if not options:return
+        if not options:
+            return
         preferred={
             "model_upper_occlusal":"little_upper",
             "model_lower_occlusal":"little_lower",
         }.get(slot)
         key=preferred if preferred in options else options[0]
-        for i in range(self.analyses.count()):
-            item=self.analyses.item(i)
+        for index in range(self.analyses.count()):
+            item=self.analyses.item(index)
             if item.data(Qt.ItemDataRole.UserRole)==key:
-                self.analyses.setCurrentItem(item); break
-        self.tabs.setCurrentIndex(2); self.open_selected()
+                self.analyses.setCurrentItem(item)
+                break
+        self.tabs.setCurrentIndex(2)
+        self.open_selected()
+
     def open_selected(self):
         item=self.analyses.currentItem()
-        if item:self.open_analysis_item(item)
+        if item:
+            self.open_analysis_item(item)
+
     def open_analysis_item(self,item):
         key=item.data(Qt.ItemDataRole.UserRole); existing=self.db.analysis_for_patient(self.pid).get(key,{})
         if key=="steiner":
