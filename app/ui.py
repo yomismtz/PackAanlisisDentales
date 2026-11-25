@@ -15,6 +15,8 @@ from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
 from .little import LittleDialog
 from .mixed_dentition import MixedDentitionDialog
+from .space_analysis import CareySpaceDialog
+from .occlusion_analysis import BaumeDialog, IntermaxillaryDialog
 from .photo_analysis import PhotoAnalysisDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
@@ -1337,6 +1339,57 @@ class Workspace(QWidget):
                 periapical["current_path"] if periapical else None,
                 self, method=key
             )
+        elif key == "nance_carey":
+            upper = self.db.get_media_for_slot(self.pid, "model_upper_occlusal")
+            lower = self.db.get_media_for_slot(self.pid, "model_lower_occlusal")
+            dlg = CareySpaceDialog(
+                upper["current_path"] if upper else None,
+                lower["current_path"] if lower else None,
+                existing, self
+            )
+        elif key == "baume":
+            model_slots = (
+                "model_upper_occlusal", "model_lower_occlusal",
+                "model_both_right", "model_both_left",
+            )
+            if all(self.db.get_media_for_slot(self.pid, slot) for slot in model_slots):
+                image_slots = {
+                    "Oclusal superior": "model_upper_occlusal",
+                    "Oclusal inferior": "model_lower_occlusal",
+                    "Oclusión lateral derecha": "model_both_right",
+                    "Oclusión lateral izquierda": "model_both_left",
+                }
+            else:
+                image_slots = {
+                    "Oclusal superior": "intra_upper",
+                    "Oclusal inferior": "intra_lower",
+                    "Oclusión lateral derecha": "intra_right",
+                    "Oclusión lateral izquierda": "intra_left",
+                }
+            images = {}
+            for label, slot in image_slots.items():
+                media = self.db.get_media_for_slot(self.pid, slot)
+                images[label] = media["current_path"] if media else None
+            dlg = BaumeDialog(images, existing, self)
+        elif key == "intermaxillary":
+            intra_slots = ("intra_right", "intra_left", "intra_frontal")
+            if all(self.db.get_media_for_slot(self.pid, slot) for slot in intra_slots):
+                image_slots = {
+                    "Lateral derecha": "intra_right",
+                    "Lateral izquierda": "intra_left",
+                    "Frontal en oclusión": "intra_frontal",
+                }
+            else:
+                image_slots = {
+                    "Lateral derecha": "model_both_right",
+                    "Lateral izquierda": "model_both_left",
+                    "Frontal en oclusión": "model_both_front",
+                }
+            images = {}
+            for label, slot in image_slots.items():
+                media = self.db.get_media_for_slot(self.pid, slot)
+                images[label] = media["current_path"] if media else None
+            dlg = IntermaxillaryDialog(images, existing, self)
         elif key in ("facial_frontal","facial_profile","facial_midlines","facial_levels",
                      "facial_contour","powell","smile","facial_projections","facial_symmetry"):
             photo_slot = {
