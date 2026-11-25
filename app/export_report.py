@@ -122,14 +122,36 @@ def _analysis_display_rows(key, record):
         for arch in ("superior", "inferior"):
             data = arches.get(arch, {}) or {}
             rows.append((f"Arcada {arch}", ""))
+            calculated = None
+            if not data.get("Conclusión automática"):
+                from .space_analysis import CAREY_TEETH, calculate_carey_arch
+                calculated = calculate_carey_arch(
+                    data.get("Puntos", {}) or {},
+                    data.get("Recorrido disponible", []) or [],
+                    CAREY_TEETH[arch],
+                )
+            derived = {}
+            if calculated:
+                derived = {
+                    "Cobertura dentaria (%)": calculated["coverage_percent"],
+                    "Déficit relativo (%)": calculated["deficit_percent"],
+                    "Excedente relativo (%)": calculated["excess_percent"],
+                    "Resultado": calculated["classification"],
+                    "Conclusión automática": calculated["conclusion"],
+                }
             for label, key_name in (
                 ("Espacio disponible (px)", "Espacio disponible px"),
                 ("Espacio requerido (px)", "Espacio requerido px"),
                 ("Discrepancia disponible − requerido (px)", "Discrepancia px"),
+                ("Cobertura del material dentario (%)", "Cobertura dentaria (%)"),
+                ("Déficit relativo respecto al material dentario (%)", "Déficit relativo (%)"),
+                ("Excedente relativo respecto al material dentario (%)", "Excedente relativo (%)"),
                 ("Resultado", "Resultado"),
+                ("Conclusión automática", "Conclusión automática"),
             ):
-                if data.get(key_name) not in (None, ""):
-                    rows.append((f"{arch.capitalize()} · {label}", data[key_name]))
+                value = data.get(key_name, derived.get(key_name))
+                if value not in (None, ""):
+                    rows.append((f"{arch.capitalize()} · {label}", value))
                 elif label == "Resultado":
                     rows.append((f"{arch.capitalize()} · {label}", "Pendiente"))
         if values.get("Limitación"):
