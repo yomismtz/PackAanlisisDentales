@@ -77,10 +77,11 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
   useEffect(()=>{const canvas=canvasRef.current, image=imageRef.current;if(!canvas||!image||!imageSize)return;
     canvas.width=imageSize.width;canvas.height=imageSize.height;const ctx=canvas.getContext("2d");if(!ctx)return;
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
+    const palette=getComputedStyle(document.documentElement);const accent=palette.getPropertyValue("--avis-accent").trim()||"#22B8B0";const primary=palette.getPropertyValue("--avis-primary").trim()||"#6D45A6";const plum=palette.getPropertyValue("--avis-plum").trim()||"#48263F";
     const lines:Array<[string,string]>=[["S","N"],["N","A"],["N","B"],["N","D"],["Ar","Go"],["Go","Me"],["Go","Gn"],["A","B"],["U1_apex","U1_tip"],["S","L"],["S","E"]];
-    ctx.strokeStyle="#22B8B0";ctx.lineWidth=Math.max(1,imageSize.width/1200);
+    ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,imageSize.width/1200);
     for(const [a,b] of lines){const p1=points[a]??result.calculated[a],p2=points[b]??result.calculated[b];if(p1&&p2){ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}}
-    for(const [code,p] of Object.entries(points)){const r=Math.max(3,imageSize.width/550);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#6D45A6";ctx.lineWidth=Math.max(1,imageSize.width/1500);ctx.stroke();ctx.fillStyle="#48263F";ctx.font=`bold ${Math.max(12,imageSize.width/100)}px system-ui`;ctx.fillText(code,p.x+r+4,p.y-r-4);}
+    for(const [code,p] of Object.entries(points)){const r=Math.max(3,imageSize.width/550);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle=primary;ctx.lineWidth=Math.max(1,imageSize.width/1500);ctx.stroke();ctx.fillStyle=plum;ctx.font=`bold ${Math.max(12,imageSize.width/100)}px system-ui`;ctx.fillText(code,p.x+r+4,p.y-r-4);}
     for(const [code,p] of Object.entries(result.calculated)){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(3,imageSize.width/600),0,Math.PI*2);ctx.fillStyle="#F4C95D";ctx.fill();}
     if(calibrationPoints.length===2){ctx.strokeStyle="#E07A5F";ctx.beginPath();ctx.moveTo(calibrationPoints[0].x,calibrationPoints[0].y);ctx.lineTo(calibrationPoints[1].x,calibrationPoints[1].y);ctx.stroke();}
   },[imageUrl,imageSize,points,result.calculated,calibrationPoints]);
