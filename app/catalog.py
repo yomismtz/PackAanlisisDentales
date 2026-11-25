@@ -34,24 +34,76 @@ ANALYSES = {
  "facial_levels":"Análisis de niveles faciales","facial_contour":"Análisis de contorno facial",
  "powell":"Análisis de Powell","facial_projections":"Análisis de proyecciones"
 }
-BY_SLOT = {
- "ceph_lateral":["steiner","cranio_cervical","cervical_maturation","maturation_integration"],
- "panoramic":["panoramic_systematic","levandoski","dental_age","maturation_integration"],
- "carpal":["carpal","maturation_integration"],
- "extra_frontal":["facial_frontal","facial_midlines","facial_levels","facial_contour","facial_symmetry"],
- "extra_smiling":["smile"],
- "extra_profile":["facial_profile","powell","facial_projections"]
+# Cada grupo representa un conjunto de vistas que debe estar cargado completo.
+# Si un análisis tiene más de un grupo, cualquiera de las alternativas es válida.
+ANALYSIS_REQUIREMENTS = {
+    "steiner": (("ceph_lateral",),),
+    "cranio_cervical": (("ceph_lateral",),),
+    "cervical_maturation": (("ceph_lateral",),),
+    "panoramic_systematic": (("panoramic",),),
+    "levandoski": (("panoramic",),),
+    "dental_age": (("panoramic",),),
+    "carpal": (("carpal",),),
+    # La integración requiere dos fuentes principales: maduración dental y cervical.
+    # La radiografía carpal se conserva como estudio complementario opcional.
+    "maturation_integration": (("panoramic", "ceph_lateral"),),
+    "intermaxillary": (
+        ("intra_right", "intra_left", "intra_frontal"),
+        ("model_both_right", "model_both_left", "model_both_front"),
+    ),
+    "moyers": (("model_upper_occlusal", "model_lower_occlusal"),),
+    "nance_carey": (("model_upper_occlusal", "model_lower_occlusal"),),
+    "tanaka_johnston": (("model_upper_occlusal", "model_lower_occlusal"),),
+    "baume": (
+        ("intra_right", "intra_left", "intra_frontal"),
+        ("model_both_right", "model_both_left", "model_both_front"),
+    ),
+    "little_upper": (("model_upper_occlusal",),),
+    "little_lower": (("model_lower_occlusal",),),
+    "facial_frontal": (("extra_frontal",),),
+    "facial_midlines": (("extra_frontal",),),
+    "facial_levels": (("extra_frontal",),),
+    "facial_contour": (("extra_frontal",),),
+    "facial_symmetry": (("extra_frontal",),),
+    "smile": (("extra_smiling",),),
+    "facial_profile": (("extra_profile",),),
+    "powell": (("extra_profile",),),
+    "facial_projections": (("extra_profile",),),
 }
-for key in ("intra_right","intra_left","intra_frontal","intra_upper","intra_lower","intra_extra",
- "model_upper_right","model_upper_left","model_upper_front","model_upper_occlusal",
- "model_lower_right","model_lower_left","model_lower_front","model_lower_occlusal",
- "model_both_right","model_both_left","model_both_front"):
-    BY_SLOT[key]=["intermaxillary","moyers","nance_carey","tanaka_johnston","baume","palatal_height"]
-BY_SLOT["model_upper_occlusal"].append("little_upper")
-BY_SLOT["model_lower_occlusal"].append("little_lower")
+# Altura palatina permanece fuera de la oferta automática: el expediente solo
+# admite imágenes 2D y todavía no tiene captura 3D ni medición física validada.
+UNAVAILABLE_ANALYSES = {"palatal_height"}
+
+BY_SLOT = {
+    slot: [
+        analysis for analysis, alternatives in ANALYSIS_REQUIREMENTS.items()
+        if any(slot in required_group for required_group in alternatives)
+    ]
+    for slot in SLOTS
+}
+
 
 def analyses_for_slot(key):
-    return [(k,ANALYSES[k]) for k in BY_SLOT.get(key,[])]
+    """Devuelve análisis candidatos asociados a una vista, no su disponibilidad final."""
+    return [(analysis, ANALYSES[analysis]) for analysis in BY_SLOT.get(key, [])]
+
+
+def analyses_for_available_slots(slot_keys):
+    """Devuelve análisis cuyas vistas requeridas están todas cargadas."""
+    available_slots = set(slot_keys)
+    result = []
+    for analysis, alternatives in ANALYSIS_REQUIREMENTS.items():
+        if any(set(required_group).issubset(available_slots) for required_group in alternatives):
+            result.append((analysis, ANALYSES[analysis]))
+    return result
+
+
+def analysis_available_for_slot(analysis_key, slot_key, available_analysis_keys):
+    """Comprueba que el análisis esté disponible y relacionado con la vista seleccionada."""
+    return (
+        analysis_key in available_analysis_keys
+        and analysis_key in BY_SLOT.get(slot_key, [])
+    )
 
 CARPAL_STAGES=[
  (1,"PP2=","10.6","8.1"),(2,"MP3=","12.0","8.1"),(3,"Pisi / H1 / R=","12.6","9.6"),
