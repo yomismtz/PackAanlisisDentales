@@ -26,7 +26,7 @@ Steiner; posición craneofacial y postura cráneo-cervical; maduración vertebra
 
 ## Análisis de espacio y relaciones oclusales
 
-Carey compara, por cada arcada, el perímetro trazado desde mesial del primer molar de un lado hasta mesial del contralateral con la suma de los anchos mesiodistales de los diez dientes 5–5. AVIS realiza esta comparación en píxeles relativos de la misma fotografía de modelo; no los convierte a milímetros ni emite indicaciones terapéuticas. El método de Nance para dentición mixta no se automatiza: la estimación de caninos y premolares no erupcionados requiere mediciones radiográficas y corrección de magnificación que no forman parte de este módulo.
+En la arcada mandibular, Carey compara el perímetro trazado desde mesial del primer molar de un lado hasta mesial del contralateral con la suma de los anchos mesiodistales de los diez dientes 5–5. La misma comparación en maxilar se identifica como análisis de perímetro de arcada. AVIS realiza ambas comparaciones en píxeles relativos de la misma fotografía de modelo; no los convierte a milímetros ni emite indicaciones terapéuticas. El método de Nance para dentición mixta no se automatiza: la estimación de caninos y premolares no erupcionados requiere mediciones radiográficas y corrección de magnificación que no forman parte de este módulo.
 
 Baumé registra por separado tipo I/II de las arcadas, espacios primates y planos terminales derecho e izquierdo. Relaciones intermaxilares organiza los hallazgos por planos sagital, vertical y transversal. Ambos módulos son formularios de clasificación clínica estructurada: el alumno registra lo que observa y AVIS no infiere una clase futura ni sustituye la valoración profesional.
 
