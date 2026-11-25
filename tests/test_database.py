@@ -30,3 +30,56 @@ def test_report_snapshot_and_delivery_metadata_roundtrip(tmp_path):
     assert saved["analyses"]["ceph"]["steiner"]["values"]["SNA"]==82
     assert saved["status"]=="PDF generado · pendiente de envío"
     assert db.reports_for_patient(patient["id"])[0]["id"]==saved["id"]
+
+
+def test_carey_measurements_and_conclusion_survive_patient_roundtrip(tmp_path):
+    from app.completion import analysis_completion_issue
+    from app.space_analysis import CAREY_TEETH, calculate_carey_arch
+
+    db = Database(tmp_path / "carey.sqlite3")
+    patient = db.create_patient("Paciente Carey")
+
+    arches = {}
+    for arch in ("superior", "inferior"):
+        points = {}
+        for index, tooth in enumerate(CAREY_TEETH[arch]):
+            x = index * 10.0
+            points[f"{tooth}_M"] = (x, 0.0)
+            points[f"{tooth}_D"] = (x + 10.0, 0.0)
+        trace = [[0.0, 0.0], [22.5, 0.0], [45.0, 0.0], [67.5, 0.0], [90.0, 0.0]]
+        result = calculate_carey_arch(points, trace, CAREY_TEETH[arch])
+        assert result is not None
+        arches[arch] = {
+            "Puntos": points,
+            "Recorrido disponible": trace,
+            "Espacio disponible px": result["available_px"],
+            "Espacio requerido px": result["required_px"],
+            "Discrepancia px": result["discrepancy_px"],
+            "Cobertura dentaria (%)": result["coverage_percent"],
+            "Déficit relativo (%)": result["deficit_percent"],
+            "Excedente relativo (%)": result["excess_percent"],
+            "Resultado": result["classification"],
+            "Conclusión automática": result["conclusion"],
+        }
+
+    values = {
+        "Método": "Carey · dentición permanente",
+        "Unidad": "px_relativos",
+        "Arcadas": arches,
+    }
+    assert analysis_completion_issue("nance_carey", values) is None
+
+    db.save_analysis(
+        patient["id"], "nance_carey", "Completo", values,
+        "Observación de prueba", "Conclusión profesional de prueba",
+    )
+
+    # Re-read as the expediente does when the analysis is opened again.
+    saved = db.analysis_for_patient(patient["id"])["nance_carey"]
+    restored = saved["values"]["Arcadas"]["inferior"]
+    assert restored["Puntos"] == arches["inferior"]["Puntos"]
+    assert restored["Recorrido disponible"] == arches["inferior"]["Recorrido disponible"]
+    assert restored["Déficit relativo (%)"] == 10.0
+    assert "cubre 90.0%" in restored["Conclusión automática"]
+    assert saved["observations"] == "Observación de prueba"
+    assert saved["conclusion"] == "Conclusión profesional de prueba"
