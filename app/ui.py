@@ -6,7 +6,10 @@ from PySide6.QtCore import Qt, QTimer, QPointF, Signal, QUrl
 from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QDesktopServices
 from PySide6.QtWidgets import *
 
-from .catalog import GROUPS, SLOTS, ANALYSES, analyses_for_slot, CARPAL_STAGES
+from .catalog import (
+    GROUPS, SLOTS, ANALYSES, analyses_for_slot,
+    analyses_for_available_slots, CARPAL_STAGES,
+)
 from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
@@ -1166,7 +1169,9 @@ class MediaRow(QFrame):
     def refresh(self):
         self.media=self.ws.db.get_media_for_slot(self.ws.pid,self.slot.key)
         if self.media:
-            self.state.setText("Cargado"); self.filename.setText(Path(self.media["filename"]).name+" · "+Path(self.media["current_path"]).name); self.edit.setEnabled(True); self.analyze.setEnabled(True)
+            self.state.setText("Cargado"); self.filename.setText(Path(self.media["filename"]).name+" · "+Path(self.media["current_path"]).name); self.edit.setEnabled(True)
+            candidates = {key for key, _ in analyses_for_slot(self.slot.key)}
+            self.analyze.setEnabled(bool(candidates & self.ws.available_analysis_keys))
         else:
             self.state.setText("Pendiente" if self.slot.required else "Opcional"); self.filename.setText("Sin archivo"); self.edit.setEnabled(False); self.analyze.setEnabled(False)
     def upload(self):
@@ -1184,7 +1189,7 @@ class MediaRow(QFrame):
 
 class Workspace(QWidget):
     def __init__(self,db,pid,back):
-        super().__init__(); self.db=db; self.pid=pid; self.back=back; self.patient=db.get_patient(pid); self.rows={}
+        super().__init__(); self.db=db; self.pid=pid; self.back=back; self.patient=db.get_patient(pid); self.rows={}\n        self.available_analysis_keys=set()
         if not self.patient: raise ValueError("No se encontró el expediente.")
         head=QHBoxLayout(); btn=QPushButton("← Expedientes"); btn.clicked.connect(back)
         title=QLabel(f"{self.patient['full_name']}  ·  {self.patient['record_number']}"); title.setStyleSheet("font-size:16pt;font-weight:700")
@@ -1219,23 +1224,25 @@ class Workspace(QWidget):
             stored=import_media(self.pid,src,slot); self.db.add_media(self.pid,slot,stored,stored,Path(src).name); self.refresh()
         except Exception as e: QMessageBox.critical(self,"No se pudo guardar",str(e))
     def refresh(self):
+        media_items = self.db.media_for_patient(self.pid)
+        available = analyses_for_available_slots(item["slot_key"] for item in media_items)
+        self.available_analysis_keys = {key for key, _ in available}
         for row in self.rows.values(): row.refresh()
         required=[s for _,group in GROUPS for s in group if s.required]
         done=sum(bool(self.db.get_media_for_slot(self.pid,s.key)) for s in required)
         counts=self.db.counts_for_patient(self.pid)
-        self.summary.setText(f"Vistas requeridas cargadas: {done}/{len(required)}\nArchivos: {counts['media']} · Análisis registrados: {counts['analyses']} · Completos: {counts['complete']}\nLos archivos anteriores de una vista se conservan como historial.")
-        available={}
-        for item in self.db.media_for_patient(self.pid):
-            for key,title in analyses_for_slot(item["slot_key"]): available[key]=title
+        self.summary.setText(f"Vistas requeridas cargadas: {done}/{len(required)}\\nArchivos: {counts['media']} · Análisis registrados: {counts['analyses']} · Completos: {counts['complete']}\\nLos archivos anteriores de una vista se conservan como historial.")
         self.analyses.clear(); saved=self.db.analysis_for_patient(self.pid)
-        for key,title in available.items():
+        for key,title in available:
             entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}"); entry.setData(Qt.ItemDataRole.UserRole,key); self.analyses.addItem(entry)
-        if hasattr(self, "reports_page"):
-            self.reports_page.refresh()
-    def open_slot(self,slot):
-        options=analyses_for_slot(slot)
+        if hasattr(self, "reports_p    def open_slot(self,slot):
+        options=[key for key,_ in analyses_for_slot(slot) if key in self.available_analysis_keys]
         if not options:return
-        key=options[0][0]
+        preferred={
+            "model_upper_occlusal":"little_upper",
+            "model_lower_occlusal":"little_lower",
+        }.get(slot)
+        key=preferred if preferred in options else options[0]
         for i in range(self.analyses.count()):
             item=self.analyses.item(i)
             if item.data(Qt.ItemDataRole.UserRole)==key:
