@@ -355,7 +355,7 @@ function App() {
                 <button
                   className="secondary copy-conclusions"
                   onClick={() => setConclusion((previous) =>
-                    [previous.trim(), ...automaticConclusions].filter(Boolean).join("\\n")
+                    [previous.trim(), ...automaticConclusions].filter(Boolean).join("\n")
                   )}
                   disabled={!automaticConclusions.length}
                 >
