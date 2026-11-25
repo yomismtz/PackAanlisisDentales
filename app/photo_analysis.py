@@ -9,6 +9,10 @@ from PySide6.QtWidgets import (
     QHeaderView, QDialogButtonBox, QTextEdit, QFormLayout, QMessageBox,
     QGroupBox, QGridLayout
 )
+from .photo_geometry import (
+    bilateral_difference, line_angle_difference_degrees,
+    line_inclination_degrees, segment_proportions_percent,
+)
 
 CONFIG = {
  "facial_frontal": {
@@ -245,6 +249,9 @@ class PhotoAnalysisDialog(QDialog):
  def vertical_distance(self,a,b):
   if a not in self.points or b not in self.points:return None
   return abs(self.points[b][1]-self.points[a][1])
+ def horizontal_distance(self,a,b):
+  if a not in self.points or b not in self.points:return None
+  return abs(self.points[b][0]-self.points[a][0])
  def angle(self,a,b,c):
   if any(x not in self.points for x in (a,b,c)):return None
   p,q,r=self.points[a],self.points[b],self.points[c]
@@ -261,12 +268,20 @@ class PhotoAnalysisDialog(QDialog):
     d=self.vertical_distance(a,b)
     self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
                     "Distancia relativa en píxeles de la fotografía")
-   total=self.distance("N","Me")
-   ns=self.distance("N","Sn"); sm=self.distance("Sn","Me")
-   if total and ns is not None and sm is not None:
-    p1=ns/total*100;p2=sm/total*100
-    self.add_result(rows,"N–Sn (%)",f"{p1:.1f} %","Proporción relativa de la imagen")
-    self.add_result(rows,"Sn–Me (%)",f"{p2:.1f} %","Proporción relativa de la imagen")
+   total_nm=self.vertical_distance("N","Me")
+   ns=self.vertical_distance("N","Sn"); sm=self.vertical_distance("Sn","Me")
+   if total_nm and ns is not None and sm is not None:
+    p1=ns/total_nm*100;p2=sm/total_nm*100
+    self.add_result(rows,"N–Sn (%)",f"{p1:.1f} %","Proporción vertical dentro de N–Me")
+    self.add_result(rows,"Sn–Me (%)",f"{p2:.1f} %","Proporción vertical dentro de N–Me")
+   thirds=(self.vertical_distance("Tr","Of"),
+           self.vertical_distance("Of","Sn"),
+           self.vertical_distance("Sn","Me"))
+   if all(value is not None for value in thirds):
+    percentages=segment_proportions_percent(thirds)
+    if percentages is not None:
+     for label,value in zip(("Tercio superior (%)","Tercio medio (%)","Tercio inferior (%)"),percentages):
+      self.add_result(rows,label,f"{value:.1f} %","Proporción de la suma de los tres tercios Tr–Me")
    if all(k in self.points for k in ("Sn","Sts","Sti","Me")):
     st_y=(self.points["Sts"][1]+self.points["Sti"][1])/2
     sn_y=self.points["Sn"][1]; me_y=self.points["Me"][1]
@@ -274,6 +289,16 @@ class PhotoAnalysisDialog(QDialog):
     if snst+stme:
      self.add_result(rows,"Sn–St (%)",f"{snst/(snst+stme)*100:.1f} %","Proporción relativa de la imagen")
      self.add_result(rows,"St–Me (%)",f"{stme/(snst+stme)*100:.1f} %","Proporción relativa de la imagen")
+  elif formula=="smile":
+   required=("PUP_R","PUP_L","LC_R","LC_L")
+   if all(key in self.points for key in required):
+    difference=line_angle_difference_degrees(
+     self.points["PUP_R"],self.points["PUP_L"],
+     self.points["LC_R"],self.points["LC_L"],
+    )
+    if difference is not None:
+     self.add_result(rows,"Diferencia angular bipupilar–comisural",f"{difference:.2f}°",
+                     "Ángulo agudo entre ambas líneas (0° paralelas; 90° perpendiculares); no es una clasificación clínica")
   elif formula=="midlines":
    # Eje de referencia: centro del puente nasal (punto medio intercantal)
    # y centro del labio superior. La desviación es perpendicular y relativa.
@@ -295,9 +320,10 @@ class PhotoAnalysisDialog(QDialog):
    for label,a,b in self.cfg["measures"]:
     if a in self.points and b in self.points:
      dy=self.points[b][1]-self.points[a][1]
-     dx=self.points[b][0]-self.points[a][0]
-     ang=math.degrees(math.atan2(dy,dx))
-     self.add_result(rows,label,f"{ang:.2f}°",f"Desnivel relativo {abs(dy):.2f} px; registrar lado y dirección en evaluación visual")
+     ang=line_inclination_degrees(self.points[a],self.points[b])
+     if ang is not None:
+      self.add_result(rows,label,f"{ang:+.2f}°",
+                      f"Desnivel relativo {abs(dy):.2f} px; inclinación respecto a la horizontal de la imagen; completar la dirección en evaluación visual")
   elif formula=="powell":
    for label,a,b,c,norm in (("Nasofrontal","G","N","R","115°–130°"),("Mesofacial","N","Pg","Prn","Mujer 30° · Hombre 40°"),("Nasomentón","Prn","Pg","N","120°–132°"),("Mentocervical","N","Pg","C","80°–95°")):
     val=self.angle(a,b,c)
@@ -317,11 +343,32 @@ class PhotoAnalysisDialog(QDialog):
     d=self.distance(a,b)
     self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
                     "Distancia relativa en la misma fotografía; no equivale a milímetros")
+   for label,right_pair,left_pair in (
+    ("Diferencia entre quintos laterales derecho–izquierdo",("F_R","CL_R"),("CL_L","F_L")),
+    ("Diferencia entre quintos oculares derecho–izquierdo",("CL_R","CM_R"),("CM_L","CL_L")),
+   ):
+    comparison=bilateral_difference(self.distance(*right_pair),self.distance(*left_pair))
+    if comparison is not None:
+     diff,percent=comparison
+     value=f"{diff:.2f} px"+(f" ({percent:.1f} % relativo)" if percent is not None else "")
+     self.add_result(rows,label,value,
+                     "Diferencia absoluta entre longitudes bilaterales marcadas; no constituye diagnóstico por sí sola")
   elif formula=="contour":
    for label,a,b in self.cfg["measures"]:
-    d=self.distance(a,b)
+    d=self.horizontal_distance(a,b)
     self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
-                    "Comparación relativa en píxeles; no equivale a milímetros")
+                    "Separación horizontal relativa en la fotografía; no equivale a milímetros")
+   for label,right_pair,left_pair in (
+    ("Diferencia bilateral cigomático–ángulo mandibular",("ZG_R","MA_R"),("ZG_L","MA_L")),
+    ("Diferencia bilateral ángulo–cuerpo mandibular",("MA_R","CB_R"),("MA_L","CB_L")),
+    ("Diferencia bilateral cuerpo mandibular–mentón",("CB_R","ME_R"),("CB_L","ME_L")),
+   ):
+    comparison=bilateral_difference(self.distance(*right_pair),self.distance(*left_pair))
+    if comparison is not None:
+     diff,percent=comparison
+     value=f"{diff:.2f} px"+(f" ({percent:.1f} % relativo)" if percent is not None else "")
+     self.add_result(rows,label,value,
+                     "Diferencia absoluta entre longitudes bilaterales marcadas; no constituye diagnóstico por sí sola")
   self.results.setRowCount(len(rows)); self.results.clearContents()
   for r,row in enumerate(rows):
    for c,val in enumerate(row):self.results.setItem(r,c,QTableWidgetItem(str(val)))
