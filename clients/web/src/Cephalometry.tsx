@@ -56,7 +56,7 @@ function calculate(points: PointMap, pxPerMm: number | null) {
   return {values,calculated};
 }
 
-export default function Cephalometry() {
+export default function Cephalometry({ onBack }: { onBack: () => void }) {
   const [fileName,setFileName]=useState("");
   const [imageUrl,setImageUrl]=useState("");
   const [imageSize,setImageSize]=useState<{width:number;height:number}|null>(null);
@@ -99,7 +99,7 @@ export default function Cephalometry() {
   function removePoint(){setPoints(prev=>{const next={...prev};delete next[selected];return next;});}
   function exportJson(){const payload={application:"AVIS",analysis:"Steiner · radiografía lateral de cráneo",image:{fileName,width:imageSize?.width??null,height:imageSize?.height??null},unit:pxPerMm?"mm_calibrados_y_grados":"px_relativos_y_grados",pixelsPerMm:pxPerMm,calibration:{points:calibrationPoints,knownDistanceMm:Number(knownDistance)||null},points,calculatedPoints:result.calculated,measurements:REFERENCES.map(r=>({key:r.key,label:r.label,value:result.values[r.key]??null,unit:r.unit.trim()||"°",reference:r.normal,status:result.values[r.key]===undefined?"Pendiente":result.values[r.key]<r.min?"Disminuido":result.values[r.key]>r.max?"Aumentado":"Dentro de norma"})),generatedAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Steiner_resultados.json";a.click();URL.revokeObjectURL(url);}
   return <section className="analysis-page">
-    <div className="analysis-heading"><div><button className="text-button" onClick={()=>{setImageUrl("");setFileName("");}}>← Reiniciar estudio</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Radiografía lateral de cráneo · Steiner</h1><p>Coloca manualmente los puntos anatómicos. Los cálculos se actualizan conforme completas el trazado.</p></div><span className="module-count">{placed} / {LANDMARKS.length} puntos</span></div>
+    <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Reiniciar estudio</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Radiografía lateral de cráneo · Steiner</h1><p>Coloca manualmente los puntos anatómicos. Los cálculos se actualizan conforme completas el trazado.</p></div><span className="module-count">{placed} / {LANDMARKS.length} puntos</span></div>
     <div className="guide"><strong>Uso académico y trazado manual</strong><p>Los ángulos se calculan en grados. SL y SE solo se expresan en milímetros cuando registras una calibración con una distancia conocida. La referencia numérica debe revisarse según la población, edad y criterio profesional.</p></div>
     <div className="workspace">
       <section className="panel photo-panel"><div className="panel-heading"><div><h2>Radiografía y trazado</h2><p>Sube una radiografía lateral, selecciona un punto y colócalo sobre la imagen.</p></div></div>
