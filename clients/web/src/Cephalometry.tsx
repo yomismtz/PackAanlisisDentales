@@ -41,7 +41,7 @@ function project(p: XY,a: XY,b: XY): XY | null {
 function calculate(points: PointMap, pxPerMm: number | null) {
   const values: Record<string,number> = {};
   const put=(key:string,value:number|null)=>{if(value!==null && Number.isFinite(value)) values[key]=value;};
-  const p=(key:string)=>points[key];
+  const p=(key:string):XY=>points[key]!;
   if(p("S")&&p("N")&&p("A")) put("SNA",angleAt(p("S"),p("N"),p("A")));
   if(p("S")&&p("N")&&p("B")) put("SNB",angleAt(p("S"),p("N"),p("B")));
   if(values.SNA!==undefined&&values.SNB!==undefined) put("ANB",values.SNA-values.SNB);
