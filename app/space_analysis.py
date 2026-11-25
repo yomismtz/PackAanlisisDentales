@@ -86,17 +86,42 @@ def calculate_carey_arch(points, trace, teeth):
 
     discrepancy = available - required
     if math.isclose(discrepancy, 0.0, abs_tol=1e-6):
+        discrepancy = 0.0
+    coverage_percent = available / required * 100.0
+    deficit_percent = max(required - available, 0.0) / required * 100.0
+    excess_percent = max(available - required, 0.0) / required * 100.0
+
+    if discrepancy == 0.0:
         classification = "Equilibrio geométrico relativo"
+        conclusion = (
+            "Equilibrio geométrico relativo: el perímetro disponible equivale "
+            "al 100% de la suma de los anchos mesiodistales medidos."
+        )
     elif discrepancy > 0:
         classification = "Exceso de espacio relativo"
+        conclusion = (
+            "No se estima déficit de espacio en esta comparación. El perímetro "
+            f"disponible supera la suma de los anchos mesiodistales en "
+            f"{excess_percent:.1f}% del material dentario requerido."
+        )
     else:
         classification = "Déficit de espacio relativo"
+        conclusion = (
+            "Déficit de espacio compatible con apiñamiento geométrico relativo: "
+            f"el perímetro disponible cubre {coverage_percent:.1f}% de la suma "
+            "de los anchos mesiodistales medidos; falta espacio equivalente a "
+            f"{deficit_percent:.1f}% del material dentario requerido."
+        )
 
     return {
         "available_px": round(available, 2),
         "required_px": round(required, 2),
         "discrepancy_px": round(discrepancy, 2),
+        "coverage_percent": round(coverage_percent, 2),
+        "deficit_percent": round(deficit_percent, 2),
+        "excess_percent": round(excess_percent, 2),
         "classification": classification,
+        "conclusion": conclusion,
     }
 
 
@@ -211,13 +236,19 @@ class CareySpaceDialog(QDialog):
         ])
         self.results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.results.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.auto_conclusion = QLabel(
+            "Completa las mediciones de ambas arcadas para generar la conclusión."
+        )
+        self.auto_conclusion.setWordWrap(True)
 
         self.note = QLabel(
             "Carey: traza el perímetro desde mesial del primer molar de un lado "
             "hasta mesial del primer molar contralateral, siguiendo la forma de la arcada. "
             "Marca mesial y distal de cada diente permanente 5–5. AVIS compara ambas "
             "longitudes en píxeles de la misma imagen; no las convierte a milímetros "
-            "ni asigna indicaciones de extracción."
+            "ni asigna indicaciones de extracción. El porcentaje expresa el déficit "
+            "respecto a la suma de anchos dentarios; no es una escala clínica validada "
+            "de apiñamiento leve, moderado o severo."
         )
         self.note.setWordWrap(True)
         if self.legacy_values:
@@ -243,6 +274,8 @@ class CareySpaceDialog(QDialog):
         right.addLayout(form)
         right.addWidget(QLabel("Comparación geométrica por arcada"))
         right.addWidget(self.results, 1)
+        right.addWidget(QLabel("Conclusión automática por arcada"))
+        right.addWidget(self.auto_conclusion)
         right.addWidget(self.note)
         right.addWidget(self.nance_note)
         right.addWidget(QLabel("Observaciones"))
@@ -494,14 +527,29 @@ class CareySpaceDialog(QDialog):
             )
             method_label = "Perímetro maxilar" if arch == "superior" else "Carey mandibular"
             self.results.setItem(row, 0, QTableWidgetItem(method_label))
+            percentage = "—"
+            conclusion = f"{arch.capitalize()}: faltan puntos o trazado para concluir."
+            if result is not None:
+                if result["deficit_percent"] > 0:
+                    percentage = f"Déficit {result['deficit_percent']:.1f}%"
+                elif result["excess_percent"] > 0:
+                    percentage = f"Excedente {result['excess_percent']:.1f}%"
+                else:
+                    percentage = "Equilibrio 0%"
+                conclusion = f"{arch.capitalize()}: {result['conclusion']}"
             values = (
                 "—" if result is None else f"{result['available_px']:.2f}",
                 "—" if result is None else f"{result['required_px']:.2f}",
                 "—" if result is None else f"{result['discrepancy_px']:+.2f}",
-                "Pendiente" if result is None else result["classification"],
+                "Pendiente" if result is None else f"{result['classification']} · {percentage}",
             )
             for column, value in enumerate(values, start=1):
                 self.results.setItem(row, column, QTableWidgetItem(value))
+            if row == 0:
+                conclusions = [conclusion]
+            else:
+                conclusions.append(conclusion)
+        self.auto_conclusion.setText("\n".join(conclusions))
 
     def _save(self):
         if not any(self.points.values()) and not any(self.traces.values()):
@@ -524,7 +572,11 @@ class CareySpaceDialog(QDialog):
                     "Espacio disponible px": result["available_px"],
                     "Espacio requerido px": result["required_px"],
                     "Discrepancia px": result["discrepancy_px"],
+                    "Cobertura dentaria (%)": result["coverage_percent"],
+                    "Déficit relativo (%)": result["deficit_percent"],
+                    "Excedente relativo (%)": result["excess_percent"],
                     "Resultado": result["classification"],
+                    "Conclusión automática": result["conclusion"],
                 })
         return (
             self.status.currentText(),
