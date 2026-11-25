@@ -134,6 +134,12 @@ def _analysis_display_rows(key, record):
                     rows.append((f"{arch.capitalize()} · {label}", "Pendiente"))
         if values.get("Limitación"):
             rows.append(("Alcance", values["Limitación"]))
+        legacy = values.get("Registro previo (formato anterior)", {}) or {}
+        for label, value in legacy.items():
+            if isinstance(value, (dict, list, tuple)):
+                import json
+                value = json.dumps(value, ensure_ascii=False)
+            rows.append((f"Registro previo · {label}", value))
         return rows, False
 
     if key in ("baume", "intermaxillary"):
@@ -141,6 +147,12 @@ def _analysis_display_rows(key, record):
         for label, value in evaluations.items():
             if value not in (None, ""):
                 rows.append((label, value))
+        legacy = values.get("Registro previo (formato anterior)", {}) or {}
+        for label, value in legacy.items():
+            if isinstance(value, (dict, list, tuple)):
+                import json
+                value = json.dumps(value, ensure_ascii=False)
+            rows.append((f"Registro previo · {label}", value))
         if not rows:
             rows.append(("Registro", "Pendiente"))
         return rows, False
