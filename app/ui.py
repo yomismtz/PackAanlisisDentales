@@ -21,6 +21,7 @@ from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_
 from .age_calculation import chronological_age, CERVICAL_STAGE_REFERENCE, CERVICAL_REFERENCE_NOTE
 from .cephalometry import LANDMARKS, TRACE_PAIRS, REFERENCES, calculate_cephalometry, distance as ceph_distance
 from .reports import REPORT_MODULES, available_modules, completed_keys, build_report_snapshot
+from .completion import analysis_completion_issue
 
 STYLE = stylesheet()
 
@@ -1294,13 +1295,26 @@ class Workspace(QWidget):
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
             status,vals,obs,con=dlg.values()
+            completion_issue = None
+            if status == "Completo":
+                completion_issue = analysis_completion_issue(key, vals)
+                if completion_issue:
+                    # Preserve the student's work without falsely presenting it as finished.
+                    status = "En proceso"
             if key in ("moyers", "tanaka_johnston") and vals.get("Radiografía periapical"):
                 source = vals.pop("Radiografía periapical")
                 current = self.db.get_media_for_slot(self.pid, "moyers_periapical")
                 if not current or Path(current["current_path"]) != Path(source):
                     stored = import_media(self.pid, source, "moyers_periapical")
                     self.db.add_media(self.pid, "moyers_periapical", stored, stored, Path(source).name)
-            self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
+            self.db.save_analysis(self.pid,key,status,vals,obs,con)
+            self.refresh()
+            if completion_issue:
+                QMessageBox.warning(
+                    self, "Análisis guardado como En proceso",
+                    "Se conservaron los datos capturados, pero no se marcó como Completo.\n\n"
+                    + completion_issue
+                )
     def export_pdf(self):
         self.tabs.setCurrentWidget(self.reports_page)
 
