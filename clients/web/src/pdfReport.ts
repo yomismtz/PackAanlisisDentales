@@ -139,13 +139,15 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
 
 function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors): string {
   const plum = toRgb(palette.plum);
+  const primary = toRgb(palette.primary);
+  const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
   let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  output += text("AVIS", 48, 790, 19, "F2", plum);
+  output += text("AVIS", 48, 790, 19, "F2", primary);
   output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", 101, 795, 8, "F2", plum);
-  output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", plum);
+  output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
   output += text(generatedAt, PAGE_W - 190, 795, 7.5, "F1", muted);
-  output += line(48, 750, PAGE_W - 48, 750, plum, 0.9);
+  output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
   output += text(`AVIS · Reporte fotográfico · Página ${pageNumber}`, 48, 41, 7, "F1", muted);
   return output;
 }
@@ -164,7 +166,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
   let page1 = drawPageFrame("Registro fotográfico", 1, generatedAt, input.palette);
-  page1 += text(input.title, 48, 732, 10.5, "F2", BLACK);
+  page1 += text(input.title, 48, 732, 10.5, "F2", primary);
   page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
 
@@ -213,7 +215,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
 
   // Página 2: tabla completa de mediciones y registro complementario.
   let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette);
-  page2 += text(input.title, 48, 732, 10, "F2", BLACK);
+  page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
 
