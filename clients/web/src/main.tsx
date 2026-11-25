@@ -4,6 +4,7 @@ import "./style.css";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
+import { playBirdCall, stopBirdCall } from "./birdAudio";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -34,7 +35,6 @@ function App() {
   const [status, setStatus] = useState("En proceso");
   const [reportFormat, setReportFormat] = useState<"pdf" | "png" | "jpeg">("pdf");
   const [paletteAudioNotice, setPaletteAudioNotice] = useState("");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [paletteId, setPaletteId] = useState(() => {
     try {
       return window.localStorage.getItem("avis.palette") ?? "colibri";
@@ -53,17 +53,8 @@ function App() {
     const nextPalette = getAvisPalette(nextId);
     setPaletteId(nextPalette.id);
     setPaletteAudioNotice("");
-
-    // La reproducción ocurre dentro del gesto del selector para cumplir las reglas de autoplay del navegador.
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    const birdAudio = new Audio(`/audio/aves/${nextPalette.audioFile}`);
-    birdAudio.preload = "auto";
-    audioRef.current = birdAudio;
-    void birdAudio.play().catch(() => {
-      setPaletteAudioNotice("El navegador bloqueó el sonido. Comprueba que el dispositivo tenga audio habilitado.");
+    void playBirdCall(nextPalette.id).catch(() => {
+      setPaletteAudioNotice("No fue posible reproducir el canto. Activa el sonido del dispositivo y vuelve a seleccionar la paleta.");
     });
   }
   const visualFields = VISUAL_OPTIONS[config.formula] ?? {};
@@ -392,6 +383,7 @@ function App() {
   }
 
   function returnHome() {
+    stopBirdCall();
     clearImage();
     setScreen("home");
   }
