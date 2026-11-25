@@ -150,7 +150,7 @@ class CareySpaceDialog(QDialog):
         self.trace_buttons = {}
         self.capture = None
 
-        self.setWindowTitle("AVIS · Carey · discrepancia de espacio")
+        self.setWindowTitle("AVIS · Carey mandibular y perímetro maxilar")
         self.resize(1480, 920)
         self.setMinimumSize(1120, 740)
 
@@ -346,7 +346,8 @@ class CareySpaceDialog(QDialog):
             result = calculate_carey_arch(
                 self.points[arch], self.traces[arch], CAREY_TEETH[arch]
             )
-            self.results.setItem(row, 0, QTableWidgetItem(arch.capitalize()))
+            method_label = "Perímetro maxilar" if arch == "superior" else "Carey mandibular"
+            self.results.setItem(row, 0, QTableWidgetItem(method_label))
             values = (
                 "—" if result is None else f"{result['available_px']:.2f}",
                 "—" if result is None else f"{result['required_px']:.2f}",
