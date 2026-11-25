@@ -296,7 +296,7 @@ export async function renderPhotoReportImage(
   context.fillStyle = input.palette.background;
   context.fillRect(0, 0, combined.width, combined.height);
   context.drawImage(firstPage, 0, 0);
-  context.fillStyle = plum;
+  context.fillStyle = input.palette.plum;
   context.fillRect(0, firstPage.height, WIDTH, gap);
   context.drawImage(secondPage, 0, firstPage.height + gap);
 
