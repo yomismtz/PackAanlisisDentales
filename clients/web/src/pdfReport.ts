@@ -1,3 +1,5 @@
+import type { PaletteColors } from "./themePalettes";
+
 export type ReportRow = {
   label: string;
   value: string;
@@ -20,14 +22,20 @@ export type PhotoReportInput = {
   observations: string;
   professionalConclusion: string;
   generatedAt: Date;
+  palette: PaletteColors;
 };
 
 type RGB = [number, number, number];
 
-const PLUM: RGB = [72, 38, 63];
-const MINT: RGB = [200, 240, 226];
 const BLACK: RGB = [20, 20, 20];
-const GREY: RGB = [100, 100, 100];
+function toRgb(hex: string): RGB {
+  const normalized = hex.replace("#", "");
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+  ];
+}
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
 
@@ -129,27 +137,35 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
   return output;
 }
 
-function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string): string {
-  let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, PLUM, 1.15);
-  output += text("AVIS", 48, 790, 19, "F2", PLUM);
-  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", 101, 795, 8, "F2", PLUM);
-  output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", PLUM);
-  output += text(generatedAt, PAGE_W - 190, 795, 7.5, "F1", GREY);
-  output += line(48, 750, PAGE_W - 48, 750, PLUM, 0.9);
-  output += text(`AVIS · Reporte fotográfico · Página ${pageNumber}`, 48, 41, 7, "F1", GREY);
+function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors): string {
+  const plum = toRgb(palette.plum);
+  const muted = toRgb(palette.muted);
+  let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
+  output += text("AVIS", 48, 790, 19, "F2", plum);
+  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", 101, 795, 8, "F2", plum);
+  output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", plum);
+  output += text(generatedAt, PAGE_W - 190, 795, 7.5, "F1", muted);
+  output += line(48, 750, PAGE_W - 48, 750, plum, 0.9);
+  output += text(`AVIS · Reporte fotográfico · Página ${pageNumber}`, 48, 41, 7, "F1", muted);
   return output;
 }
 
 function createPdf(input: PhotoReportInput): Uint8Array {
   const photoBytes = base64ToBytes(input.photoDataUrl);
+  const plum = toRgb(input.palette.plum);
+  const mint = toRgb(input.palette.mint);
+  const primary = toRgb(input.palette.primary);
+  const soft = toRgb(input.palette.soft);
+  const muted = toRgb(input.palette.muted);
+  const border = toRgb(input.palette.border);
   const generatedAt = input.generatedAt.toLocaleString("es-MX", {
     year: "numeric", month: "long", day: "2-digit", hour: "2-digit", minute: "2-digit",
   });
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
-  let page1 = drawPageFrame("Registro fotográfico", 1, generatedAt);
+  let page1 = drawPageFrame("Registro fotográfico", 1, generatedAt, input.palette);
   page1 += text(input.title, 48, 732, 10.5, "F2", BLACK);
-  page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", GREY);
+  page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
 
   const photoBox = { x: 48, y: 313, width: PAGE_W - 96, height: 370 };
@@ -161,18 +177,18 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const drawHeight = input.photoHeight * scale;
   const drawX = photoBox.x + (photoBox.width - drawWidth) / 2;
   const drawY = photoBox.y + (photoBox.height - drawHeight) / 2;
-  page1 += rectangle(photoBox.x, photoBox.y, photoBox.width, photoBox.height, [250, 249, 251], PLUM, 0.6);
+  page1 += rectangle(photoBox.x, photoBox.y, photoBox.width, photoBox.height, [250, 249, 251], plum, 0.6);
   page1 += `q ${drawWidth.toFixed(2)} 0 0 ${drawHeight.toFixed(2)} ${drawX.toFixed(2)} ${drawY.toFixed(2)} cm /Im1 Do Q\n`;
-  page1 += rectangle(drawX, drawY, drawWidth, drawHeight, null, PLUM, 0.4);
+  page1 += rectangle(drawX, drawY, drawWidth, drawHeight, null, plum, 0.4);
 
   // Recuadro de conclusiones: fondo menta, borde y título ciruela, texto negro.
   const boxX = 48;
   const boxY = 65;
   const boxW = PAGE_W - 96;
   const boxH = 224;
-  page1 += rectangle(boxX, boxY, boxW, boxH, MINT, PLUM, 1.2);
-  page1 += text("CONCLUSIONES DEL REPORTE", boxX + 15, boxY + boxH - 23, 10, "F2", PLUM);
-  page1 += line(boxX + 15, boxY + boxH - 33, boxX + boxW - 15, boxY + boxH - 33, PLUM, 0.55);
+  page1 += rectangle(boxX, boxY, boxW, boxH, mint, plum, 1.2);
+  page1 += text("CONCLUSIONES DEL REPORTE", boxX + 15, boxY + boxH - 23, 10, "F2", plum);
+  page1 += line(boxX + 15, boxY + boxH - 33, boxX + boxW - 15, boxY + boxH - 33, plum, 0.55);
 
   const conclusionLines: string[] = [];
   for (const conclusion of input.conclusions) {
@@ -196,10 +212,10 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt);
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette);
   page2 += text(input.title, 48, 732, 10, "F2", BLACK);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
-  page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", GREY);
+  page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
 
   const tableX = 48;
   const tableW = PAGE_W - 96;
@@ -207,10 +223,10 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const maxChars = [31, 17, 51];
   const widths = [160, 86, tableW - 246];
   let y = 678;
-  page2 += rectangle(tableX, y - 22, tableW, 22, [241, 235, 242], PLUM, 0.75);
-  page2 += text("MEDICIÓN", columns[0], y - 14, 7.2, "F2", PLUM);
-  page2 += text("RESULTADO", columns[1], y - 14, 7.2, "F2", PLUM);
-  page2 += text("REFERENCIA / COMPARACIÓN", columns[2], y - 14, 7.2, "F2", PLUM);
+  page2 += rectangle(tableX, y - 22, tableW, 22, soft, plum, 0.75);
+  page2 += text("MEDICIÓN", columns[0], y - 14, 7.2, "F2", plum);
+  page2 += text("RESULTADO", columns[1], y - 14, 7.2, "F2", plum);
+  page2 += text("REFERENCIA / COMPARACIÓN", columns[2], y - 14, 7.2, "F2", plum);
   y -= 22;
 
   for (const row of input.results) {
@@ -222,7 +238,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
     const lineCount = Math.max(...cells.map((cell) => cell.length));
     const rowHeight = Math.max(21, lineCount * 9 + 8);
     if (y - rowHeight < 104) break;
-    page2 += line(tableX, y - rowHeight, tableX + tableW, y - rowHeight, [190, 181, 191], 0.35);
+    page2 += line(tableX, y - rowHeight, tableX + tableW, y - rowHeight, border, 0.35);
     cells.forEach((cellLines, columnIndex) => {
       cellLines.forEach((lineValue, lineIndex) => {
         page2 += text(
@@ -237,7 +253,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
     });
     y -= rowHeight;
   }
-  page2 += line(tableX, y, tableX + tableW, y, PLUM, 0.65);
+  page2 += line(tableX, y, tableX + tableW, y, plum, 0.65);
   y -= 17;
 
   const notes: Array<[string, string]> = [
@@ -249,7 +265,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   ];
   for (const [label, value] of notes) {
     if (!value.trim() || y < 72) continue;
-    page2 += text(label.toUpperCase(), tableX, y, 7.8, "F2", PLUM);
+    page2 += text(label.toUpperCase(), tableX, y, 7.8, "F2", plum);
     y -= 12;
     for (const lineValue of wrapWords(value, 112)) {
       if (y < 58) break;
