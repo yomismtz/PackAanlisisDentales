@@ -18,7 +18,6 @@ CAREY_TEETH = {
     "superior": ("15", "14", "13", "12", "11", "21", "22", "23", "24", "25"),
     "inferior": ("45", "44", "43", "42", "41", "31", "32", "33", "34", "35"),
 }
-MIN_ARCH_TRACE_POINTS = 5
 
 
 def carey_point_order(arch):
@@ -64,7 +63,7 @@ def calculate_carey_arch(points, trace, teeth):
     """Compare arch perimeter with the mesiodistal material of teeth 5–5."""
     if not isinstance(points, dict):
         return None
-    if not isinstance(trace, (list, tuple)) or len(trace) < MIN_ARCH_TRACE_POINTS:
+    if not isinstance(trace, (list, tuple)) or len(trace) < 2:
         return None
     available = polyline_length(trace)
     if available is None:
@@ -336,9 +335,10 @@ class CareySpaceDialog(QDialog):
             "Primero coloca, en orden, mesial y después distal de cada diente: "
             "15-M, 15-D, 14-M, 14-D… hasta 25-D (o 45-D en la arcada inferior). "
             "Después inicia el perímetro en mesial del primer molar de un lado y "
-            "coloca puntos sucesivos por la curvatura de la arcada hasta mesial "
-            "del primer molar contrario. Los puntos deben ir siguiendo el arco; "
-            "no traces una cuerda recta ni cierres un círculo."
+            "coloca tantos puntos sucesivos como necesites por la curvatura de la "
+            "arcada hasta mesial del primer molar contrario. No hay un máximo: "
+            "añade puntos especialmente donde cambie la dirección del contorno. "
+            "Evita unir los extremos con una cuerda recta o cerrar un círculo."
         )
         instruction.setWordWrap(True)
         layout.addWidget(instruction)
@@ -385,15 +385,15 @@ class CareySpaceDialog(QDialog):
                 "Perímetro: sin puntos. Comienza en mesial del primer molar "
                 "y avanza por el contorno hasta el primer molar del lado opuesto."
             )
-        elif count < 5:
+        elif count == 1:
             message = (
-                f"Perímetro: {count} puntos. Continúa colocando puntos sobre "
-                "la curva de la arcada para representar el recorrido."
+                "Perímetro: 1 punto. Coloca el siguiente y continúa por el contorno."
             )
         else:
             message = (
                 f"Perímetro: {count} puntos conectados en orden. "
-                "La línea amarilla representa el recorrido curvo entre ambos lados."
+                "No hay un máximo: agrega puntos donde cambie la curvatura para "
+                "representar mejor el recorrido real de la arcada."
             )
         self.trace_progress[arch].setText(message)
 
