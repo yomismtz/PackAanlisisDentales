@@ -115,6 +115,36 @@ def _analysis_display_rows(key, record):
             ))
         return rows, True
 
+    if key == "nance_carey":
+        rows.append(("Método", values.get("Método", "—")))
+        rows.append(("Unidad", "Píxeles relativos; no son milímetros"))
+        arches = values.get("Arcadas", {}) or {}
+        for arch in ("superior", "inferior"):
+            data = arches.get(arch, {}) or {}
+            rows.append((f"Arcada {arch}", ""))
+            for label, key_name in (
+                ("Espacio disponible (px)", "Espacio disponible px"),
+                ("Espacio requerido (px)", "Espacio requerido px"),
+                ("Discrepancia disponible − requerido (px)", "Discrepancia px"),
+                ("Resultado", "Resultado"),
+            ):
+                if data.get(key_name) not in (None, ""):
+                    rows.append((f"{arch.capitalize()} · {label}", data[key_name]))
+                elif label == "Resultado":
+                    rows.append((f"{arch.capitalize()} · {label}", "Pendiente"))
+        if values.get("Limitación"):
+            rows.append(("Alcance", values["Limitación"]))
+        return rows, False
+
+    if key in ("baume", "intermaxillary"):
+        evaluations = values.get("Evaluación estructurada", {}) or {}
+        for label, value in evaluations.items():
+            if value not in (None, ""):
+                rows.append((label, value))
+        if not rows:
+            rows.append(("Registro", "Pendiente"))
+        return rows, False
+
     if key in ("moyers", "tanaka_johnston"):
         results = values.get("Resultado por hemiarcada", {}) or {}
         for label, classification in results.items():
