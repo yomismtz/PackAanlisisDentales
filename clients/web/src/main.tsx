@@ -36,12 +36,19 @@ function App() {
   const visualFields = VISUAL_OPTIONS[config.formula] ?? {};
   const results = useMemo(() => calculatePhotoResults(mode, points), [mode, points]);
   const placedCount = Object.keys(points).length;
+  const missingPhotoPoints = config.points.filter((point) => !points[point.code]).map((point) => point.code);
+  const pendingVisualFields = Object.keys(visualFields).filter((label) => !visualValues[label] || visualValues[label] === "Sin evaluar");
+  const canComplete = missingPhotoPoints.length === 0 && pendingVisualFields.length === 0;
 
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (status === "Completo" && !canComplete) setStatus("En proceso");
+  }, [status, canComplete]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -338,7 +345,7 @@ function App() {
                 </div>
               )}
 
-              <div className="form-field"><label htmlFor="status">Estado</label><select id="status" value={status} onChange={(event) => setStatus(event.target.value)}><option>Pendiente</option><option>En proceso</option><option>Completo</option></select></div>
+              <div className="form-field"><label htmlFor="status">Estado</label><select id="status" value={status} onChange={(event) => setStatus(event.target.value)}><option>Pendiente</option><option>En proceso</option><option value="Completo" disabled={!canComplete}>Completo</option></select>{!canComplete && <small className="completion-hint">{missingPhotoPoints.length ? "Faltan puntos: " + missingPhotoPoints.slice(0, 6).join(", ") + (missingPhotoPoints.length > 6 ? "…" : "") : ""}{missingPhotoPoints.length && pendingVisualFields.length ? " · " : ""}{pendingVisualFields.length ? "Criterios sin evaluar: " + pendingVisualFields.slice(0, 4).join(", ") + (pendingVisualFields.length > 4 ? "…" : "") : ""}</small>}</div>
               <div className="form-field"><label htmlFor="observations">Observaciones</label><textarea id="observations" rows={3} value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Registra observaciones…" /></div>
               <div className="form-field"><label htmlFor="conclusion">Conclusión profesional</label><textarea id="conclusion" rows={3} value={conclusion} onChange={(event) => setConclusion(event.target.value)} placeholder="Integra aquí tu interpretación profesional…" /></div>
               <button className="primary download-button" onClick={downloadResults}>Descargar resultados (JSON)</button>
