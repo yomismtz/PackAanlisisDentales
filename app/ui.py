@@ -863,7 +863,8 @@ class CervicalMaturationDialog(QDialog):
         self.status.addItems(["Pendiente", "En proceso", "Completo"])
         self.status.setCurrentText(self.existing.get("status", "Pendiente"))
         self.stage = QComboBox()
-        self.stage.addItem("No evaluable", "")
+        self.stage.addItem("Seleccionar estadio", "")
+        self.stage.addItem("No evaluable", "No evaluable")
         for stage in self.STAGES:
             self.stage.addItem(stage, stage)
         old_stage = saved.get("Estadio vertebral", "")
