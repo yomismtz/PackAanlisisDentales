@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
+import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -32,11 +33,19 @@ function App() {
   const [conclusion, setConclusion] = useState("");
   const [status, setStatus] = useState("En proceso");
   const [reportFormat, setReportFormat] = useState<"pdf" | "png" | "jpeg">("pdf");
+  const [paletteId, setPaletteId] = useState(() => {
+    try {
+      return window.localStorage.getItem("avis.palette") ?? "colibri";
+    } catch {
+      return "colibri";
+    }
+  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const objectUrlRef = useRef("");
 
   const config = PHOTO_CONFIG[mode];
+  const activePalette = getAvisPalette(paletteId);
   const visualFields = VISUAL_OPTIONS[config.formula] ?? {};
   const results = useMemo(() => calculatePhotoResults(mode, points), [mode, points]);
   const automaticConclusions = useMemo(
@@ -47,6 +56,15 @@ function App() {
   const missingPhotoPoints = config.points.filter((point) => !points[point.code]).map((point) => point.code);
   const pendingVisualFields = Object.keys(visualFields).filter((label) => !visualValues[label] || visualValues[label] === "Sin evaluar");
   const canComplete = missingPhotoPoints.length === 0 && pendingVisualFields.length === 0;
+
+  useEffect(() => {
+    applyAvisPalette(activePalette);
+    try {
+      window.localStorage.setItem("avis.palette", activePalette.id);
+    } catch {
+      // La selección sigue activa durante esta sesión aunque el navegador bloquee el almacenamiento local.
+    }
+  }, [activePalette]);
 
   useEffect(() => {
     return () => {
@@ -69,8 +87,8 @@ function App() {
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, imageSize.width, imageSize.height);
     context.lineWidth = Math.max(1, imageSize.width / 1600);
-    context.strokeStyle = "#22B8B0";
-    context.fillStyle = "#22B8B0";
+    context.strokeStyle = activePalette.colors.accent;
+    context.fillStyle = activePalette.colors.accent;
     context.font = `bold ${Math.max(7, imageSize.width / 180)}px system-ui, sans-serif`;
     context.textBaseline = "middle";
 
@@ -93,9 +111,9 @@ function App() {
       context.fillStyle = "#FFFFFF";
       context.fill();
       context.lineWidth = Math.max(1, imageSize.width / 1600);
-      context.strokeStyle = "#22B8B0";
+      context.strokeStyle = activePalette.colors.accent;
       context.stroke();
-      context.fillStyle = "#48263F";
+      context.fillStyle = activePalette.colors.plum;
       context.fillText(code, point.x + radius + 5, point.y - radius - 8);
     }
   }, [imageUrl, imageSize, points, mode]);
@@ -213,7 +231,7 @@ function App() {
     // En el análisis facial frontal se proyecta una guía horizontal por cada punto colocado.
     if (mode === "facial_frontal") {
       context.save();
-      context.strokeStyle = "rgba(72, 38, 63, 0.58)";
+      context.strokeStyle = activePalette.colors.plum + "99";
       context.lineWidth = Math.max(1, width / 1400);
       context.setLineDash([Math.max(5, width / 150), Math.max(4, width / 220)]);
       const horizontalPoints = Object.entries(points).sort((a, b) => a[1].y - b[1].y);
@@ -229,7 +247,7 @@ function App() {
 
     if (mode === "smile") {
       context.save();
-      context.strokeStyle = "#22B8B0";
+      context.strokeStyle = activePalette.colors.accent;
       context.lineWidth = Math.max(1.2, width / 1300);
       for (const [a, b] of [["PUP_R", "PUP_L"], ["LC_R", "LC_L"]]) {
         const first = points[a];
@@ -255,9 +273,9 @@ function App() {
       context.fillStyle = "#FFFFFF";
       context.fill();
       context.lineWidth = Math.max(1, width / 1600);
-      context.strokeStyle = "#22B8B0";
+      context.strokeStyle = activePalette.colors.accent;
       context.stroke();
-      context.fillStyle = "#48263F";
+      context.fillStyle = activePalette.colors.plum;
       context.fillText(code, x + radius + 5, y - radius - 8);
     }
 
@@ -291,6 +309,7 @@ function App() {
         observations,
         professionalConclusion: conclusion,
         generatedAt: new Date(),
+        palette: activePalette.colors,
       };
 
       let blob: Blob;
@@ -323,6 +342,8 @@ function App() {
   function downloadResults() {
     const payload = {
       application: "AVIS · Análisis Odontológico Integral",
+      palette: activePalette.name,
+      paletteColors: activePalette.colors,
       analysis: mode,
       title: config.title,
       status,
@@ -362,17 +383,29 @@ function App() {
           <img className="brand-mark" src="/avis-icon.svg" alt="" />
           <span className="brand-copy"><strong>AVIS</strong><small>ANÁLISIS ODONTOLÓGICO INTEGRAL</small></span>
         </button>
-        <span className="local"><i /> DATOS LOCALES</span>
+        <div className="topbar-actions">
+          <label className="palette-control" htmlFor="palette-select">
+            <span>PALETA</span>
+            <select
+              id="palette-select"
+              value={paletteId}
+              onChange={(event) => setPaletteId(event.target.value)}
+              aria-label="Seleccionar paleta de colores"
+            >
+              {AVIS_PALETTES.map((palette) => (
+                <option key={palette.id} value={palette.id}>{palette.bird} {palette.name}</option>
+              ))}
+            </select>
+          </label>
+          <span className="local"><i /> DATOS LOCALES</span>
+        </div>
       </header>
 
       {screen === "home" ? (
         <>
           <section className="hero">
-            <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral" />
-            <img className="hero-slogan" src="/avis-slogan.svg" alt="Observa, Analiza, Integra" />
-            <p className="eyebrow">PLATAFORMA DE ANÁLISIS ODONTOLÓGICO</p>
-            <h1>Observa. Analiza. Integra.</h1>
-            <p>Herramientas de análisis en desarrollo multiplataforma. Esta versión procesa las fotografías en el navegador; no sincroniza ni envía las imágenes a un servidor.</p>
+            <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral · Observa, Analiza, Integra" />
+            <p className="hero-description">Plataforma de análisis odontológico. Las fotografías se procesan localmente en este navegador.</p>
           </section>
           <section className="grid">
             <article className="module-card">
@@ -391,8 +424,7 @@ function App() {
               <button disabled>En desarrollo</button>
             </article>
           </section>
-          <p className="home-note">Primera herramienta web funcional: análisis fotográfico. Cefalometría, panorámica, modelos y análisis de espacio todavía deben migrarse y validarse.</p>
-          <footer><strong>AVIS</strong> · Análisis Odontológico Integral · Observa • Analiza • Integra<br />Versión de migración inicial. Probar exclusivamente con imágenes ficticias o desidentificadas.</footer>
+          <footer className="home-footer">Versión web de prueba. Utiliza fotografías ficticias o desidentificadas.</footer>
         </>
       ) : (
         <section className="analysis-page">
