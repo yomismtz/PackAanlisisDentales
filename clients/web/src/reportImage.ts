@@ -99,7 +99,6 @@ function drawWrapped(
 
 function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string): HTMLCanvasElement {
   const plum = input.palette.plum;
-  const primary = input.palette.primary;
   const accent = input.palette.accent;
   const mint = input.palette.mint;
   const muted = input.palette.muted;
@@ -155,8 +154,8 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   context.fillStyle = plum;
   context.font = "bold 21px Arial, sans-serif";
   context.fillText("CONCLUSIONES DEL REPORTE", MARGIN + 30, boxY + 24);
-  context.strokeStyle = plum;
-  context.lineWidth = 1;
+  context.strokeStyle = accent;
+  context.lineWidth = 1.5;
   context.beginPath();
   context.moveTo(MARGIN + 30, boxY + 61);
   context.lineTo(WIDTH - MARGIN - 30, boxY + 61);
@@ -164,7 +163,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
 
   let y = boxY + 82;
   for (const conclusion of input.conclusions) {
-    context.fillStyle = plum;
+    context.fillStyle = accent;
     context.beginPath();
     context.arc(MARGIN + 36, y + 9, 3.5, 0, Math.PI * 2);
     context.fill();
@@ -238,6 +237,12 @@ function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
   context.fillText("MEDICIÓN", colX[0], y + 13);
   context.fillText("RESULTADO", colX[1], y + 13);
   context.fillText("REFERENCIA / COMPARACIÓN", colX[2], y + 13);
+  context.strokeStyle = accent;
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(tableX, y + 43);
+  context.lineTo(tableX + tableWidth, y + 43);
+  context.stroke();
   y += 43;
 
   for (const item of tableRows) {
