@@ -11,7 +11,7 @@ from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
 from .little import LittleDialog
-from .moyers import MoyersDialog
+from .mixed_dentition import MixedDentitionDialog
 from .photo_analysis import PhotoAnalysisDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
@@ -1268,15 +1268,16 @@ class Workspace(QWidget):
             media = self.db.get_media_for_slot(self.pid, slot)
             image_path = media["current_path"] if media else None
             dlg = LittleDialog(image_path, existing, arch, self)
-        elif key == "moyers":
+        elif key in ("moyers", "tanaka_johnston"):
             upper = self.db.get_media_for_slot(self.pid, "model_upper_occlusal")
             lower = self.db.get_media_for_slot(self.pid, "model_lower_occlusal")
             periapical = self.db.get_media_for_slot(self.pid, "moyers_periapical")
-            dlg = MoyersDialog(
+            dlg = MixedDentitionDialog(
                 upper["current_path"] if upper else None,
                 lower["current_path"] if lower else None,
                 existing, self.patient.get("sex", ""),
-                periapical["current_path"] if periapical else None, self
+                periapical["current_path"] if periapical else None,
+                self, method=key
             )
         elif key in ("facial_frontal","facial_profile","facial_midlines","facial_levels",
                      "facial_contour","powell","smile","facial_projections","facial_symmetry"):
@@ -1293,7 +1294,7 @@ class Workspace(QWidget):
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
             status,vals,obs,con=dlg.values()
-            if key == "moyers" and vals.get("Radiografía periapical"):
+            if key in ("moyers", "tanaka_johnston") and vals.get("Radiografía periapical"):
                 source = vals.pop("Radiografía periapical")
                 current = self.db.get_media_for_slot(self.pid, "moyers_periapical")
                 if not current or Path(current["current_path"]) != Path(source):
