@@ -115,7 +115,7 @@ class StructuredOcclusionDialog(QDialog):
             self.status.currentText(),
             {
                 "Evaluación estructurada": {
-                    label: (combo.currentData() or "")
+                    label: (combo.currentText() if combo.currentIndex() > 0 else "")
                     for label, combo in self.fields.items()
                 },
                 "Método": self.__class__.__name__,
