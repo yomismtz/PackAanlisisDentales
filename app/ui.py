@@ -1264,9 +1264,9 @@ class Workspace(QWidget):
         done=sum(bool(self.db.get_media_for_slot(self.pid,slot.key)) for slot in required)
         counts=self.db.counts_for_patient(self.pid)
         self.summary.setText(
-            f"Vistas requeridas cargadas: {done}/{len(required)}\\n"
+            f"Vistas requeridas cargadas: {done}/{len(required)}\n"
             f"Archivos: {counts['media']} · Análisis registrados: {counts['analyses']} · "
-            f"Completos: {counts['complete']}\\n"
+            f"Completos: {counts['complete']}\n"
             "Los archivos anteriores de una vista se conservan como historial."
         )
         saved=self.db.analysis_for_patient(self.pid)
