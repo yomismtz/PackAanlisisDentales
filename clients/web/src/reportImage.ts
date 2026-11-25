@@ -42,13 +42,15 @@ function wrapText(
 
 function fillPage(context: CanvasRenderingContext2D, height: number, pageTitle: string, pageNumber: number, date: string, palette: PaletteColors) {
   const plum = palette.plum;
+  const primary = palette.primary;
+  const accent = palette.accent;
   const muted = palette.muted;
   context.fillStyle = "#FFFFFF";
   context.fillRect(0, 0, WIDTH, height);
   context.strokeStyle = plum;
   context.lineWidth = 2;
   context.strokeRect(54, 54, WIDTH - 108, height - 108);
-  context.fillStyle = plum;
+  context.fillStyle = primary;
   context.font = "bold 44px Arial, sans-serif";
   context.textBaseline = "top";
   context.fillText("AVIS", MARGIN, 76);
@@ -59,10 +61,10 @@ function fillPage(context: CanvasRenderingContext2D, height: number, pageTitle: 
   context.textAlign = "right";
   context.fillText(date, WIDTH - MARGIN, 91);
   context.textAlign = "left";
-  context.fillStyle = plum;
+  context.fillStyle = primary;
   context.font = "bold 25px Arial, sans-serif";
   context.fillText(pageTitle.toUpperCase(), MARGIN, 142);
-  context.strokeStyle = plum;
+  context.strokeStyle = accent;
   context.lineWidth = 1.5;
   context.beginPath();
   context.moveTo(MARGIN, 187);
@@ -97,6 +99,8 @@ function drawWrapped(
 
 function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string): HTMLCanvasElement {
   const plum = input.palette.plum;
+  const primary = input.palette.primary;
+  const accent = input.palette.accent;
   const mint = input.palette.mint;
   const muted = input.palette.muted;
   const soft = input.palette.soft;
@@ -171,6 +175,8 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
 
 function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
   const plum = input.palette.plum;
+  const primary = input.palette.primary;
+  const accent = input.palette.accent;
   const muted = input.palette.muted;
   const soft = input.palette.soft;
   const border = input.palette.border;
@@ -227,7 +233,7 @@ function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
   context.strokeStyle = plum;
   context.lineWidth = 1.5;
   context.strokeRect(tableX, y, tableWidth, 43);
-  context.fillStyle = plum;
+  context.fillStyle = primary;
   context.font = "bold 14px Arial, sans-serif";
   context.fillText("MEDICIÓN", colX[0], y + 13);
   context.fillText("RESULTADO", colX[1], y + 13);
@@ -255,7 +261,7 @@ function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
 
   y += 34;
   for (const [heading, value] of notes) {
-    context.fillStyle = plum;
+    context.fillStyle = primary;
     context.font = "bold 16px Arial, sans-serif";
     context.fillText(heading, MARGIN, y);
     y += 28;
