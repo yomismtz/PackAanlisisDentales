@@ -87,7 +87,7 @@ def analysis_completion_issue(key, values):
             "Plano terminal derecho", "Plano terminal izquierdo",
         )
         recorded = values.get("Evaluación estructurada", {}) or {}
-        missing = [label for label in expected if not _filled(recorded.get(label))]
+        missing = [label for label in expected if not _filled(recorded.get(label)) or recorded.get(label) == "Seleccionar"]
         return "Baumé: completa o registra como no evaluable: " + ", ".join(missing) + "." if missing else None
     if key == "intermaxillary":
         expected = (
@@ -98,7 +98,7 @@ def analysis_completion_issue(key, values):
             "Desviación mandibular al cierre",
         )
         recorded = values.get("Evaluación estructurada", {}) or {}
-        missing = [label for label in expected if not _filled(recorded.get(label))]
+        missing = [label for label in expected if not _filled(recorded.get(label)) or recorded.get(label) == "Seleccionar"]
         return "Intermaxilar: completa o registra como no evaluable: " + ", ".join(missing) + "." if missing else None
     photo_keys={"facial_frontal","facial_profile","facial_midlines","facial_levels","facial_contour","powell","smile","facial_projections","facial_symmetry"}
     if key in photo_keys:
