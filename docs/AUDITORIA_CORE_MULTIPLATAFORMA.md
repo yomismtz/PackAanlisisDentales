@@ -12,7 +12,8 @@ Esta auditoría identifica qué lógica puede convertirse en núcleo reutilizabl
 | Área | Código actual | Estado para reutilización |
 |---|---|---|
 | Edad cronológica y referencias CS1–CS6 | `app/age_calculation.py` | Funciones Python independientes de Qt; candidata a extracción directa |
-| Geometría y Steiner | `app/cephalometry.py` | Funciones de geometría y cálculo independientes de Qt; candidata a núcleo compartido |
+| Geometría fotográfica | `avis_core/geometry.py` (puente de escritorio: `app/photo_geometry.py`) | **Extraída como primer módulo puro**; conserva las cuatro funciones públicas y sus pruebas de regresión |
+| Geometría y Steiner | `app/cephalometry.py` | Funciones de geometría y cálculo independientes de Qt; candidata a siguiente extracción |
 | Nolla | `app/nolla.py` | Tabla, suma e interpolación independientes de Qt; revisar procedencia/versión de la tabla antes de uso clínico |
 | Moyers 75 % | `app/moyers.py` | Funciones puras presentes, pero el mismo archivo importa PySide6; separar módulo de cálculo de la interfaz |
 | Índice de Little | `app/little.py` | `little_measurements` es cálculo puro, pero vive junto a widgets Qt |
@@ -24,13 +25,21 @@ Esta auditoría identifica qué lógica puede convertirse en núcleo reutilizabl
 
 ## Hallazgos que condicionan la migración
 
-1. No existe todavía un único núcleo Python independiente de la interfaz. Algunos cálculos son puros, pero están en módulos que importan PySide6.
-2. El cliente web React/TypeScript y una app Android con Capacitor no pueden ejecutar automáticamente esos módulos Python. Antes de afirmar equivalencia multiplataforma hay que elegir entre un runtime Python compatible (por ejemplo, Pyodide en web, con sus límites) o una implementación TypeScript con pruebas de paridad.
+1. Se creó el paquete inicial `avis_core/`. La geometría fotográfica ya vive en `avis_core/geometry.py`; `app/photo_geometry.py` solo reexporta las funciones para no romper la interfaz actual. Esto inicia el núcleo Python para escritorio, pero no constituye todavía un núcleo ejecutable en navegador/Capacitor.
+2. El cliente web React/TypeScript y una app Android con Capacitor no pueden ejecutar automáticamente los módulos Python. Para web/Android se debe crear una implementación TypeScript o seleccionar explícitamente un runtime compatible. La ruta elegida debe validarse con vectores de entrada/salida idénticos; no se afirmará paridad hasta que esas pruebas pasen.
 3. El cálculo de Little devuelve píxeles relativos y advierte que no equivale a milímetros sin calibración 1:1. Esa unidad y advertencia deben conservarse.
 4. Moyers ya define interpolación y discrepancia como funciones separadas, pero su módulo importa Qt. Es un candidato claro para separar en una siguiente modificación controlada.
 5. Nolla documenta que su tabla procede de material aportado por la propietaria del proyecto. La tabla no debe sustituirse ni presentarse como validación universal.
 6. El propio código de fotografía contiene normas y referencias embebidas. No deben corregirse silenciosamente durante la migración: primero se documentan y contrastan con las fuentes clínicas del proyecto.
 7. El README/arquitectura actual indica almacenamiento local sin cifrado de aplicación ni autenticación. No usar datos identificables reales hasta implementar y revisar medidas de protección adecuadas.
+
+## Progreso de la extracción
+
+- `avis_core/geometry.py` contiene inclinación de línea, diferencia angular, proporciones de segmentos y diferencia bilateral.
+- `app/photo_geometry.py` mantiene la ruta de importación anterior y delega en el núcleo.
+- `tests/test_photo_geometry.py` conserva la regresión existente; `tests/test_core_geometry.py` comprueba el contrato público del nuevo paquete.
+- `pyproject.toml` declara ambos paquetes (`app` y `avis_core`) para instalación; CI también se activa ante cambios en `avis_core/**`.
+- No se modificaron fórmulas, unidades ni resultados esperados.
 
 ## Secuencia técnica recomendada
 
