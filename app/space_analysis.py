@@ -276,6 +276,15 @@ class CareySpaceDialog(QDialog):
             layout.addWidget(QLabel("No se encontró la imagen oclusal de esta arcada."), 1)
         self.tabs.addTab(page, title)
 
+    def _stop_capture(self):
+        if not self.capture:
+            return
+        arch, mode, _ = self.capture
+        self.canvases[arch].set_point_mode(False)
+        if mode == "trace":
+            self.trace_buttons[arch].setText("Continuar perímetro")
+        self.capture = None
+
     def _activate_point(self, arch):
         code = self.point_selects[arch].currentData()
         if not code:
@@ -285,20 +294,20 @@ class CareySpaceDialog(QDialog):
         if canvas.pixmap_item is None:
             QMessageBox.warning(self, "Modelo requerido", "Carga la vista oclusal correspondiente.")
             return
+        self._stop_capture()
         canvas.set_point_mode(True)
         self.capture = (arch, "point", code)
 
     def _toggle_trace(self, arch):
         if self.capture == (arch, "trace", None):
-            self.capture = None
-            self.canvases[arch].set_point_mode(False)
-            self.trace_buttons[arch].setText("Continuar perímetro")
+            self._stop_capture()
             self.update_results()
             return
         canvas = self.canvases[arch]
         if canvas.pixmap_item is None:
             QMessageBox.warning(self, "Modelo requerido", "Carga la vista oclusal correspondiente.")
             return
+        self._stop_capture()
         self.traces[arch] = []
         self.capture = (arch, "trace", None)
         canvas.set_point_mode(True)
