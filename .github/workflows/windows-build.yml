@@ -2,7 +2,7 @@ name: Windows desktop build
 
 on:
   push:
-    branches: [develop/desktop-foundation]
+    branches: [develop/desktop-foundation, feature/avis-multiplatform-local]
   workflow_dispatch:
 
 concurrency:
@@ -25,12 +25,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pyinstaller
       - name: Run tests
         run: python -m pytest -q
       - name: Build executable
-        run: python -m PyInstaller --noconfirm --clean --windowed --name PackAnalisisDentales --collect-all PySide6 --collect-all cv2 run.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name AVIS --collect-all PySide6 --collect-all cv2 run.py
+      - name: Verify executable
+        run: |
+          if (!(Test-Path 'dist/AVIS/AVIS.exe')) { throw 'AVIS.exe was not generated' }
       - uses: actions/upload-artifact@v4
         with:
-          name: PackAnalisisDentales-Windows
-          path: dist/PackAnalisisDentales/
+          name: AVIS-Windows-x64
+          path: dist/AVIS/
           if-no-files-found: error
+          retention-days: 14
