@@ -51,9 +51,27 @@ def analysis_completion_issue(key, values):
         phases=values.get("Fases",{}) or {}; missing=[]
         for i,phase in enumerate(PANORAMIC_PHASES,1):
             answers=(phases.get(f"{i:02d}",{}) or {}).get("Respuestas",{}) or {}
-            pending=[label for _,label,kind,_ in phase["fields"] if kind=="choice" and not _filled(answers.get(label))]
+            pending=[]
+            for _,label,kind,options in phase["fields"]:
+                if kind=="choice" and not _filled(answers.get(label)):
+                    pending.append(label)
+                elif kind=="repeater":
+                    for row_number,row in enumerate(answers.get(label,[]) or [],1):
+                        if not isinstance(row,dict) or any(not _filled(row.get(definition[1])) for definition in options):
+                            return f"Panorámica: completa o elimina el registro {row_number} de «{label}» en {phase['title']}."
             if pending: missing.append(phase["title"]+": "+", ".join(pending))
         return "Panorámica: faltan respuestas obligatorias en "+"; ".join(missing[:3])+("…" if len(missing)>3 else "") if missing else None
+    photo_keys={"facial_frontal","facial_profile","facial_midlines","facial_levels","facial_contour","powell","smile","facial_projections","facial_symmetry"}
+    if key in photo_keys:
+        from .photo_analysis import CONFIG,SMILE_FIELDS,CONTOUR_FIELDS,MIDLINE_FIELDS,LEVEL_FIELDS
+        points=values.get("Puntos",{}) or {}
+        missing=[code for code,_ in CONFIG[key]["points"] if code not in points]
+        if missing: return "Fotografía: faltan puntos anatómicos: "+", ".join(missing[:6])+("…" if len(missing)>6 else "")+"."
+        visual=values.get("Evaluación visual",{}) or {}
+        fields=SMILE_FIELDS if key=="smile" else CONTOUR_FIELDS if key=="facial_contour" else MIDLINE_FIELDS if key=="facial_midlines" else LEVEL_FIELDS if key=="facial_levels" else {}
+        pending=[label for label in fields if visual.get(label) in (None,"","Sin evaluar")]
+        if pending: return "Fotografía: completa los criterios visuales: "+", ".join(pending[:5])+("…" if len(pending)>5 else "")+"."
+        return None
     return _generic_completion_issue(key,values)
 
 def _generic_completion_issue(key,values):
