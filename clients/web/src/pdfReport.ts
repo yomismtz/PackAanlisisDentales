@@ -149,7 +149,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
   let page1 = drawPageFrame("Registro fotográfico", 1, generatedAt);
   page1 += text(input.title, 48, 732, 10.5, "F2", BLACK);
-  page1 += text("Puntos anatómicos y referencias horizontales", 48, 716, 8, "F1", GREY);
+  page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", GREY);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
 
   const photoBox = { x: 48, y: 313, width: PAGE_W - 96, height: 370 };
