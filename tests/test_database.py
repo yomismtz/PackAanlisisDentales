@@ -44,8 +44,8 @@ def test_carey_measurements_and_conclusion_survive_patient_roundtrip(tmp_path):
         points = {}
         for index, tooth in enumerate(CAREY_TEETH[arch]):
             x = index * 10.0
-            points[f"{tooth}_M"] = (x, 0.0)
-            points[f"{tooth}_D"] = (x + 10.0, 0.0)
+            points[f"{tooth}_M"] = [x, 0.0]
+            points[f"{tooth}_D"] = [x + 10.0, 0.0]
         trace = [[0.0, 0.0], [22.5, 0.0], [45.0, 0.0], [67.5, 0.0], [90.0, 0.0]]
         result = calculate_carey_arch(points, trace, CAREY_TEETH[arch])
         assert result is not None
