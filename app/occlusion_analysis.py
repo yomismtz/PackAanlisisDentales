@@ -30,7 +30,12 @@ class StructuredOcclusionDialog(QDialog):
     def __init__(self, images=None, existing=None, parent=None):
         super().__init__(parent)
         self.existing = existing or {}
-        saved = (self.existing.get("values", {}) or {}).get("Evaluación estructurada", {}) or {}
+        all_saved = self.existing.get("values", {}) or {}
+        saved = all_saved.get("Evaluación estructurada", {}) or {}
+        self.legacy_values = dict(all_saved.get("Registro previo (formato anterior)", {}) or {})
+        for label, value in all_saved.items():
+            if label not in ("Evaluación estructurada", "Método", "Registro previo (formato anterior)") and value not in (None, ""):
+                self.legacy_values[label] = value
         self.fields = {}
         self.setWindowTitle(self.TITLE)
         self.resize(1380, 880)
@@ -66,6 +71,13 @@ class StructuredOcclusionDialog(QDialog):
             right.addWidget(QLabel(group_title))
             right.addWidget(box)
 
+        if self.legacy_values:
+            legacy_notice = QLabel(
+                "Este expediente contiene campos manuales de una versión anterior. "
+                "Se conservarán como antecedente; completa las nuevas clasificaciones para actualizar el análisis."
+            )
+            legacy_notice.setWordWrap(True)
+            right.addWidget(legacy_notice)
         right.addWidget(QLabel("Observaciones"))
         self.observations = QTextEdit(self.existing.get("observations", ""))
         self.observations.setMaximumHeight(70)
@@ -103,6 +115,7 @@ class StructuredOcclusionDialog(QDialog):
                     for label, combo in self.fields.items()
                 },
                 "Método": self.__class__.__name__,
+                **({"Registro previo (formato anterior)": self.legacy_values} if self.legacy_values else {}),
             },
             self.observations.toPlainText().strip(),
             self.conclusion.toPlainText().strip(),
