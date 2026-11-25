@@ -463,7 +463,8 @@ class MixedDentitionDialog(QDialog):
         incisor_range = _incisor_sum_range(widths)
         available = _available_range(path_px, ref_px, ref_key)
         sex = self.sex.currentText() if self.method == "moyers" else ""
-        required = _required_range(incisor_range, self.method, arch, sex)
+        method_arch = "superior" if arch == "upper" else "inferior"
+        required = _required_range(incisor_range, self.method, method_arch, sex)
         if path_px is None:
             return "Pendiente"
         if not available or not required:
