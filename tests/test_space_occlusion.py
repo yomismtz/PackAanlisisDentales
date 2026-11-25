@@ -103,6 +103,8 @@ def test_baume_allows_explicit_non_evaluable_fields():
     values = baume_values()
     values["Evaluación estructurada"]["Plano terminal derecho"] = ""
     assert "plano terminal derecho" in analysis_completion_issue("baume", values).lower()
+    values["Evaluación estructurada"]["Plano terminal derecho"] = "Seleccionar"
+    assert "plano terminal derecho" in analysis_completion_issue("baume", values).lower()
 
 
 def test_intermaxillary_requires_all_planes_and_bilateral_relations():
@@ -110,6 +112,9 @@ def test_intermaxillary_requires_all_planes_and_bilateral_relations():
     values = intermaxillary_values()
     values["Evaluación estructurada"].pop("Relación molar izquierda")
     assert "relación molar izquierda" in analysis_completion_issue("intermaxillary", values).lower()
+    values = intermaxillary_values()
+    values["Evaluación estructurada"]["Overjet"] = "Seleccionar"
+    assert "overjet" in analysis_completion_issue("intermaxillary", values).lower()
 
 
 def test_models_report_includes_carey_baume_and_intermaxillary():
