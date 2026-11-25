@@ -652,12 +652,17 @@ export function summarizePhotoAnalysis(
       );
       if (observation) conclusions.push(observation);
     }
+    const unequalFifths = conclusions
+      .filter((item) => item.includes("no coinciden"))
+      .map((item) => item.slice(0, item.indexOf(":")));
     if (!conclusions.length) {
       conclusions.push("Aún faltan puntos para comparar las medidas bilaterales de los quintos faciales.");
-    } else if (conclusions.some((item) => item.includes("no coinciden"))) {
-      conclusions.push("En los segmentos bilaterales comparados se registran diferencias geométricas; esto describe los segmentos marcados y no determina por sí solo la simetría clínica de todo el rostro.");
+    } else if (unequalFifths.length) {
+      conclusions.push(
+        `Conclusión: se observa asimetría geométrica relativa en ${unequalFifths.join(" y ")}. La observación se limita a los segmentos medidos y no determina por sí sola la simetría clínica de todo el rostro.`,
+      );
     } else {
-      conclusions.push("Los segmentos bilaterales comparados coinciden a la precisión mostrada; esto no equivale a una certificación de simetría facial completa.");
+      conclusions.push("No se identificaron diferencias entre las longitudes de los quintos comparados a la precisión mostrada; esto no equivale a una certificación de simetría facial completa.");
     }
   } else if (cfg.formula === "contour") {
     const comparisons: Array<[string, [string, string], [string, string]]> = [
@@ -690,6 +695,14 @@ export function summarizePhotoAnalysis(
             : `${label}: las descripciones visuales derecha e izquierda no coinciden (${rightValue.toLowerCase()} / ${leftValue.toLowerCase()}).`,
         );
       }
+    }
+    const unequalContour = conclusions
+      .filter((item) => item.includes("no coinciden"))
+      .map((item) => item.slice(0, item.indexOf(":")));
+    if (unequalContour.length) {
+      conclusions.push(
+        `Conclusión: se registran diferencias entre lado derecho e izquierdo en ${unequalContour.join(", ")}. La descripción se limita a los segmentos y criterios evaluados.`,
+      );
     }
     if (!conclusions.length) conclusions.push("Coloca los puntos bilaterales y registra los criterios visuales para comparar ambos lados del contorno.");
   } else if (cfg.formula === "smile") {
