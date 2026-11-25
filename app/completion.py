@@ -61,6 +61,45 @@ def analysis_completion_issue(key, values):
                             return f"Panorámica: completa o elimina el registro {row_number} de «{label}» en {phase['title']}."
             if pending: missing.append(phase["title"]+": "+", ".join(pending))
         return "Panorámica: faltan respuestas obligatorias en "+"; ".join(missing[:3])+("…" if len(missing)>3 else "") if missing else None
+    if key == "nance_carey":
+        if values.get("Método") != "Carey · dentición permanente":
+            return "Carey requiere seleccionar el método de dentición permanente."
+        from .space_analysis import CAREY_TEETH, calculate_carey_arch
+        arches = values.get("Arcadas", {}) or {}
+        for arch in ("superior", "inferior"):
+            data = arches.get(arch, {}) or {}
+            points = data.get("Puntos", {}) or {}
+            trace = data.get("Recorrido disponible", []) or []
+            required = {f"{tooth}_{side}" for tooth in CAREY_TEETH[arch] for side in ("M", "D")}
+            missing = required - set(points)
+            if missing:
+                return f"Carey: faltan puntos mesiodistales en la arcada {arch}."
+            if len(trace) < 2:
+                return f"Carey: falta trazar el perímetro disponible de la arcada {arch}."
+            if calculate_carey_arch(points, trace, CAREY_TEETH[arch]) is None:
+                return f"Carey: no se pudo calcular la comparación geométrica de la arcada {arch}."
+        return None
+    if key == "baume":
+        expected = (
+            "Tipo de arcada superior", "Tipo de arcada inferior",
+            "Espacio primate superior derecho", "Espacio primate superior izquierdo",
+            "Espacio primate inferior derecho", "Espacio primate inferior izquierdo",
+            "Plano terminal derecho", "Plano terminal izquierdo",
+        )
+        recorded = values.get("Evaluación estructurada", {}) or {}
+        missing = [label for label in expected if not _filled(recorded.get(label))]
+        return "Baumé: completa o registra como no evaluable: " + ", ".join(missing) + "." if missing else None
+    if key == "intermaxillary":
+        expected = (
+            "Relación molar derecha", "Relación molar izquierda",
+            "Relación canina derecha", "Relación canina izquierda", "Overjet",
+            "Sobremordida vertical", "Relación transversal",
+            "Línea media superior", "Línea media inferior",
+            "Desviación mandibular al cierre",
+        )
+        recorded = values.get("Evaluación estructurada", {}) or {}
+        missing = [label for label in expected if not _filled(recorded.get(label))]
+        return "Intermaxilar: completa o registra como no evaluable: " + ", ".join(missing) + "." if missing else None
     photo_keys={"facial_frontal","facial_profile","facial_midlines","facial_levels","facial_contour","powell","smile","facial_projections","facial_symmetry"}
     if key in photo_keys:
         from .photo_analysis import CONFIG,SMILE_FIELDS,CONTOUR_FIELDS,MIDLINE_FIELDS,LEVEL_FIELDS
