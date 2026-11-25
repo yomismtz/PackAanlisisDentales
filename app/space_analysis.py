@@ -20,6 +20,26 @@ CAREY_TEETH = {
 }
 
 
+def carey_point_order(arch):
+    """Mesial seguido de distal para cada diente, de derecha a izquierda."""
+    if arch not in CAREY_TEETH:
+        raise ValueError("Arcada no válida.")
+    return tuple(
+        f"{tooth}_{side}"
+        for tooth in CAREY_TEETH[arch]
+        for side in ("M", "D")
+    )
+
+
+def next_missing_carey_point(points, arch):
+    """Primer punto pendiente siguiendo la secuencia mesial-distal."""
+    points = points if isinstance(points, dict) else {}
+    return next(
+        (code for code in carey_point_order(arch) if code not in points),
+        None,
+    )
+
+
 def polyline_length(points):
     """Length of a traced line in image pixels; no physical scale is inferred."""
     if not isinstance(points, (list, tuple)) or len(points) < 2:
@@ -86,9 +106,12 @@ class CareyCanvas(MoyersCanvas):
         if self.pixmap_item is None:
             return
 
+        # El perímetro se dibuja como una polilínea abierta y ordenada:
+        # cada clic prolonga la curva de la arcada; nunca se cierra como un círculo.
         path = [tuple(point) for point in trace]
         if len(path) >= 2:
             pen = QPen(QColor("#F4C95D"), 3)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             for first, second in zip(path, path[1:]):
                 line = self.scene_obj.addLine(
                     first[0], first[1], second[0], second[1], pen
@@ -96,11 +119,28 @@ class CareyCanvas(MoyersCanvas):
                 line.setZValue(3)
                 self.marks.append(line)
 
+        for index, (x, y) in enumerate(path, start=1):
+            color = "#2FBF71" if index == 1 else "#E07A5F" if index == len(path) else "#F4C95D"
+            radius = 5
+            dot = self.scene_obj.addEllipse(
+                x - radius, y - radius, radius * 2, radius * 2,
+                QPen(QColor(color), 2), QColor(color)
+            )
+            dot.setZValue(6)
+            label = self.scene_obj.addText(
+                "Inicio" if index == 1 else "Fin" if index == len(path) else str(index)
+            )
+            label.setDefaultTextColor(QColor("#FFFFFF"))
+            label.setPos(x + 7, y + 5)
+            label.setZValue(7)
+            self.marks.extend([dot, label])
+
         for tooth in teeth:
-            first, second = points.get(f"{tooth}_M"), points.get(f"{tooth}_D")
-            if first and second:
+            mesial = points.get(f"{tooth}_M")
+            distal = points.get(f"{tooth}_D")
+            if mesial and distal:
                 line = self.scene_obj.addLine(
-                    first[0], first[1], second[0], second[1],
+                    mesial[0], mesial[1], distal[0], distal[1],
                     QPen(QColor("#22B8B0"), 2),
                 )
                 line.setZValue(4)
