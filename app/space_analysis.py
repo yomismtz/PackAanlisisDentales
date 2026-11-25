@@ -18,6 +18,7 @@ CAREY_TEETH = {
     "superior": ("15", "14", "13", "12", "11", "21", "22", "23", "24", "25"),
     "inferior": ("45", "44", "43", "42", "41", "31", "32", "33", "34", "35"),
 }
+MIN_ARCH_TRACE_POINTS = 5
 
 
 def carey_point_order(arch):
@@ -62,6 +63,8 @@ def polyline_length(points):
 def calculate_carey_arch(points, trace, teeth):
     """Compare arch perimeter with the mesiodistal material of teeth 5–5."""
     if not isinstance(points, dict):
+        return None
+    if not isinstance(trace, (list, tuple)) or len(trace) < MIN_ARCH_TRACE_POINTS:
         return None
     available = polyline_length(trace)
     if available is None:
@@ -462,8 +465,10 @@ class CareySpaceDialog(QDialog):
             self.points[arch][code] = (x, y)
             self.capture = None
             self.canvases[arch].set_point_mode(False)
+            self._update_point_progress(arch, choose_next=True)
         else:
             self.traces[arch].append((x, y))
+            self._update_trace_progress(arch)
         self._redraw(arch)
         self.update_results()
 
@@ -472,7 +477,8 @@ class CareySpaceDialog(QDialog):
         if self.capture and self.capture[0] == arch:
             self.capture = None
             self.canvases[arch].set_point_mode(False)
-        self.trace_buttons[arch].setText("Trazar perímetro disponible")
+        self.trace_buttons[arch].setText("Iniciar trazado del perímetro")
+        self._update_trace_progress(arch)
         self._redraw(arch)
         self.update_results()
 
