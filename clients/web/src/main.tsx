@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { buildPhotoReportPdf } from "./pdfReport";
+import { renderPhotoReportImage } from "./reportImage";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -30,6 +31,7 @@ function App() {
   const [observations, setObservations] = useState("");
   const [conclusion, setConclusion] = useState("");
   const [status, setStatus] = useState("En proceso");
+  const [reportFormat, setReportFormat] = useState<"pdf" | "png" | "jpeg">("pdf");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const objectUrlRef = useRef("");
@@ -266,14 +268,14 @@ function App() {
     };
   }
 
-  function downloadReport() {
+  async function downloadReport() {
     if (!imageRef.current || !imageSize) {
-      setImageError("Carga la fotografía y coloca los puntos antes de generar el reporte PDF.");
+      setImageError("Carga la fotografía antes de generar el reporte.");
       return;
     }
     try {
       const photo = createAnnotatedPhoto();
-      const pdfBytes = buildPhotoReportPdf({
+      const input = {
         title: config.title,
         mode,
         fileName,
@@ -289,21 +291,32 @@ function App() {
         observations,
         professionalConclusion: conclusion,
         generatedAt: new Date(),
-      });
-      const pdfBuffer = pdfBytes.buffer.slice(
-        pdfBytes.byteOffset,
-        pdfBytes.byteOffset + pdfBytes.byteLength,
-      ) as ArrayBuffer;
-      const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+      };
+
+      let blob: Blob;
+      let extension: string;
+      if (reportFormat === "pdf") {
+        const pdfBytes = buildPhotoReportPdf(input);
+        const pdfBuffer = pdfBytes.buffer.slice(
+          pdfBytes.byteOffset,
+          pdfBytes.byteOffset + pdfBytes.byteLength,
+        ) as ArrayBuffer;
+        blob = new Blob([pdfBuffer], { type: "application/pdf" });
+        extension = "pdf";
+      } else {
+        blob = await renderPhotoReportImage(input, reportFormat);
+        extension = reportFormat === "jpeg" ? "jpg" : "png";
+      }
+
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `AVIS_${mode}_reporte.pdf`;
+      anchor.download = `AVIS_${mode}_reporte.${extension}`;
       anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
       setImageError("");
     } catch (error) {
-      setImageError(error instanceof Error ? error.message : "No fue posible generar el reporte PDF.");
+      setImageError(error instanceof Error ? error.message : "No fue posible generar el reporte.");
     }
   }
 
@@ -493,7 +506,15 @@ function App() {
               <div className="form-field"><label htmlFor="status">Estado</label><select id="status" value={status} onChange={(event) => setStatus(event.target.value)}><option>Pendiente</option><option>En proceso</option><option value="Completo" disabled={!canComplete}>Completo</option></select>{!canComplete && <small className="completion-hint">{missingPhotoPoints.length ? "Faltan puntos: " + missingPhotoPoints.slice(0, 6).join(", ") + (missingPhotoPoints.length > 6 ? "…" : "") : ""}{missingPhotoPoints.length && pendingVisualFields.length ? " · " : ""}{pendingVisualFields.length ? "Criterios sin evaluar: " + pendingVisualFields.slice(0, 4).join(", ") + (pendingVisualFields.length > 4 ? "…" : "") : ""}</small>}</div>
               <div className="form-field"><label htmlFor="observations">Observaciones</label><textarea id="observations" rows={3} value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Registra observaciones…" /></div>
               <div className="form-field"><label htmlFor="conclusion">Conclusión profesional</label><textarea id="conclusion" rows={3} value={conclusion} onChange={(event) => setConclusion(event.target.value)} placeholder="Integra aquí tu interpretación profesional…" /></div>
-              <button className="primary download-button" onClick={downloadReport}>Descargar reporte PDF</button>
+              <div className="form-field">
+                <label htmlFor="report-format">Formato de descarga del reporte</label>
+                <select id="report-format" value={reportFormat} onChange={(event) => setReportFormat(event.target.value as "pdf" | "png" | "jpeg")}>
+                  <option value="pdf">PDF · Documento de dos páginas</option>
+                  <option value="png">PNG · Imagen larga de alta calidad</option>
+                  <option value="jpeg">JPEG · Imagen comprimida</option>
+                </select>
+              </div>
+              <button className="primary download-button" onClick={downloadReport}>Descargar reporte {reportFormat.toUpperCase()}</button>
               <button className="secondary download-button json-download" onClick={downloadResults}>Descargar resultados (JSON)</button>
               <p className="clinical-note">Herramienta de apoyo para medición y registro. No emite diagnóstico autónomo ni sustituye la valoración profesional. El archivo JSON contiene puntos y resultados, no la fotografía.</p>
             </aside>
