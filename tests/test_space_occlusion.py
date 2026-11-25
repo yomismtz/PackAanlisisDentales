@@ -19,9 +19,16 @@ def make_carey_points(teeth, width=10.0):
 def make_carey_values():
     arches = {}
     for arch in ("superior", "inferior"):
+        points = make_carey_points(CAREY_TEETH[arch])
+        trace = [[0.0, 0.0], [120.0, 0.0]]
+        result = calculate_carey_arch(points, trace, CAREY_TEETH[arch])
         arches[arch] = {
-            "Puntos": make_carey_points(CAREY_TEETH[arch]),
-            "Recorrido disponible": [[0.0, 0.0], [120.0, 0.0]],
+            "Puntos": points,
+            "Recorrido disponible": trace,
+            "Espacio disponible px": result["available_px"],
+            "Espacio requerido px": result["required_px"],
+            "Discrepancia px": result["discrepancy_px"],
+            "Resultado": result["classification"],
         }
     return {
         "Método": "Carey · dentición permanente",
