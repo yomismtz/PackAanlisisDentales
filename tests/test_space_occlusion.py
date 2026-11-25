@@ -186,3 +186,18 @@ def test_intermaxillary_form_exposes_sagittal_vertical_and_transverse_fields():
         "Overjet", "Sobremordida vertical", "Relación transversal",
         "Línea media superior", "Línea media inferior",
     } <= labels
+
+
+def test_occlusion_dialog_saves_selected_text_and_not_placeholder():
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    dialog = BaumeDialog(images={})
+    initial = dialog.values()[1]["Evaluación estructurada"]
+    assert all(value == "" for value in initial.values())
+
+    dialog.fields["Tipo de arcada superior"].setCurrentIndex(1)
+    saved = dialog.values()[1]["Evaluación estructurada"]
+    assert saved["Tipo de arcada superior"] == "Tipo I · con espacios fisiológicos"
+    assert saved["Tipo de arcada inferior"] == ""
+    dialog.close()
+    app.processEvents()
