@@ -222,6 +222,8 @@ class CareySpaceDialog(QDialog):
         layout.addWidget(split, 1)
         layout.addWidget(buttons)
 
+        for arch in ("superior", "inferior"):
+            self._redraw(arch)
         self.update_results()
 
     def _build_arch_tab(self, arch, title):
