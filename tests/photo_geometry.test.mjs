@@ -23,3 +23,15 @@ test("Powell rejects missing or degenerate landmarks",()=>{
  assert.equal(calculatePowellAngles({G:p(0,0),Pg:p(0,0),N:p(1,0),Prn:p(2,0)}).nasofacial,0);
  assert.equal(calculatePowellAngles({}).mentocervical,null);
 });
+
+test("vertical facial thirds use Tr-G, G-Sn and Sn-Me",()=>{
+ const result=calculateVerticalFacialThirds({Tr:p(0,0),G:p(0,10),Sn:p(0,30),Me:p(0,60)});
+ assert.deepEqual(result.lengths,[10,20,30]);
+ assert.ok(Math.abs(result.percentages[0]-16.6666666667)<1e-8);
+ assert.ok(Math.abs(result.percentages[1]-33.3333333333)<1e-8);
+ assert.equal(result.percentages[2],50);
+});
+test("vertical thirds return null when a required landmark is absent or total height is zero",()=>{
+ assert.equal(calculateVerticalFacialThirds({Tr:p(0,0),Sn:p(0,10),Me:p(0,20)}),null);
+ assert.equal(calculateVerticalFacialThirds({Tr:p(0,0),G:p(0,0),Sn:p(0,0),Me:p(0,0)}),null);
+});
