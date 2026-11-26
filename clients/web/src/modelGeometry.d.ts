@@ -6,3 +6,5 @@ export function estimateFourIncisorSumRange(widthsPx: number[], lateralMeanMm?: 
 export function scaleSpaceRange(spacePx: number, referencePx: number, referenceMeanMm: number, referenceSdMm: number): [number, number] | null;
 export function tanakaJohnstonPrediction(incisorSumMm: number, arch: "superior" | "inferior"): number | null;
 export function classifySpaceRange(available: [number, number] | null, required: [number, number] | null): string;
+
+export function pixelsToMillimeters(valuePx: number, pixelsPerMm: number): number | null;
