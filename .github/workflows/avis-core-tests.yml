@@ -54,6 +54,8 @@ jobs:
           cache-dependency-path: clients/web/package-lock.json
       - name: Install exact locked dependencies
         run: npm ci
+      - name: Test web cephalometric geometry
+        run: npm run test:geometry
       - name: Build AVIS web/PWA
         run: npm run build
       - name: Upload web build

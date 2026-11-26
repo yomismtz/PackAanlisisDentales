@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
+import { angleBetweenLinesDegrees, steinerIncisorAngleDegrees } from "./cephalometryGeometry";
 
 type XY = { x: number; y: number };
 type PointMap = Record<string, XY>;
@@ -40,9 +41,7 @@ function angleBetweenAxes(apex1: XY, tip1: XY, apex2: XY, tip2: XY) {
   return Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/den)))*180/Math.PI;
 }
 function angleLines(a: XY,b: XY,c: XY,d: XY) {
-  const one=Math.atan2(b.y-a.y,b.x-a.x), two=Math.atan2(d.y-c.y,d.x-c.x);
-  const delta=Math.abs(((one-two+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI);
-  return Math.min(delta,180-delta);
+  return angleBetweenLinesDegrees(a,b,c,d);
 }
 function project(p: XY,a: XY,b: XY): XY | null {
   const dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy;
@@ -61,7 +60,7 @@ function calculate(points: PointMap, pxPerMm: number | null) {
   if(p("Ar")&&p("Go")&&p("Me")) put("ArGoMe",angleAt(p("Ar"),p("Go"),p("Me")));
   if(p("S")&&p("N")&&p("Go")&&p("Gn")) put("GoGnSN",angleLines(p("S"),p("N"),p("Go"),p("Gn")));
   if(p("A")&&p("B")&&p("Go")&&p("Gn")) put("ABGoGn",angleLines(p("A"),p("B"),p("Go"),p("Gn")));
-  if(p("S")&&p("N")&&p("U1_apex")&&p("U1_tip")) put("U1SN",180-angleLines(p("S"),p("N"),p("U1_apex"),p("U1_tip")));
+  if(p("S")&&p("N")&&p("U1_apex")&&p("U1_tip")) put("U1SN",steinerIncisorAngleDegrees(p("S"),p("N"),p("U1_apex"),p("U1_tip")));
   if(p("N")&&p("B")&&p("L1_apex")&&p("L1_tip")) put("L1NB",angleLines(p("N"),p("B"),p("L1_apex"),p("L1_tip")));
   if(p("Go")&&p("Gn")&&p("L1_apex")&&p("L1_tip")) put("IMPA",angleLines(p("Go"),p("Gn"),p("L1_apex"),p("L1_tip")));
   if(p("U1_apex")&&p("U1_tip")&&p("L1_apex")&&p("L1_tip")) put("Interincisal",angleBetweenAxes(p("U1_apex"),p("U1_tip"),p("L1_apex"),p("L1_tip")));

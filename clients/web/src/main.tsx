@@ -7,6 +7,7 @@ import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes
 import { playBirdCall, stopBirdCall } from "./birdAudio";
 import Cephalometry from "./Cephalometry";
 import Panoramic from "./Panoramic";
+import ModelAnalysis from "./ModelAnalysis";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -21,7 +22,7 @@ import {
 const PHOTO_MODES = Object.keys(PHOTO_CONFIG) as PhotoMode[];
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry" | "panoramic">("home");
+  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry" | "panoramic" | "models">("home");
   const [mode, setMode] = useState<PhotoMode>("facial_frontal");
   const [imageUrl, setImageUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -448,10 +449,10 @@ function App() {
               <p>Formulario sistemático y trazado de Levandoski. En integración para web.</p>
               <button className="primary" onClick={() => setScreen("panoramic")}>Abrir análisis panorámico</button>
             </article>
-            <article className="module-card">
+            <article className="module-card module-card-active">
               <span>05</span><h2>Modelos dentales</h2>
-              <p>Little, Moyers, Tanaka-Johnston y análisis de espacio. En integración para web.</p>
-              <button disabled>Próxima integración</button>
+              <p>Little, Moyers 75 %, Tanaka-Johnston y Carey. Carga de modelos, trazado y reportes.</p>
+              <button className="primary" onClick={() => setScreen("models")}>Abrir análisis de modelos</button>
             </article>
             <article className="module-card">
               <span>06</span><h2>Informes</h2>
@@ -465,6 +466,8 @@ function App() {
         <Cephalometry onBack={returnHome} />
       ) : screen === "panoramic" ? (
         <Panoramic onBack={returnHome} />
+      ) : screen === "models" ? (
+        <ModelAnalysis onBack={returnHome} />
       ) : (
         <section className="analysis-page">
           <div className="analysis-heading">
