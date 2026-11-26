@@ -73,3 +73,12 @@ export function pixelsPerMillimeter(distancePx, knownDistanceMm) {
   if (!Number.isFinite(distancePx) || !Number.isFinite(knownDistanceMm) || distancePx <= 0 || knownDistanceMm <= 0) return null;
   return distancePx / knownDistanceMm;
 }
+
+export function careySpaceAnalysis(toothWidthsMm, archPerimeterMm) {
+  if (!Array.isArray(toothWidthsMm) || toothWidthsMm.length !== 10 ||
+      toothWidthsMm.some((value) => !Number.isFinite(value) || value <= 0) ||
+      !Number.isFinite(archPerimeterMm) || archPerimeterMm <= 0) return null;
+  const requiredMm = toothWidthsMm.reduce((sum, value) => sum + value, 0);
+  const discrepancyMm = archPerimeterMm - requiredMm;
+  return { availableMm: archPerimeterMm, requiredMm, discrepancyMm };
+}
