@@ -1,4 +1,4 @@
-import { calculatePowellAngles } from "./photoGeometry";
+import { calculatePowellAngles, calculateVerticalFacialThirds } from "./photoGeometry";
 export type PhotoMode =
   | "facial_frontal"
   | "facial_profile"
@@ -370,18 +370,11 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
       add("N–Sn (%)", ((ns / total) * 100).toFixed(1) + " %", "Proporción vertical dentro de N–Me");
       add("Sn–Me (%)", ((sm / total) * 100).toFixed(1) + " %", "Proporción vertical dentro de N–Me");
     }
-    const thirds = [
-      getVerticalDistance(points, "Tr", "G"),
-      getVerticalDistance(points, "G", "Sn"),
-      getVerticalDistance(points, "Sn", "Me"),
-    ];
-    if (thirds.every((value): value is number => value !== null)) {
-      const percentages = proportions(thirds);
-      if (percentages) {
-        ["Tercio superior (%)", "Tercio medio (%)", "Tercio inferior (%)"].forEach((label, index) =>
-          add(label, percentages[index].toFixed(1) + " %", "Proporción de la suma de los tres tercios Tr–Me"),
-        );
-      }
+    const thirds=calculateVerticalFacialThirds(points);
+    if(thirds){
+      ["Tercio superior (%)","Tercio medio (%)","Tercio inferior (%)"].forEach((label,index)=>
+        add(label,thirds.percentages[index].toFixed(1)+" %","Proporción de Tr–G, G–Sn y Sn–Me"),
+      );
     }
     if (points.Sn && points.Sts && points.Sti && points.Me) {
       const stY = (points.Sts.y + points.Sti.y) / 2;
@@ -586,15 +579,10 @@ export function summarizePhotoAnalysis(
 
   if (cfg.formula === "frontal" || cfg.formula === "profile") {
     const thirdNames = ["Tercio superior Tr–G", "Tercio medio G–Sn", "Tercio inferior Sn–Me"];
-    const thirdValues = [
-      getVerticalDistance(points, "Tr", "G"),
-      getVerticalDistance(points, "G", "Sn"),
-      getVerticalDistance(points, "Sn", "Me"),
-    ];
-    if (thirdValues.every((value): value is number => value !== null)) {
-      const total = thirdValues.reduce((sum, value) => sum + value, 0);
-      const percentages = proportions(thirdValues);
-      if (total > 0 && percentages) {
+    const thirds=calculateVerticalFacialThirds(points);
+    if(thirds){
+      const thirdValues=thirds.lengths;
+      const percentages=thirds.percentages;
         const ranked = thirdValues
           .map((value, index) => ({ name: thirdNames[index], value, percent: percentages[index] }))
           .sort((a, b) => b.value - a.value);
