@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   distanceBetweenPoints, polylineLength, littleIrregularityIndex, pixelsPerMillimeter, pixelsToMillimeters,
-  moyers75Prediction, tanakaJohnstonPrediction,
+  careySpaceAnalysis, moyers75Prediction, tanakaJohnstonPrediction,
   classifySpaceRange
 } from "../clients/web/src/modelGeometry.js";
 
@@ -51,4 +51,13 @@ test("calibration factor rejects zero and invalid known distances",()=>{
   assert.equal(pixelsPerMillimeter(50,10),5);
   assert.equal(pixelsPerMillimeter(0,10),null);
   assert.equal(pixelsPerMillimeter(50,0),null);
+});
+
+test("Carey discrepancy equals arch perimeter minus ten-tooth material",()=>{
+  const result=careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],61);
+  assert.equal(result.requiredMm,61);
+  assert.equal(result.availableMm,61);
+  assert.equal(result.discrepancyMm,0);
+  assert.equal(careySpaceAnalysis([6,6],61),null);
+  assert.equal(careySpaceAnalysis(Array(10).fill(6),0),null);
 });
