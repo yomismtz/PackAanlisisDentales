@@ -1,0 +1,25 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { calculatePowellAngles } from "../clients/web/src/photoGeometry.js";
+const p=(x,y)=>({x,y}),rad=d=>d*Math.PI/180;
+test("Powell nasofrontal uses G-N and N-R with vertex N",()=>{
+ const G=p(0,0),N=p(1,0),R=p(1+Math.cos(rad(60)),Math.sin(rad(60)));
+ assert.ok(Math.abs(calculatePowellAngles({G,N,R}).nasofrontal-120)<1e-8);
+});
+test("Powell nasofacial is the angle between facial plane G-Pg and nasal dorsum N-Prn",()=>{
+ const G=p(0,0),Pg=p(10,0),N=p(0,2),Prn=p(10*Math.cos(rad(35)),2+10*Math.sin(rad(35)));
+ assert.ok(Math.abs(calculatePowellAngles({G,Pg,N,Prn}).nasofacial-35)<1e-8);
+});
+test("Powell nasomental uses N-Prn and Prn-Pg with vertex Prn",()=>{
+ const N=p(1,0),Prn=p(0,0),Pg=p(Math.cos(rad(126)),Math.sin(rad(126)));
+ assert.ok(Math.abs(calculatePowellAngles({N,Prn,Pg}).nasomental-126)<1e-8);
+});
+test("Powell mentocervical is the angle between G-Pg and Me-C",()=>{
+ const G=p(0,0),Pg=p(10,0),Me=p(0,5),C=p(10*Math.cos(rad(85)),5+10*Math.sin(rad(85)));
+ assert.ok(Math.abs(calculatePowellAngles({G,Pg,Me,C}).mentocervical-85)<1e-8);
+});
+test("Powell rejects missing or degenerate landmarks",()=>{
+ assert.equal(calculatePowellAngles({G:p(0,0),N:p(0,0),R:p(1,0)}).nasofrontal,null);
+ assert.equal(calculatePowellAngles({G:p(0,0),Pg:p(0,0),N:p(1,0),Prn:p(2,0)}).nasofacial,0);
+ assert.equal(calculatePowellAngles({}).mentocervical,null);
+});
