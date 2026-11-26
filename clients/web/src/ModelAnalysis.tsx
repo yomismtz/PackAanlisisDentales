@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
-import { classifySpaceRange, littleIrregularityIndex, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
+import { classifySpaceRange, littleIrregularityIndex, moyers75Prediction, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
 
 type XY = { x:number; y:number };
 type ViewKey = "incisors" | "upper" | "lower";
@@ -14,22 +14,8 @@ const EMPTY_TRACES:TraceSets={incisors:{},upper:{},lower:{}};
 const CONTACTS=[["P1","Contacto en canino derecho"],["P2","Entre lateral y central derechos"],["P3","Entre incisivos centrales"],["P4","Entre central y lateral izquierdos"],["P5","Entre lateral y canino izquierdos"],["P6","Contacto en canino izquierdo"]] as const;
 const INCISORS=["42","41","31","32"];
 const CAREY_TEETH:Record<"upper"|"lower",string[]>={upper:["15","14","13","12","11","21","22","23","24","25"],lower:["45","44","43","42","41","31","32","33","34","35"]};
-const INCISOR_SUMS=Array.from({length:13},(_,i)=>19.5+i*.5);
-const PREDICTION_75={
- Masculino:{superior:[20.3,20.5,20.8,21,21.3,21.5,21.8,22,22.3,22.5,22.8,23,23.3],inferior:[20.3,20.5,20.8,21,21.3,21.5,21.8,22,22.3,22.5,22.8,23,23.3]},
- Femenino:{superior:[20.4,20.5,20.6,20.8,20.9,21,21.2,21.3,21.5,21.6,21.8,21.9,22.1],inferior:[19.6,19.8,20.1,20.3,20.6,20.8,21.1,21.3,21.6,21.9,22.1,22.4,22.7]}
-};
 const distance=(a:XY,b:XY)=>Math.hypot(b.x-a.x,b.y-a.y);
 function pathLength(path:XY[]){return polylineLength(path);}
-function predictMoyers(sum:number,sex:"Femenino"|"Masculino",arch:"superior"|"inferior"){
- if(sum<19.5||sum>25.5)return null;
- const exact=INCISOR_SUMS.findIndex(v=>Math.abs(v-sum)<1e-8);
- if(exact>=0)return PREDICTION_75[sex][arch][exact];
- const i=INCISOR_SUMS.findIndex((v,index)=>index<INCISOR_SUMS.length-1&&v<sum&&sum<INCISOR_SUMS[index+1]);
- if(i<0)return null;
- const t=(sum-INCISOR_SUMS[i])/(INCISOR_SUMS[i+1]-INCISOR_SUMS[i]);
- const values=PREDICTION_75[sex][arch];return Math.round((values[i]+t*(values[i+1]-values[i]))*100)/100;
-}
 function pointOptions(method:Method,view:ViewKey){
  if(method==="little")return view==="upper"||view==="lower"?CONTACTS.map(([k,l])=>[k,l] as [string,string]):[];
  if(method==="carey")return CAREY_TEETH[view==="upper"?"upper":"lower"].flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
@@ -151,7 +137,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
     const availableMm=px!==null&&scale?pixelsToMillimeters(px,scale):null;
     let requiredMm:number|null=null;
     const arch=a==="upper"?"superior":"inferior";
-    if(method==="moyers"&&sex!=="Seleccionar")requiredMm=predictMoyers(incisorSumMm,sex,arch);
+    if(method==="moyers"&&sex!=="Seleccionar")requiredMm=moyers75Prediction(incisorSumMm,sex,arch);
     else if(method==="tanaka")requiredMm=tanakaJohnstonPrediction(incisorSumMm,arch);
     const available:[number,number]|null=availableMm===null?null:[availableMm,availableMm];
     const required:[number,number]|null=requiredMm===null?null:[requiredMm,requiredMm];
