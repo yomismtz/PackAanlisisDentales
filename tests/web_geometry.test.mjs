@@ -20,3 +20,6 @@ test("Steiner upper incisor convention returns supplementary angle",()=>{
   const rad=Math.PI*76/180;
   assert.ok(Math.abs(steinerIncisorAngleDegrees(p(0,0),p(1,0),p(0,0),p(Math.cos(rad),Math.sin(rad)))-104)<1e-9);
 });
+test("degenerate axes do not produce a false angle",()=>{
+  assert.equal(angleBetweenLinesDegrees(p(0,0),p(0,0),p(1,1),p(2,2)),null);
+});
