@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
-import { classifySpaceRange, estimateFourIncisorSumRange, littleIrregularityIndex, polylineLength, scaleSpaceRange, tanakaJohnstonPrediction } from "./modelGeometry";
+import { classifySpaceRange, littleIrregularityIndex, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
 
 type XY = { x:number; y:number };
 type ViewKey = "incisors" | "upper" | "lower";
@@ -14,7 +14,6 @@ const EMPTY_TRACES:TraceSets={incisors:{},upper:{},lower:{}};
 const CONTACTS=[["P1","Contacto en canino derecho"],["P2","Entre lateral y central derechos"],["P3","Entre incisivos centrales"],["P4","Entre central y lateral izquierdos"],["P5","Entre lateral y canino izquierdos"],["P6","Contacto en canino izquierdo"]] as const;
 const INCISORS=["42","41","31","32"];
 const CAREY_TEETH:Record<"upper"|"lower",string[]>={upper:["15","14","13","12","11","21","22","23","24","25"],lower:["45","44","43","42","41","31","32","33","34","35"]};
-const TOOTH_REFERENCES={lower_lateral:{label:"Incisivo lateral inferior",mean:6.1,sd:.5},upper_lateral:{label:"Incisivo lateral superior",mean:7.1,sd:.66},upper_central:{label:"Incisivo central superior",mean:8.8,sd:.61}};
 const INCISOR_SUMS=Array.from({length:13},(_,i)=>19.5+i*.5);
 const PREDICTION_75={
  Masculino:{superior:[20.3,20.5,20.8,21,21.3,21.5,21.8,22,22.3,22.5,22.8,23,23.3],inferior:[20.3,20.5,20.8,21,21.3,21.5,21.8,22,22.3,22.5,22.8,23,23.3]},
@@ -35,7 +34,7 @@ function pointOptions(method:Method,view:ViewKey){
  if(method==="little")return view==="upper"||view==="lower"?CONTACTS.map(([k,l])=>[k,l] as [string,string]):[];
  if(method==="carey")return CAREY_TEETH[view==="upper"?"upper":"lower"].flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
  if(view==="incisors")return INCISORS.flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
- return [["ref_M","Diente de referencia · mesial"],["ref_D","Diente de referencia · distal"],["lat_R","Lateral · distal derecho"],["mol_R","Primer molar · mesial derecho"],["lat_L","Lateral · distal izquierdo"],["mol_L","Primer molar · mesial izquierdo"]];
+ return [["lat_R","Lateral · distal derecho"],["mol_R","Primer molar · mesial derecho"],["lat_L","Lateral · distal izquierdo"],["mol_L","Primer molar · mesial izquierdo"]];
 }
 function classifyRange(available:[number,number]|null,required:[number,number]|null){
  if(!available||!required)return "No concluyente";
@@ -56,7 +55,10 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  const [traceMode,setTraceMode]=useState("");
  const [zoom,setZoom]=useState(.7);
  const [sex,setSex]=useState<"Seleccionar"|"Femenino"|"Masculino">("Seleccionar");
- const [upperReference,setUpperReference]=useState<"upper_central"|"upper_lateral">("upper_central");
+ const [calibration,setCalibration]=useState<Partial<Record<ViewKey,{pxPerMm:number;knownDistanceMm:number}>>>({});
+ const [calibrationMode,setCalibrationMode]=useState(false);
+ const [calibrationPoints,setCalibrationPoints]=useState<XY[]>([]);
+ const [knownDistanceMm,setKnownDistanceMm]=useState("10");
  const [error,setError]=useState("");
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const uploadRef=useRef<HTMLInputElement>(null);
@@ -89,9 +91,9 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
    for(const list of Object.values(currentTraces))for(const p of list){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2,img.naturalWidth/900),0,Math.PI*2);ctx.fillStyle="#F4C95D";ctx.fill();}
   };
   img.src=image.url;
- },[image,view,method,points,traces]);
+ },[image,view,method,points,traces,calibration]);
  function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":"upper";setMethod(next);setTraceMode("");setPlacing(false);setView(nextView);setArch("upper");setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
- function changeView(next:ViewKey){setView(next);setPlacing(false);setTraceMode("");setSelected(pointOptions(method,next)[0]?.[0]??"");}
+ function changeView(next:ViewKey){setView(next);setPlacing(false);setTraceMode("");setCalibrationMode(false);setCalibrationPoints([]);setSelected(pointOptions(method,next)[0]?.[0]??"");}
  function loadImage(event:React.ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0];if(!file)return;
   if(file.type&&!file.type.startsWith("image/")){setError("Selecciona un archivo de imagen válido.");return;}
@@ -102,13 +104,19 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  function clickCanvas(event:React.MouseEvent<HTMLCanvasElement>){
   if(!image)return;const rect=event.currentTarget.getBoundingClientRect();
   const p={x:(event.clientX-rect.left)/rect.width*image.width,y:(event.clientY-rect.top)/rect.height*image.height};
+  if(calibrationMode){
+   const next=[...calibrationPoints,p];
+   if(next.length===2){const px=distance(next[0],next[1]),mm=Number(knownDistanceMm);if(px<=0||!Number.isFinite(mm)||mm<=0){setError("Distancia patrón inválida.");setCalibrationPoints([]);return;}setCalibration(prev=>({...prev,[view]:{pxPerMm:px/mm,knownDistanceMm:mm}}));setCalibrationPoints(next);setCalibrationMode(false);setError("");}
+   else setCalibrationPoints(next);
+   return;
+  }
   if(traceMode){setTraces(prev=>({...prev,[view]:{...prev[view],[traceMode]:[...(prev[view][traceMode]??[]),p]}}));return;}
   if(placing&&selected){setPoints(prev=>({...prev,[view]:{...prev[view],[selected]:p}}));setPlacing(false);setError("");}
  }
  function beginTrace(key:string){if(!image){setError("Carga primero la imagen de esta vista.");return;}if(method==="carey"){setTraces(prev=>({...prev,[view]:{...prev[view],perimeter:[]}}));}else setTraces(prev=>({...prev,[view]:{...prev[view],[key]:[]}}));setTraceMode(method==="carey"?"perimeter":key);setPlacing(false);}
  function finishTrace(){if(traceMode){const n=traces[view][traceMode]?.length??0;if(n<2){setError("Marca al menos dos puntos para completar el recorrido.");return;}setTraceMode("");setError("");}}
  function deleteSelected(){setPoints(prev=>({...prev,[view]:Object.fromEntries(Object.entries(prev[view]).filter(([k])=>k!==selected))}));}
- function resetCurrent(){setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setTraceMode("");setPlacing(false);}
+ function resetCurrent(){setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setCalibration(prev=>{const next={...prev};delete next[view];return next;});setCalibrationMode(false);setCalibrationPoints([]);setTraceMode("");setPlacing(false);}
  const little=useMemo(()=>{
   if(view!=="upper"&&view!=="lower")return null;
   const p=points[view];const segments=Array.from({length:5},(_,i)=>{const a=p["P"+(i+1)],b=p["P"+(i+2)];return a&&b?distance(a,b):null;});
