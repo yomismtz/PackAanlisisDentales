@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
-import { angleBetweenLinesDegrees, steinerIncisorAngleDegrees } from "./cephalometryGeometry";
+import { calculateCephalometry } from "./cephalometryCalculations";
 
 type XY = { x: number; y: number };
 type PointMap = Record<string, XY>;
@@ -29,47 +29,6 @@ const REFERENCES: RefRow[] = [
   {key:"SE",label:"Segmento SE",normal:"23 mm ± 2 mm",min:21,max:25,unit:" mm",low:"Cóndilo en posición más adelantada respecto a SN.",normalText:"Posición condilar dentro del intervalo de referencia.",high:"Cóndilo en posición más retrasada respecto a SN."},
 ];
 const distance = (a: XY,b: XY) => Math.hypot(b.x-a.x,b.y-a.y);
-function angleAt(a: XY,v: XY,b: XY) {
-  const ax=a.x-v.x, ay=a.y-v.y, bx=b.x-v.x, by=b.y-v.y, den=Math.hypot(ax,ay)*Math.hypot(bx,by);
-  if (!den) return null;
-  return Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/den)))*180/Math.PI;
-}
-function angleBetweenAxes(apex1: XY, tip1: XY, apex2: XY, tip2: XY) {
-  const ax=tip1.x-apex1.x, ay=tip1.y-apex1.y, bx=tip2.x-apex2.x, by=tip2.y-apex2.y;
-  const den=Math.hypot(ax,ay)*Math.hypot(bx,by);
-  if(!den)return null;
-  return Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/den)))*180/Math.PI;
-}
-function angleLines(a: XY,b: XY,c: XY,d: XY) {
-  return angleBetweenLinesDegrees(a,b,c,d);
-}
-function project(p: XY,a: XY,b: XY): XY | null {
-  const dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy;
-  if (!len) return null;
-  const t=((p.x-a.x)*dx+(p.y-a.y)*dy)/len;
-  return {x:a.x+t*dx,y:a.y+t*dy};
-}
-function calculate(points: PointMap, pxPerMm: number | null) {
-  const values: Record<string,number> = {};
-  const put=(key:string,value:number|null)=>{if(value!==null && Number.isFinite(value)) values[key]=value;};
-  const p=(key:string):XY=>points[key]!;
-  if(p("S")&&p("N")&&p("A")) put("SNA",angleAt(p("S"),p("N"),p("A")));
-  if(p("S")&&p("N")&&p("B")) put("SNB",angleAt(p("S"),p("N"),p("B")));
-  if(values.SNA!==undefined&&values.SNB!==undefined) put("ANB",values.SNA-values.SNB);
-  if(p("S")&&p("N")&&p("D")) put("SND",angleAt(p("S"),p("N"),p("D")));
-  if(p("Ar")&&p("Go")&&p("Me")) put("ArGoMe",angleAt(p("Ar"),p("Go"),p("Me")));
-  if(p("S")&&p("N")&&p("Go")&&p("Gn")) put("GoGnSN",angleLines(p("S"),p("N"),p("Go"),p("Gn")));
-  if(p("A")&&p("B")&&p("Go")&&p("Gn")) put("ABGoGn",angleLines(p("A"),p("B"),p("Go"),p("Gn")));
-  if(p("S")&&p("N")&&p("U1_apex")&&p("U1_tip")) put("U1SN",steinerIncisorAngleDegrees(p("S"),p("N"),p("U1_apex"),p("U1_tip")));
-  if(p("N")&&p("B")&&p("L1_apex")&&p("L1_tip")) put("L1NB",angleLines(p("N"),p("B"),p("L1_apex"),p("L1_tip")));
-  if(p("Go")&&p("Gn")&&p("L1_apex")&&p("L1_tip")) put("IMPA",angleLines(p("Go"),p("Gn"),p("L1_apex"),p("L1_tip")));
-  if(p("U1_apex")&&p("U1_tip")&&p("L1_apex")&&p("L1_tip")) put("Interincisal",angleBetweenAxes(p("U1_apex"),p("U1_tip"),p("L1_apex"),p("L1_tip")));
-  const calculated: PointMap = {};
-  if(p("S")&&p("N")&&p("Pog")) { const l=project(p("Pog"),p("S"),p("N")); if(l){calculated.L=l;if(pxPerMm)put("SL",distance(p("S"),l)/pxPerMm);} }
-  if(p("S")&&p("N")&&p("Co")) { const e=project(p("Co"),p("S"),p("N")); if(e){calculated.E=e;if(pxPerMm)put("SE",distance(p("S"),e)/pxPerMm);} }
-  return {values,calculated};
-}
-
 export default function Cephalometry({ onBack }: { onBack: () => void }) {
   const [fileName,setFileName]=useState("");
   const [imageUrl,setImageUrl]=useState("");
@@ -86,7 +45,7 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const imageRef=useRef<HTMLImageElement|null>(null);
   const objectUrlRef=useRef("");
-  const result=useMemo(()=>calculate(points,pxPerMm),[points,pxPerMm]);
+  const result=useMemo(()=>calculateCephalometry(points,pxPerMm),[points,pxPerMm]);
   const placed=Object.keys(points).length;
   useEffect(()=>{const canvas=canvasRef.current, image=imageRef.current;if(!canvas||!image||!imageSize)return;
     canvas.width=imageSize.width;canvas.height=imageSize.height;const ctx=canvas.getContext("2d");if(!ctx)return;
