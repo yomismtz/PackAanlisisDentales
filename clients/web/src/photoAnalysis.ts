@@ -157,7 +157,7 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
       { code: "Prn", label: "Punta nasal / pronasale" },
       { code: "Pg", label: "Pogonion blando" },
       { code: "C", label: "Punto cervical" },
-      { code: "H", label: "Punto horizontal cervical" },
+      { code: "Me", label: "Menton blando" },
     ],
     measures: [],
   },
@@ -331,6 +331,11 @@ function angleDifference(a1: Point, a2: Point, b1: Point, b2: Point): number | n
   return Math.min(difference, 180 - difference);
 }
 
+function getLineAngle(points: PointMap, a: string, b: string, c: string, d: string): number | null {
+  const p1=points[a],p2=points[b],p3=points[c],p4=points[d];
+  return p1&&p2&&p3&&p4?angleDifference(p1,p2,p3,p4):null;
+}
+
 function proportions(lengths: number[]): number[] | null {
   if (!lengths.length || lengths.some((value) => value < 0)) return null;
   const total = lengths.reduce((sum, value) => sum + value, 0);
@@ -414,7 +419,6 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
       if (norm) {
         [
           ["Punta de la nariz", "NAR"],
-          ["Filtro", "LS"],
           ["Mentón", "MENT"],
           ["Línea media incisivos superiores", "UIS"],
           ["Línea media incisivos inferiores", "LIS"],
@@ -449,15 +453,13 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
       }
     }
   } else if (cfg.formula === "powell") {
-    const items: Array<[string, string, string, string, string]> = [
-      ["Nasofrontal", "G", "N", "R", "115°–130°"],
-      ["Mesofacial", "N", "Pg", "Prn", "Mujer 30° · Hombre 40°"],
-      ["Nasomentón", "Prn", "Pg", "N", "120°–132°"],
-      ["Mentocervical", "N", "Pg", "C", "80°–95°"],
+    const items: Array<{label:string;value:number|null;reference:string}> = [
+      {label:"Nasofrontal",value:getAngle(points,"G","N","R"),reference:"115°–130° · vértice N"},
+      {label:"Nasofacial",value:getLineAngle(points,"G","Pg","N","Prn"),reference:"30°–40° · plano facial G–Pg con dorso nasal N–Prn"},
+      {label:"Nasomental",value:getAngle(points,"N","Prn","Pg"),reference:"120°–132° · vértice Prn"},
+      {label:"Mentocervical",value:getLineAngle(points,"G","Pg","Me","C"),reference:"80°–95° · plano facial G–Pg con línea mentón–cervical Me–C"},
     ];
-    for (const [label, a, b, c, reference] of items) {
-      add(label, deg(getAngle(points, a, b, c)), reference);
-    }
+    for (const item of items) add(item.label,deg(item.value),item.reference);
   } else if (cfg.formula === "projections") {
     if (points.N) {
       const x0 = points.N.x;
@@ -775,24 +777,17 @@ export function summarizePhotoAnalysis(
     }
     if (!conclusions.length) conclusions.push("Coloca los pares de puntos anatómicos para describir los niveles faciales.");
   } else if (cfg.formula === "powell") {
-    const measurements: Array<[string, string, string, string, number, number]> = [
-      ["Nasofrontal", "G", "N", "R", 115, 130],
-      ["Nasomentón", "Prn", "Pg", "N", 120, 132],
-      ["Mentocervical", "N", "Pg", "C", 80, 95],
+    const measurements: Array<{label:string;value:number|null;min:number;max:number}> = [
+      {label:"Nasofrontal",value:getAngle(points,"G","N","R"),min:115,max:130},
+      {label:"Nasofacial",value:getLineAngle(points,"G","Pg","N","Prn"),min:30,max:40},
+      {label:"Nasomental",value:getAngle(points,"N","Prn","Pg"),min:120,max:132},
+      {label:"Mentocervical",value:getLineAngle(points,"G","Pg","Me","C"),min:80,max:95},
     ];
-    for (const [label, a, b, c, min, max] of measurements) {
-      const value = getAngle(points, a, b, c);
-      if (value === null) continue;
-      const position = value < min ? "por debajo" : value > max ? "por encima" : "dentro";
-      conclusions.push(
-        `Ángulo ${label.toLowerCase()}: ${value.toFixed(2)}°; se encuentra ${position} del intervalo de referencia mostrado en la tabla (${min}°–${max}°).`,
-      );
-    }
-    const mesofacial = getAngle(points, "N", "Pg", "Prn");
-    if (mesofacial !== null) {
-      conclusions.push(
-        `Ángulo mesofacial: ${mesofacial.toFixed(2)}°. La tabla muestra referencias distintas por sexo (mujer 30° y hombre 40°); selecciona la referencia correspondiente antes de interpretarlo.`,
-      );
+    for (const measurement of measurements) {
+      const {label,value,min,max}=measurement;
+      if(value===null)continue;
+      const position=value<min?"por debajo":value>max?"por encima":"dentro";
+      conclusions.push(`Ángulo ${label.toLowerCase()}: ${value.toFixed(2)}°; se encuentra ${position} del intervalo de referencia (${min}°–${max}°).`);
     }
     if (!conclusions.length) conclusions.push("Faltan puntos anatómicos para calcular los ángulos del análisis de Powell.");
   } else if (cfg.formula === "projections") {
