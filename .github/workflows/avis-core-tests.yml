@@ -58,6 +58,8 @@ jobs:
         run: npm run test:geometry
       - name: Test web model calculations
         run: npm run test:models
+      - name: Test web photo geometry
+        run: npm run test:photo
       - name: Build AVIS web/PWA
         run: npm run build
       - name: Upload web build
