@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  distanceBetweenPoints, polylineLength, littleIrregularityIndex,
+  distanceBetweenPoints, polylineLength, littleIrregularityIndex, pixelsToMillimeters,
   estimateFourIncisorSumRange, scaleSpaceRange, tanakaJohnstonPrediction,
   classifySpaceRange
 } from "../clients/web/src/modelGeometry.js";
@@ -37,4 +37,11 @@ test("interval classification requires non-overlapping ranges for a conclusion",
   assert.equal(classifySpaceRange([24,26],[20,23]),"Hay espacio");
   assert.equal(classifySpaceRange([18,19],[20,22]),"No hay espacio");
   assert.equal(classifySpaceRange([19,21],[20,22]),"No concluyente");
+  assert.equal(classifySpaceRange([20,20],[20,20]),"Equilibrio");
+});
+
+test("pixel calibration converts measurements to millimeters and rejects invalid scales",()=>{
+  assert.equal(pixelsToMillimeters(25,5),5);
+  assert.equal(pixelsToMillimeters(25,0),null);
+  assert.equal(pixelsToMillimeters(-1,5),null);
 });
