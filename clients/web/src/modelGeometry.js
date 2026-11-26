@@ -68,3 +68,8 @@ export function pixelsToMillimeters(valuePx, pixelsPerMm) {
   if (!Number.isFinite(valuePx) || !Number.isFinite(pixelsPerMm) || valuePx < 0 || pixelsPerMm <= 0) return null;
   return valuePx / pixelsPerMm;
 }
+
+export function pixelsPerMillimeter(distancePx, knownDistanceMm) {
+  if (!Number.isFinite(distancePx) || !Number.isFinite(knownDistanceMm) || distancePx <= 0 || knownDistanceMm <= 0) return null;
+  return distancePx / knownDistanceMm;
+}
