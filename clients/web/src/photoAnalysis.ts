@@ -68,7 +68,7 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
     formula: "profile",
     points: [
       { code: "Tr", label: "Implantación del cabello" },
-      { code: "Of", label: "Borde superior de cejas" },
+      { code: "G", label: "Glabela" },
       { code: "N", label: "Nasion blando" },
       { code: "Sn", label: "Subnasal" },
       { code: "Me", label: "Mentón" },
@@ -76,8 +76,8 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
       { code: "Sti", label: "Stomion inferior" },
     ],
     measures: [
-      { label: "Tercio superior Tr–Of", a: "Tr", b: "Of" },
-      { label: "Tercio medio Of–Sn", a: "Of", b: "Sn" },
+      { label: "Tercio superior Tr–G", a: "Tr", b: "G" },
+      { label: "Tercio medio G–Sn", a: "G", b: "Sn" },
       { label: "Tercio inferior Sn–Me", a: "Sn", b: "Me" },
       { label: "N–Sn", a: "N", b: "Sn" },
       { label: "Sn–Me", a: "Sn", b: "Me" },
