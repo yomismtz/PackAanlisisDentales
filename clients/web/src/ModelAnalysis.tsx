@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
-import { classifySpaceRange, littleIrregularityIndex, moyers75Prediction, pixelsPerMillimeter, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
+import { careySpaceAnalysis, classifySpaceRange, littleIrregularityIndex, moyers75Prediction, pixelsPerMillimeter, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
 
 type XY = { x:number; y:number };
 type ViewKey = "incisors" | "upper" | "lower";
@@ -121,10 +121,12 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const availablePx=pathLength(traces[view].perimeter??[]);
   if(widths.some(v=>v===null)||availablePx===null)return null;
   const scale=calibration[view]?.pxPerMm;if(!scale)return null;
-  const available=pixelsToMillimeters(availablePx,scale),required=pixelsToMillimeters(widths.reduce<number>((sum,v)=>sum+(v??0),0),scale);
-  if(available===null||required===null)return null;
-  const diff=available-required;
-  return {available,required,diff,percent:required?Math.abs(diff)/required*100:0};
+  const available=pixelsToMillimeters(availablePx,scale);
+  const widthsMm=widths.map(v=>pixelsToMillimeters(v??NaN,scale));
+  if(available===null||widthsMm.some(v=>v===null))return null;
+  const result=careySpaceAnalysis(widthsMm as number[],available);
+  if(!result)return null;
+  return {available:result.availableMm,required:result.requiredMm,diff:result.discrepancyMm,percent:result.requiredMm?Math.abs(result.discrepancyMm)/result.requiredMm*100:0};
  },[points,traces,view,calibration]);
  const mixed=useMemo(()=>{
   const incisorScale=calibration.incisors?.pxPerMm;
