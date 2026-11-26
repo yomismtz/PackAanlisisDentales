@@ -7,3 +7,5 @@ export function tanakaJohnstonPrediction(incisorSumMm: number, arch: "superior" 
 export function classifySpaceRange(available: [number, number] | null, required: [number, number] | null): string;
 
 export function pixelsToMillimeters(valuePx: number, pixelsPerMm: number): number | null;
+
+export function pixelsPerMillimeter(distancePx: number, knownDistanceMm: number): number | null;
