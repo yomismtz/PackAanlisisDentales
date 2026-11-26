@@ -13,10 +13,12 @@ test("distance and path length use Euclidean geometry",()=>{
   assert.equal(polylineLength([p(0,0)]),null);
 });
 test("Little index sums the five adjacent contact-point displacements",()=>{
-  const result=littleIrregularityIndex([p(0,0),p(3,0),p(3,4),p(6,4),p(6,8),p(9,8)]);
-  assert.deepEqual(result.segments,[3,4,3,4,3]);
-  assert.equal(result.total,17);
-  assert.equal(littleIrregularityIndex([p(0,0)]),null);
+  const pairs=[[p(0,0),p(3,4)],[p(0,0),p(0,2)],[p(1,1),p(4,5)],[p(2,2),p(2,6)],[p(0,0),p(0,5)]];
+  const result=littleIrregularityIndex(pairs);
+  assert.deepEqual(result.segments,[5,2,5,4,5]);
+  assert.equal(result.total,21);
+  assert.equal(littleIrregularityIndex(pairs.slice(0,4)),null);
+  assert.equal(littleIrregularityIndex([[p(0,0),null],...pairs.slice(1)]),null);
 });
 test("Tanaka-Johnston predicts one quadrant from four-incisor sum",()=>{
   assert.equal(tanakaJohnstonPrediction(22,"superior"),22);
