@@ -180,7 +180,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   </div></div>
   <div className="workspace">
    <section className="panel photo-panel"><div className="panel-heading"><div><h2>{view==="incisors"?"Incisivos inferiores":view==="upper"?"Modelo superior":"Modelo inferior"}</h2><p>Sube una imagen nítida, sin perspectiva excesiva y con la arcada completa visible.</p></div></div>
-    <label className="upload-control"><span>＋ Cargar imagen de esta vista</span><input ref={uploadRef} type="file" accept="image/*" onChange={loadImage}/></label>
+    <label className="upload-control"><span>＋ Cargar imagen de esta vista</span><input type="file" accept="image/*" onChange={loadImage}/></label>
     {image&&<div className="file-meta"><strong>{image.name}</strong><span>{image.width} × {image.height} px</span></div>}
     {error&&<p className="error-text" role="alert">{error}</p>}
     {image?<><div className="zoom-row"><label>Zoom</label><input type="range" min=".2" max="3" step=".05" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/><span>{Math.round(zoom*100)} %</span><button className="small-button" onClick={()=>setZoom(.7)}>Restablecer</button></div><div className="image-viewport"><canvas ref={canvasRef} onClick={clickCanvas} style={{width:image.width*zoom,height:image.height*zoom,cursor:placing||traceMode||calibrationMode?"crosshair":"default"}}/></div></>:<div className="image-empty"><span>▧</span><strong>Vista no cargada</strong><p>Selecciona la imagen o fotografía del modelo que corresponde a esta vista.</p></div>}
