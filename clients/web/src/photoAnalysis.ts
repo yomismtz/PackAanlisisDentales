@@ -605,7 +605,6 @@ export function summarizePhotoAnalysis(
             `Las proporciones de los tres tercios no coinciden entre sí. La diferencia entre el mayor y el menor es ${(ranked[0].percent - ranked[2].percent).toFixed(1)} puntos porcentuales.`,
           );
         }
-      }
     }
 
     const totalNm = getVerticalDistance(points, "N", "Me");
