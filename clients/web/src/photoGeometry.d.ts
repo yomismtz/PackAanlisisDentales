@@ -6,3 +6,5 @@ export function calculatePowellAngles(points: PhotoLandmarkMap): {
   nasomental: number | null;
   mentocervical: number | null;
 };
+
+export function calculateVerticalFacialThirds(points: PhotoLandmarkMap): { lengths: [number, number, number]; percentages: [number, number, number] } | null;
