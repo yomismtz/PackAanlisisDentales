@@ -55,3 +55,8 @@ export function classifySpaceRange(available, required) {
   if (available[1] < required[0]) return "No hay espacio";
   return "No concluyente";
 }
+
+export function pixelsToMillimeters(valuePx, pixelsPerMm) {
+  if (!Number.isFinite(valuePx) || !Number.isFinite(pixelsPerMm) || valuePx < 0 || pixelsPerMm <= 0) return null;
+  return valuePx / pixelsPerMm;
+}
