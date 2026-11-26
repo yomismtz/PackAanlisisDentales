@@ -38,7 +38,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  const [traceMode,setTraceMode]=useState("");
  const [zoom,setZoom]=useState(.7);
  const [sex,setSex]=useState<"Seleccionar"|"Femenino"|"Masculino">("Seleccionar");
- const [calibration,setCalibration]=useState<Partial<Record<ViewKey,{pxPerMm:number;knownDistanceMm:number}>>>({});
+ const [calibration,setCalibration]=useState<Partial<Record<ViewKey,{pxPerMm:number;knownDistanceMm:number;points:[XY,XY]}>>>({});
  const [calibrationMode,setCalibrationMode]=useState(false);
  const [calibrationPoints,setCalibrationPoints]=useState<XY[]>([]);
  const [knownDistanceMm,setKnownDistanceMm]=useState("10");
@@ -72,6 +72,8 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
    }
    for(const [key,p] of Object.entries(current)){const r=Math.max(3,img.naturalWidth/600);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#6D45A6";ctx.lineWidth=Math.max(1,img.naturalWidth/1500);ctx.stroke();ctx.fillStyle="#48263F";ctx.font=`bold ${Math.max(12,img.naturalWidth/100)}px system-ui`;ctx.fillText(key,p.x+r+3,p.y-r-3);}
    for(const list of Object.values(currentTraces))for(const p of list){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2,img.naturalWidth/900),0,Math.PI*2);ctx.fillStyle="#F4C95D";ctx.fill();}
+   const calibrationLine=calibration[view]?.points??calibrationPoints;
+   if(calibrationLine.length===2){ctx.beginPath();ctx.moveTo(calibrationLine[0].x,calibrationLine[0].y);ctx.lineTo(calibrationLine[1].x,calibrationLine[1].y);ctx.strokeStyle="#E07A5F";ctx.lineWidth=Math.max(2,img.naturalWidth/800);ctx.stroke();}
   };
   img.src=image.url;
  },[image,view,method,points,traces,calibration]);
@@ -89,7 +91,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const p={x:(event.clientX-rect.left)/rect.width*image.width,y:(event.clientY-rect.top)/rect.height*image.height};
   if(calibrationMode){
    const next=[...calibrationPoints,p];
-   if(next.length===2){const px=distance(next[0],next[1]),mm=Number(knownDistanceMm);if(px<=0||!Number.isFinite(mm)||mm<=0){setError("Distancia patrón inválida.");setCalibrationPoints([]);return;}setCalibration(prev=>({...prev,[view]:{pxPerMm:px/mm,knownDistanceMm:mm}}));setCalibrationPoints(next);setCalibrationMode(false);setError("");}
+   if(next.length===2){const px=distance(next[0],next[1]),mm=Number(knownDistanceMm);if(px<=0||!Number.isFinite(mm)||mm<=0){setError("Distancia patrón inválida.");setCalibrationPoints([]);return;}setCalibration(prev=>({...prev,[view]:{pxPerMm:px/mm,knownDistanceMm:mm,points:[next[0],next[1]]}}));setCalibrationPoints(next);setCalibrationMode(false);setError("");}
    else setCalibrationPoints(next);
    return;
   }
@@ -180,7 +182,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
     <div className="point-controls"><label htmlFor="model-point">Punto anatómico / dental</label><select id="model-point" value={selected} onChange={e=>setSelected(e.target.value)}>{options.map(([k,label])=><option key={k} value={k}>{k} · {label}</option>)}</select>
      <div className="point-actions"><button className="primary" disabled={!image||!selected||!!traceMode} onClick={()=>setPlacing(true)}>Colocar / corregir punto</button><button className="secondary" disabled={!activePoints[selected]} onClick={deleteSelected}>Eliminar punto</button><button className="secondary" onClick={resetCurrent}>Limpiar vista</button></div>
      <div className="point-controls"><h3>Calibración física de esta imagen</h3><label className="visual-field"><span>Distancia patrón conocida (mm)</span><input className="calibration-input" type="number" min="0.01" step="0.01" value={knownDistanceMm} onChange={e=>setKnownDistanceMm(e.target.value)}/></label><div className="point-actions"><button className="secondary" disabled={!image||!!traceMode} onClick={()=>{setCalibrationPoints([]);setCalibrationMode(true);setPlacing(false);setError("");}}>Marcar escala con dos puntos</button><span className="point-progress">{calibration[view]?calibration[view]!.pxPerMm.toFixed(3)+" px/mm":"Sin calibrar"}</span></div><p className="clinical-note">Usa una regla o patrón milimetrado coplanar con el modelo. Calibra por separado cada fotografía. Si sustituyes la imagen, debes calibrarla de nuevo.</p></div>
-     <div className="point-controls"><h3>Calibración física de esta imagen</h3><label className="visual-field"><span>Distancia patrón conocida (mm)</span><input className="calibration-input" type="number" min="0.01" step="0.01" value={knownDistanceMm} onChange={e=>setKnownDistanceMm(e.target.value)}/></label><div className="point-actions"><button className="secondary" disabled={!image||!!traceMode} onClick={()=>{setCalibrationPoints([]);setCalibrationMode(true);setPlacing(false);setError("");}}>Marcar escala con dos puntos</button><span className="point-progress">{calibration[view]?calibration[view]!.pxPerMm.toFixed(3)+" px/mm":"Sin calibrar"}</span></div><p className="clinical-note">Usa una regla o patrón milimetrado coplanar con el modelo. Calibra por separado cada fotografía.</p></div>
+
      <div className="point-list">{options.map(([k])=><button key={k} className={activePoints[k]?"point-chip point-done":"point-chip"} onClick={()=>setSelected(k)}>{activePoints[k]?"✓ ":""}{k}</button>)}</div>
     </div>
     {(method==="carey"||method==="moyers"||method==="tanaka")&&view!=="incisors"&&<div className="point-controls"><h3>Recorrido curvo del espacio</h3>{method==="carey"?<button className="secondary" onClick={()=>traceMode?finishTrace():beginTrace("perimeter")}>{traceMode?"Finalizar perímetro":"Trazar perímetro completo"}</button>:<div className="point-actions">{["Derecho","Izquierdo"].map(side=><button key={side} className="secondary" onClick={()=>traceMode===side?finishTrace():beginTrace(side)}>{traceMode===side?"Finalizar "+side:"Trazar "+side}</button>)}</div>}<p className="clinical-note">Marca varios puntos siguiendo la curvatura real del arco. No cierres el recorrido por fuera de los puntos anatómicos.</p></div>}
