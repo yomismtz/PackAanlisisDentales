@@ -24,7 +24,9 @@ export function littleIrregularityIndex(contactPairs) {
   return { segments, total: segments.reduce((sum, v) => sum + v, 0) };
 }
 
-// 75th-percentile tables: 19.5–25.5 mm in 0.5 mm steps; separate sex and arch columns.\n// Moyers 75th-percentile tables, 19.5–25.5 mm in 0.5 mm steps; original sex/arch tables transcribed from UNAM, tables 7–8 (pp. 59–60).\nconst MOYERS_SUMS = Array.from({ length: 13 }, (_, i) => 19.5 + i * 0.5);
+// 75th-percentile tables: 19.5–25.5 mm in 0.5 mm steps; separate sex and arch columns.
+// Moyers 75th-percentile tables, 19.5–25.5 mm in 0.5 mm steps; original sex/arch tables transcribed from UNAM, tables 7–8 (pp. 59–60).
+const MOYERS_SUMS = Array.from({ length: 13 }, (_, i) => 19.5 + i * 0.5);
 const MOYERS_75 = {
   Masculino: {
     superior: [20.3,20.5,20.8,21.0,21.3,21.5,21.8,22.0,22.3,22.5,22.8,23.0,23.3],
