@@ -44,7 +44,7 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
     formula: "frontal",
     points: [
       { code: "Tr", label: "Implantación del cabello" },
-      { code: "Of", label: "Borde superior de cejas" },
+      { code: "G", label: "Glabela" },
       { code: "N", label: "Nasion" },
       { code: "Sn", label: "Subnasal" },
       { code: "Me", label: "Mentón" },
@@ -52,8 +52,8 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
       { code: "Sti", label: "Stomion inferior" },
     ],
     measures: [
-      { label: "Tercio superior Tr–Of", a: "Tr", b: "Of" },
-      { label: "Tercio medio Of–Sn", a: "Of", b: "Sn" },
+      { label: "Tercio superior Tr–G", a: "Tr", b: "G" },
+      { label: "Tercio medio G–Sn", a: "G", b: "Sn" },
       { label: "Tercio inferior Sn–Me", a: "Sn", b: "Me" },
       { label: "N–Sn", a: "N", b: "Sn" },
       { label: "Sn–Me", a: "Sn", b: "Me" },
@@ -371,8 +371,8 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
       add("Sn–Me (%)", ((sm / total) * 100).toFixed(1) + " %", "Proporción vertical dentro de N–Me");
     }
     const thirds = [
-      getVerticalDistance(points, "Tr", "Of"),
-      getVerticalDistance(points, "Of", "Sn"),
+      getVerticalDistance(points, "Tr", "G"),
+      getVerticalDistance(points, "G", "Sn"),
       getVerticalDistance(points, "Sn", "Me"),
     ];
     if (thirds.every((value): value is number => value !== null)) {
@@ -585,10 +585,10 @@ export function summarizePhotoAnalysis(
   const cfg = PHOTO_CONFIG[mode];
 
   if (cfg.formula === "frontal" || cfg.formula === "profile") {
-    const thirdNames = ["Tercio superior", "Tercio medio", "Tercio inferior"];
+    const thirdNames = ["Tercio superior Tr–G", "Tercio medio G–Sn", "Tercio inferior Sn–Me"];
     const thirdValues = [
-      getVerticalDistance(points, "Tr", "Of"),
-      getVerticalDistance(points, "Of", "Sn"),
+      getVerticalDistance(points, "Tr", "G"),
+      getVerticalDistance(points, "G", "Sn"),
       getVerticalDistance(points, "Sn", "Me"),
     ];
     if (thirdValues.every((value): value is number => value !== null)) {
