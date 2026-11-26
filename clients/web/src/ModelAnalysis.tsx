@@ -118,7 +118,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const p=points[view],teeth=CAREY_TEETH[view];const widths=teeth.map(t=>p[t+"_M"]&&p[t+"_D"]?distance(p[t+"_M"],p[t+"_D"]):null);
   const available=pathLength(traces[view].perimeter??[]);
   if(widths.some(v=>v===null)||available===null)return null;
-  const required=widths.reduce((s,v)=>s+(v??0),0),diff=available-required;
+  const required=widths.reduce<number>((s,v)=>s+(v??0),0),diff=available-required;
   return {available,required,diff,percent:required?Math.abs(diff)/required*100:0};
  },[points,traces,view]);
  const mixed=useMemo(()=>{
@@ -156,7 +156,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  function exportPdf(){
   const canvas=canvasRef.current;if(!canvas||!image){setError("Carga una imagen antes de generar el PDF.");return;}
   const rows=method==="little"?[{label:"Índice de Little",value:little?.total?.toFixed(2)??"Pendiente",reference:"Suma de cinco segmentos · px relativos"}]:method==="carey"?[{label:"Perímetro disponible",value:carey?.available.toFixed(2)??"Pendiente",reference:"px relativos"},{label:"Material dentario",value:carey?.required.toFixed(2)??"Pendiente",reference:"px relativos"},{label:"Discrepancia",value:carey?.diff.toFixed(2)??"Pendiente",reference:"px relativos"}]:(mixed?.rows??[]).map(r=>({label:r.arch+" · "+r.side,value:r.result,reference:method==="moyers"?"Moyers 75 %":"Tanaka-Johnston"}));
-  const pdf=buildPhotoReportPdf({title:"Análisis de modelos dentales · "+method,fileName:image.name,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",.92),photoWidth:image.width,photoHeight:image.height,horizontalGuides:false,points:activePoints,results:rows,conclusions:["Resultado de apoyo académico; verificar las referencias y la calidad del modelo.",observations,conclusion].filter(Boolean),visualAssessment:{},observations,professionalConclusion:"Las mediciones relativas en píxeles no deben interpretarse como milímetros. Confirmar la escala y los criterios del método antes de la interpretación clínica.",generatedAt:new Date(),palette:getAvisPalette("colibri").colors,reportLabel:"Reporte de modelos dentales"});
+  const pdf=buildPhotoReportPdf({title:"Análisis de modelos dentales · "+method,mode:"models",fileName:image.name,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",.92),photoWidth:image.width,photoHeight:image.height,horizontalGuides:false,points:activePoints,results:rows,conclusions:["Resultado de apoyo académico; verificar las referencias y la calidad del modelo.",observations,conclusion].filter(Boolean),visualAssessment:{},observations,professionalConclusion:"Las mediciones relativas en píxeles no deben interpretarse como milímetros. Confirmar la escala y los criterios del método antes de la interpretación clínica.",generatedAt:new Date(),palette:getAvisPalette("colibri").colors,reportLabel:"Reporte de modelos dentales"});
   const blob=new Blob([new Uint8Array(pdf).buffer as ArrayBuffer],{type:"application/pdf"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Analisis_Modelos.pdf";a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
  }
  const title=method==="little"?"Índice de irregularidad de Little":method==="moyers"?"Dentición mixta · Moyers 75 %":method==="tanaka"?"Dentición mixta · Tanaka-Johnston":"Análisis de espacio · Carey";
