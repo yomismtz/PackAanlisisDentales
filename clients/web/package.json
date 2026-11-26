@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test:geometry": "node --test ../../tests/web_geometry.test.mjs",
+    "test:geometry": "node --test ../../tests/web_geometry.test.mjs ../../tests/cephalometry_calculations.test.mjs",
     "test:models": "node --test ../../tests/model_geometry.test.mjs"
   },
   "dependencies": {
