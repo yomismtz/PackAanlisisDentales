@@ -11,13 +11,19 @@ type TraceSets = Record<ViewKey,Record<string,XY[]>>;
 type Method = "little" | "moyers" | "tanaka" | "carey";
 const EMPTY_POINTS:PointSets={incisors:{},upper:{},lower:{}};
 const EMPTY_TRACES:TraceSets={incisors:{},upper:{},lower:{}};
-const CONTACTS=[["P1","Contacto en canino derecho"],["P2","Entre lateral y central derechos"],["P3","Entre incisivos centrales"],["P4","Entre central y lateral izquierdos"],["P5","Entre lateral y canino izquierdos"],["P6","Contacto en canino izquierdo"]] as const;
+const LITTLE_CONTACTS=[
+ {id:"43/42",a:"43_M",b:"42_D",aLabel:"43 · mesial",bLabel:"42 · distal"},
+ {id:"42/41",a:"42_M",b:"41_D",aLabel:"42 · mesial",bLabel:"41 · distal"},
+ {id:"41/31",a:"41_M",b:"31_M",aLabel:"41 · mesial",bLabel:"31 · mesial"},
+ {id:"31/32",a:"31_D",b:"32_M",aLabel:"31 · distal",bLabel:"32 · mesial"},
+ {id:"32/33",a:"32_D",b:"33_M",aLabel:"32 · distal",bLabel:"33 · mesial"}
+] as const;
 const INCISORS=["42","41","31","32"];
 const CAREY_TEETH:Record<"upper"|"lower",string[]>={upper:["15","14","13","12","11","21","22","23","24","25"],lower:["45","44","43","42","41","31","32","33","34","35"]};
 const distance=(a:XY,b:XY)=>Math.hypot(b.x-a.x,b.y-a.y);
 function pathLength(path:XY[]){return polylineLength(path);}
 function pointOptions(method:Method,view:ViewKey){
- if(method==="little")return view==="upper"||view==="lower"?CONTACTS.map(([k,l])=>[k,l] as [string,string]):[];
+ if(method==="little")return view==="upper"||view==="lower"?LITTLE_CONTACTS.flatMap(c=>[[c.a,c.aLabel],[c.b,c.bLabel]] as [string,string][]):[];
  if(method==="carey")return CAREY_TEETH[view==="upper"?"upper":"lower"].flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
  if(view==="incisors")return INCISORS.flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
  return [["lat_R","Lateral · distal derecho"],["mol_R","Primer molar · mesial derecho"],["lat_L","Lateral · distal izquierdo"],["mol_L","Primer molar · mesial izquierdo"]];
@@ -63,7 +69,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
    const drawPath=(items:XY[],color:string)=>{if(items.length<2)return;ctx.beginPath();ctx.strokeStyle=color;ctx.moveTo(items[0].x,items[0].y);items.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();};
    if(method==="carey")drawPath(currentTraces.perimeter??[],"#F4C95D");
    else {drawPath(currentTraces.Derecho??[],"#22B8B0");drawPath(currentTraces.Izquierdo??[],"#22B8B0");}
-   if(method==="little"){for(let i=1;i<=5;i++){const a=current["P"+i],b=current["P"+(i+1)];if(a&&b){ctx.beginPath();ctx.strokeStyle="#22B8B0";ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}}
+   if(method==="little"){for(const pair of LITTLE_CONTACTS){const a=current[pair.a],b=current[pair.b];if(a&&b){ctx.beginPath();ctx.strokeStyle="#22B8B0";ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}}
    if(method==="carey"){for(const tooth of CAREY_TEETH[view==="upper"?"upper":"lower"]){const a=current[tooth+"_M"],b=current[tooth+"_D"];if(a&&b){ctx.beginPath();ctx.strokeStyle="#22B8B0";ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}}
    if(method==="moyers"||method==="tanaka"){
     const pairs=view==="incisors"?INCISORS.map(t=>[t+"_M",t+"_D"]):[];
@@ -104,10 +110,10 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  function resetCurrent(){setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setCalibration(prev=>{const next={...prev};delete next[view];return next;});setCalibrationMode(false);setCalibrationPoints([]);setTraceMode("");setPlacing(false);}
  const little=useMemo(()=>{
   if(view!=="upper"&&view!=="lower")return null;
-  const p=points[view],result=littleIrregularityIndex(Array.from({length:6},(_,i)=>p["P"+(i+1)]).filter((v):v is XY=>Boolean(v)));
-  const segments=Array.from({length:5},(_,i)=>{const x=p["P"+(i+1)],y=p["P"+(i+2)];return x&&y?distance(x,y):null;});
+  const p=points[view],pairs=LITTLE_CONTACTS.map(c=>[p[c.a],p[c.b]] as [XY|undefined,XY|undefined]);
+  const result=littleIrregularityIndex(pairs);
   const scale=calibration[view]?.pxPerMm;
-  return {segments:segments.map(v=>v!==null&&scale?pixelsToMillimeters(v,scale):null),total:result&&scale?pixelsToMillimeters(result.total,scale):null};
+  return {segments:result?.segments.map(v=>scale?pixelsToMillimeters(v,scale):null)??Array(5).fill(null),total:result&&scale?pixelsToMillimeters(result.total,scale):null};
  },[points,view,calibration]);
  const carey=useMemo(()=>{
   if(view!=="upper"&&view!=="lower")return null;
@@ -168,7 +174,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  return <section className="analysis-page">
   <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · MODELOS DENTALES</p><h1>{title}</h1><p>Carga los modelos oclusales superior e inferior y registra los puntos y recorridos manualmente.</p></div><span className="module-count">{Object.values(images).filter(Boolean).length} / 3 vistas cargadas</span></div>
   <div className="mode-row"><label htmlFor="model-method">Análisis</label><select id="model-method" value={method} onChange={e=>changeMethod(e.target.value as Method)}><option value="little">Little · irregularidad anterior</option><option value="moyers">Moyers · percentil 75 %</option><option value="tanaka">Tanaka-Johnston</option><option value="carey">Carey · perímetro de arcada</option></select></div>
-  <div className="guide"><strong>{method==="little"?"Seis puntos de contacto y cinco desplazamientos":method==="carey"?"Diez anchos mesiodistales y perímetro de arcada": "Incisivos inferiores, espacio disponible y predicción por hemiarcada"}</strong><p>{method==="little"?"El índice suma cinco desplazamientos entre puntos de contacto consecutivos. Se expresa en mm solo después de calibrar esta imagen.":method==="carey"?"Carey compara el perímetro disponible entre los primeros molares con la suma de los anchos mesiodistales de los diez dientes de 5 a 5. Requiere calibración.":"Moyers y Tanaka-Johnston usan la suma real en mm de los cuatro incisivos inferiores. Calibra por separado la imagen de incisivos y cada arcada."}</p></div>
+  <div className="guide"><strong>{method==="little"?"Diez puntos anatómicos en cinco pares de contacto":method==="carey"?"Diez anchos mesiodistales y perímetro de arcada": "Incisivos inferiores, espacio disponible y predicción por hemiarcada"}</strong><p>{method==="little"?"El índice suma las cinco distancias entre pares de puntos anatómicos de dientes adyacentes (43–42 a 32–33). Se expresa en mm solo después de calibrar esta imagen.":method==="carey"?"Carey compara el perímetro disponible entre los primeros molares con la suma de los anchos mesiodistales de los diez dientes de 5 a 5. Requiere calibración.":"Moyers y Tanaka-Johnston usan la suma real en mm de los cuatro incisivos inferiores. Calibra por separado la imagen de incisivos y cada arcada."}</p></div>
   <div className="mode-row"><label>Vista</label><div className="point-actions">
    {(method==="moyers"||method==="tanaka"?[["incisors","Incisivos inferiores"],["upper","Modelo superior"],["lower","Modelo inferior"]]:[["upper","Modelo superior"],["lower","Modelo inferior"]]).map(([k,label])=><button key={k} className={view===k?"primary":"secondary"} onClick={()=>changeView(k as ViewKey)}>{label}</button>)}
   </div></div>
@@ -191,7 +197,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
     {(method==="moyers"||method==="tanaka")&&view==="incisors"&&<p className="unit-notice">Coloca mesial y distal de 42, 41, 31 y 32 y calibra esta imagen. La suma se calcula con los anchos medidos en mm, no con un promedio poblacional.</p>}
     {method==="moyers"&&<div className="form-field"><label htmlFor="model-sex">Sexo requerido por la tabla Moyers</label><select id="model-sex" value={sex} onChange={e=>setSex(e.target.value as typeof sex)}><option>Seleccionar</option><option>Femenino</option><option>Masculino</option></select></div>}
 
-    {method==="little"&&<><div className="unit-notice">Cinco distancias entre seis puntos de contacto. Unidad: mm; requiere calibración.</div><table><thead><tr><th>Segmento</th><th>Distancia</th></tr></thead><tbody>{CONTACTS.slice(0,5).map((_,i)=><tr key={i}><td>P{i+1}–P{i+2}</td><td className="result-value">{little?.segments[i]?.toFixed(2)??"—"}</td></tr>)}</tbody></table><p className="result-value">Índice de Little: {little?.total?.toFixed(2)??"Pendiente"} mm</p></>}
+    {method==="little"&&<><div className="unit-notice">Cinco distancias entre seis puntos de contacto. Unidad: mm; requiere calibración.</div><table><thead><tr><th>Segmento</th><th>Distancia</th></tr></thead><tbody>{LITTLE_CONTACTS.map((contact,i)=><tr key={contact.id}><td>{contact.id}</td><td className="result-value">{little?.segments[i]?.toFixed(2)??"—"}</td></tr>)}</tbody></table><p className="result-value">Índice de Little: {little?.total?.toFixed(2)??"Pendiente"} mm</p></>}
     {method==="carey"&&<><div className="unit-notice">Se requieren 20 puntos mesial/distal, perímetro continuo y calibración. Unidad: mm.</div><table><tbody><tr><td>Espacio disponible</td><td className="result-value">{carey?.available.toFixed(2)??"—"} mm</td></tr><tr><td>Material dentario</td><td className="result-value">{carey?.required.toFixed(2)??"—"} mm</td></tr><tr><td>Discrepancia</td><td className="result-value">{carey?.diff.toFixed(2)??"—"} mm</td></tr></tbody></table><p>{carey?carey.diff>0?"Exceso de espacio relativo":carey.diff<0?"Déficit de espacio relativo":"Equilibrio geométrico relativo":"Faltan puntos o recorrido."}</p></>}
     {(method==="moyers"||method==="tanaka")&&<><div className="unit-notice">La predicción requiere calibración independiente de la vista de incisivos y de cada arcada.</div><p className="clinical-note">Σ incisivos inferiores: {mixed?.incisorSumMm.toFixed(2)??"Pendiente"} mm</p><table><thead><tr><th>Arcada / lado</th><th>Disponible</th><th>Requerido</th><th>Discrepancia</th><th>Resultado</th></tr></thead><tbody>{(mixed?.rows??["Superior · Derecho","Superior · Izquierdo","Inferior · Derecho","Inferior · Izquierdo"].map(label=>({arch:label.split(" · ")[0],side:label.split(" · ")[1],available:null,required:null,result:"Pendiente"}))).map((r,i)=><tr key={i}><td>{r.arch} · {r.side}</td><td>{r.available!==null?r.available[0].toFixed(2)+" mm":"—"}</td><td>{r.required!==null?r.required[0].toFixed(2)+" mm":"—"}</td><td>{r.available!==null&&r.required!==null?(r.available[0]-r.required[0]).toFixed(2)+" mm":"—"}</td><td>{r.result}</td></tr>)}</tbody></table><p className="clinical-note">Moyers estima por hemiarcada el ancho combinado de canino y premolares al percentil 75 %. Tanaka-Johnston calcula 11 + (Σ incisivos inferiores/2) para maxilar y 10.5 + (Σ incisivos inferiores/2) para mandibular.</p></>}
     <div className="form-field"><label htmlFor="model-observations">Observaciones</label><textarea id="model-observations" rows={3} value={observations} onChange={e=>setObservations(e.target.value)}/></div><div className="form-field"><label htmlFor="model-conclusion">Conclusión profesional / docente</label><textarea id="model-conclusion" rows={3} value={conclusion} onChange={e=>setConclusion(e.target.value)}/></div>
