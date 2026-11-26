@@ -477,7 +477,7 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
     for (const measure of cfg.measures) {
       add(
         measure.label,
-        px(getDistance(points, measure.a, measure.b)),
+        px(getHorizontalDistance(points, measure.a, measure.b)),
         "Distancia relativa en la misma fotografía; no equivale a milímetros",
       );
     }
@@ -487,8 +487,8 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
     ];
     for (const [label, rightPair, leftPair] of comparisons) {
       const comparison = bilateralDifference(
-        getDistance(points, rightPair[0], rightPair[1]),
-        getDistance(points, leftPair[0], leftPair[1]),
+        getHorizontalDistance(points, rightPair[0], rightPair[1]),
+        getHorizontalDistance(points, leftPair[0], leftPair[1]),
       );
       if (comparison) {
         const [difference, percent] = comparison;
@@ -635,8 +635,8 @@ export function summarizePhotoAnalysis(
     for (const [label, rightPair, leftPair] of comparisons) {
       const observation = describeBilateralPair(
         label,
-        getDistance(points, rightPair[0], rightPair[1]),
-        getDistance(points, leftPair[0], leftPair[1]),
+        getHorizontalDistance(points, rightPair[0], rightPair[1]),
+        getHorizontalDistance(points, leftPair[0], leftPair[1]),
       );
       if (observation) conclusions.push(observation);
     }
