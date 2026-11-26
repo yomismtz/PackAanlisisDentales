@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
+import { classifySpaceRange, estimateFourIncisorSumRange, littleIrregularityIndex, polylineLength, scaleSpaceRange, tanakaJohnstonPrediction } from "./modelGeometry";
 
 type XY = { x:number; y:number };
 type ViewKey = "incisors" | "upper" | "lower";
@@ -20,7 +21,7 @@ const PREDICTION_75={
  Femenino:{superior:[20.4,20.5,20.6,20.8,20.9,21,21.2,21.3,21.5,21.6,21.8,21.9,22.1],inferior:[19.6,19.8,20.1,20.3,20.6,20.8,21.1,21.3,21.6,21.9,22.1,22.4,22.7]}
 };
 const distance=(a:XY,b:XY)=>Math.hypot(b.x-a.x,b.y-a.y);
-function pathLength(path:XY[]){return path.length<2?null:path.slice(1).reduce((sum,p,i)=>sum+distance(path[i],p),0);}
+function pathLength(path:XY[]){return polylineLength(path);}
 function predictMoyers(sum:number,sex:"Femenino"|"Masculino",arch:"superior"|"inferior"){
  if(sum<19.5||sum>25.5)return null;
  const exact=INCISOR_SUMS.findIndex(v=>Math.abs(v-sum)<1e-8);
@@ -122,25 +123,29 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   return {available,required,diff,percent:required?Math.abs(diff)/required*100:0};
  },[points,traces,view]);
  const mixed=useMemo(()=>{
-  const ip=points.incisors;const widths=INCISORS.map(t=>ip[t+"_M"]&&ip[t+"_D"]?distance(ip[t+"_M"],ip[t+"_D"]):null);
+  const ip=points.incisors;
+  const widths=INCISORS.map(t=>ip[t+"_M"]&&ip[t+"_D"]?distance(ip[t+"_M"],ip[t+"_D"]):null);
   if(widths.some(v=>v===null))return null;
-  const referencePx=((widths[0]??0)+(widths[3]??0))/2;if(referencePx<=0)return null;
-  const total=widths.reduce<number>((s,v)=>s+(v??0),0);
-  const incisorRange:[number,number]=[total*5.6/referencePx,total*6.6/referencePx];
+  const incisorRange=estimateFourIncisorSumRange(widths as number[]);
+  if(!incisorRange)return null;
   const rows=[];
   for(const a of ["upper","lower"] as const){
-   const p=points[a],ref=distance(p.ref_M,p.ref_D),refKey=a==="lower"?"lower_lateral":upperReference;
-   const refInfo=TOOTH_REFERENCES[refKey];const factorLow=(refInfo.mean-refInfo.sd),factorHigh=(refInfo.mean+refInfo.sd);
+   const p=points[a],ref=p.ref_M&&p.ref_D?distance(p.ref_M,p.ref_D):null;
+   const refKey=a==="lower"?"lower_lateral":upperReference;
+   const refInfo=TOOTH_REFERENCES[refKey];
    for(const side of ["Derecho","Izquierdo"]){
     const start=p[side==="Derecho"?"lat_R":"lat_L"],end=p[side==="Derecho"?"mol_R":"mol_L"];
-    const path=traces[a][side]??[];const px=start&&end&&path.length>=2?pathLength([start,...path,end]):null;
-    const available:[number,number]|null=px&&ref&&ref>0?[px*factorLow/ref,px*factorHigh/ref]:null;
+    const path=traces[a][side]??[];
+    const px=start&&end&&path.length>=2?pathLength([start,...path,end]):null;
+    const available:[number,number]|null=px!==null&&ref!==null?scaleSpaceRange(px,ref,refInfo.mean,refInfo.sd):null;
     let required:[number,number]|null=null;
+    const arch=a==="upper"?"superior":"inferior";
     if(method==="moyers"&&sex!=="Seleccionar"){
-     const arch=a==="upper"?"superior":"inferior";const r1=predictMoyers(incisorRange[0],sex,arch),r2=predictMoyers(incisorRange[1],sex,arch);
+     const r1=predictMoyers(incisorRange[0],sex,arch),r2=predictMoyers(incisorRange[1],sex,arch);
      if(r1!==null&&r2!==null)required=[Math.min(r1,r2),Math.max(r1,r2)];
     }else if(method==="tanaka"){
-     const fn=(v:number)=>a==="upper"?11+v/2:10.5+v/2;required=[fn(incisorRange[0]),fn(incisorRange[1])];
+     const r1=tanakaJohnstonPrediction(incisorRange[0],arch),r2=tanakaJohnstonPrediction(incisorRange[1],arch);
+     if(r1!==null&&r2!==null)required=[r1,r2];
     }
     rows.push({arch:a==="upper"?"Superior":"Inferior",side,available,required,result:classifyRange(available,required)});
    }
