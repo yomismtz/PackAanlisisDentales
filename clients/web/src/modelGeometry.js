@@ -51,7 +51,8 @@ export function tanakaJohnstonPrediction(incisorSumMm, arch) {
 export function classifySpaceRange(available, required) {
   if (!available || !required || available.length !== 2 || required.length !== 2) return "No concluyente";
   if (![...available, ...required].every(Number.isFinite)) return "No concluyente";
-  if (available[0] >= required[1]) return "Hay espacio";
+  if (Math.abs(available[0] - available[1]) < 1e-9 && Math.abs(required[0] - required[1]) < 1e-9 && Math.abs(available[0] - required[0]) < 1e-9) return "Equilibrio";
+  if (available[0] > required[1]) return "Hay espacio";
   if (available[1] < required[0]) return "No hay espacio";
   return "No concluyente";
 }
