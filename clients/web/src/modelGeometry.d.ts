@@ -9,3 +9,5 @@ export function classifySpaceRange(available: [number, number] | null, required:
 export function pixelsToMillimeters(valuePx: number, pixelsPerMm: number): number | null;
 
 export function pixelsPerMillimeter(distancePx: number, knownDistanceMm: number): number | null;
+
+export function careySpaceAnalysis(toothWidthsMm: number[], archPerimeterMm: number): { availableMm: number; requiredMm: number; discrepancyMm: number } | null;
