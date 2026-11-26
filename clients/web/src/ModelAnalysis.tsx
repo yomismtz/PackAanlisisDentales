@@ -33,7 +33,6 @@ function classifyRange(available:[number,number]|null,required:[number,number]|n
 }
 export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  const [method,setMethod]=useState<Method>("little");
- const [arch,setArch]=useState<"upper"|"lower">("lower");
  const [view,setView]=useState<ViewKey>("lower");
  const [images,setImages]=useState<Partial<Record<ViewKey,ImageInfo>>>({});
  const objectUrls=useRef<Set<string>>(new Set());
@@ -50,10 +49,8 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  const [knownDistanceMm,setKnownDistanceMm]=useState("10");
  const [error,setError]=useState("");
  const canvasRef=useRef<HTMLCanvasElement>(null);
- const uploadRef=useRef<HTMLInputElement>(null);
  const image=images[view];
  const options=pointOptions(method,view);
- const activeArch=method==="little"||method==="carey"?arch:view;
  const [observations,setObservations]=useState("");
  const [conclusion,setConclusion]=useState("");
  useEffect(()=>()=>{objectUrls.current.forEach(url=>URL.revokeObjectURL(url));objectUrls.current.clear();},[]);
@@ -79,11 +76,12 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
    for(const [key,p] of Object.entries(current)){const r=Math.max(3,img.naturalWidth/600);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#6D45A6";ctx.lineWidth=Math.max(1,img.naturalWidth/1500);ctx.stroke();ctx.fillStyle="#48263F";ctx.font=`bold ${Math.max(12,img.naturalWidth/100)}px system-ui`;ctx.fillText(key,p.x+r+3,p.y-r-3);}
    for(const list of Object.values(currentTraces))for(const p of list){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2,img.naturalWidth/900),0,Math.PI*2);ctx.fillStyle="#F4C95D";ctx.fill();}
    const calibrationLine=calibration[view]?.points??calibrationPoints;
+   if(calibrationLine.length===1){ctx.beginPath();ctx.arc(calibrationLine[0].x,calibrationLine[0].y,Math.max(4,img.naturalWidth/500),0,Math.PI*2);ctx.fillStyle="#E07A5F";ctx.fill();}
    if(calibrationLine.length===2){ctx.beginPath();ctx.moveTo(calibrationLine[0].x,calibrationLine[0].y);ctx.lineTo(calibrationLine[1].x,calibrationLine[1].y);ctx.strokeStyle="#E07A5F";ctx.lineWidth=Math.max(2,img.naturalWidth/800);ctx.stroke();}
   };
   img.src=image.url;
- },[image,view,method,points,traces,calibration]);
- function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":next==="little"?"lower":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setArch(next==="little"?"lower":"upper");setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
+ },[image,view,method,points,traces,calibration,calibrationPoints]);
+ function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":next==="little"?"lower":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
  function changeView(next:ViewKey){setView(next);setPlacing(false);setTraceMode("");setCalibrationMode(false);setCalibrationPoints([]);setSelected(pointOptions(method,next)[0]?.[0]??"");}
  function loadImage(event:React.ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0];if(!file)return;
@@ -156,7 +154,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   }
   return {incisorSumMm,rows};
  },[points,traces,method,sex,calibration]);
- const activePoints=points[view];const activeTrace=traceMode?traces[view][traceMode]??[]:[];
+ const activePoints=points[view];
  const canExport=Object.values(images).some(Boolean);
  function exportJson(){
   const payload={application:"AVIS",analysis:method,images:Object.fromEntries(Object.entries(images).map(([k,v])=>[k,v?{name:v.name,width:v.width,height:v.height}:null])),points,traces,sex,calibration,results:{little,carey,mixed},observations,conclusion,generatedAt:new Date().toISOString(),limitations:"Las medidas en mm dependen de una calibración física válida e independiente por imagen. Las predicciones de Moyers y Tanaka-Johnston son estimaciones estadísticas y requieren validación profesional."};
