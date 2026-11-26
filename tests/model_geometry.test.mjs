@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   distanceBetweenPoints, polylineLength, littleIrregularityIndex, pixelsToMillimeters,
-  estimateFourIncisorSumRange, scaleSpaceRange, tanakaJohnstonPrediction,
+  moyers75Prediction, tanakaJohnstonPrediction,
   classifySpaceRange
 } from "../clients/web/src/modelGeometry.js";
 
@@ -17,16 +17,6 @@ test("Little index sums the five adjacent contact-point displacements",()=>{
   assert.deepEqual(result.segments,[3,4,3,4,3]);
   assert.equal(result.total,17);
   assert.equal(littleIrregularityIndex([p(0,0)]),null);
-});
-test("four-incisor width interval uses mean of bilateral lower lateral incisors as scale reference",()=>{
-  const result=estimateFourIncisorSumRange([60,50,50,60]);
-  assert.ok(Math.abs(result[0]-20.5333333333)<1e-8);
-  assert.ok(Math.abs(result[1]-24.2)<1e-8);
-  assert.equal(estimateFourIncisorSumRange([60,50,null,60]),null);
-});
-test("reference-tooth scaling returns a bounded available-space interval",()=>{
-  assert.deepEqual(scaleSpaceRange(100,20,6.1,.5),[28,33]);
-  assert.equal(scaleSpaceRange(100,0,6.1,.5),null);
 });
 test("Tanaka-Johnston predicts one quadrant from four-incisor sum",()=>{
   assert.equal(tanakaJohnstonPrediction(22,"superior"),22);
@@ -44,4 +34,13 @@ test("pixel calibration converts measurements to millimeters and rejects invalid
   assert.equal(pixelsToMillimeters(25,5),5);
   assert.equal(pixelsToMillimeters(25,0),null);
   assert.equal(pixelsToMillimeters(-1,5),null);
+});
+
+test("Moyers 75th percentile uses sex- and arch-specific published values",()=>{
+  assert.equal(moyers75Prediction(22,"Femenino","superior"),21.0);
+  assert.equal(moyers75Prediction(22,"Femenino","inferior"),20.8);
+  assert.equal(moyers75Prediction(22,"Masculino","superior"),21.5);
+  assert.equal(moyers75Prediction(22,"Masculino","inferior"),21.5);
+  assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);
+  assert.equal(moyers75Prediction(19,"Femenino","superior"),null);
 });
