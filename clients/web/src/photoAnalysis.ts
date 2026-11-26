@@ -1,3 +1,4 @@
+import { calculatePowellAngles } from "./photoGeometry";
 export type PhotoMode =
   | "facial_frontal"
   | "facial_profile"
@@ -331,10 +332,7 @@ function angleDifference(a1: Point, a2: Point, b1: Point, b2: Point): number | n
   return Math.min(difference, 180 - difference);
 }
 
-function getLineAngle(points: PointMap, a: string, b: string, c: string, d: string): number | null {
-  const p1=points[a],p2=points[b],p3=points[c],p4=points[d];
-  return p1&&p2&&p3&&p4?angleDifference(p1,p2,p3,p4):null;
-}
+
 
 function proportions(lengths: number[]): number[] | null {
   if (!lengths.length || lengths.some((value) => value < 0)) return null;
@@ -453,11 +451,12 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
       }
     }
   } else if (cfg.formula === "powell") {
+    const powell=calculatePowellAngles(points);
     const items: Array<{label:string;value:number|null;reference:string}> = [
-      {label:"Nasofrontal",value:getAngle(points,"G","N","R"),reference:"115°–130° · vértice N"},
-      {label:"Nasofacial",value:getLineAngle(points,"G","Pg","N","Prn"),reference:"30°–40° · plano facial G–Pg con dorso nasal N–Prn"},
-      {label:"Nasomental",value:getAngle(points,"N","Prn","Pg"),reference:"120°–132° · vértice Prn"},
-      {label:"Mentocervical",value:getLineAngle(points,"G","Pg","Me","C"),reference:"80°–95° · plano facial G–Pg con línea mentón–cervical Me–C"},
+      {label:"Nasofrontal",value:powell.nasofrontal,reference:"115°–130° · vértice N"},
+      {label:"Nasofacial",value:powell.nasofacial,reference:"30°–40° · plano facial G–Pg con dorso nasal N–Prn"},
+      {label:"Nasomental",value:powell.nasomental,reference:"120°–132° · vértice Prn"},
+      {label:"Mentocervical",value:powell.mentocervical,reference:"80°–95° · plano facial G–Pg con línea mentón–cervical Me–C"},
     ];
     for (const item of items) add(item.label,deg(item.value),item.reference);
   } else if (cfg.formula === "projections") {
@@ -777,11 +776,12 @@ export function summarizePhotoAnalysis(
     }
     if (!conclusions.length) conclusions.push("Coloca los pares de puntos anatómicos para describir los niveles faciales.");
   } else if (cfg.formula === "powell") {
+    const powell=calculatePowellAngles(points);
     const measurements: Array<{label:string;value:number|null;min:number;max:number}> = [
-      {label:"Nasofrontal",value:getAngle(points,"G","N","R"),min:115,max:130},
-      {label:"Nasofacial",value:getLineAngle(points,"G","Pg","N","Prn"),min:30,max:40},
-      {label:"Nasomental",value:getAngle(points,"N","Prn","Pg"),min:120,max:132},
-      {label:"Mentocervical",value:getLineAngle(points,"G","Pg","Me","C"),min:80,max:95},
+      {label:"Nasofrontal",value:powell.nasofrontal,min:115,max:130},
+      {label:"Nasofacial",value:powell.nasofacial,min:30,max:40},
+      {label:"Nasomental",value:powell.nasomental,min:120,max:132},
+      {label:"Mentocervical",value:powell.mentocervical,min:80,max:95},
     ];
     for (const measurement of measurements) {
       const {label,value,min,max}=measurement;
