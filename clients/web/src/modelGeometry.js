@@ -14,12 +14,12 @@ export function polylineLength(points) {
   return total;
 }
 
-export function littleIrregularityIndex(contactPoints) {
-  if (!Array.isArray(contactPoints) || contactPoints.length !== 6) return null;
-  const segments = [];
-  for (let i = 1; i < contactPoints.length; i += 1) {
-    segments.push(distanceBetweenPoints(contactPoints[i - 1], contactPoints[i]));
-  }
+export function littleIrregularityIndex(contactPairs) {
+  if (!Array.isArray(contactPairs) || contactPairs.length !== 5) return null;
+  const segments = contactPairs.map((pair) => {
+    if (!Array.isArray(pair) || pair.length !== 2) return null;
+    return distanceBetweenPoints(pair[0], pair[1]);
+  });
   if (segments.some((v) => v === null)) return null;
   return { segments, total: segments.reduce((sum, v) => sum + v, 0) };
 }
