@@ -1,4 +1,4 @@
-import { calculatePowellAngles, calculateVerticalFacialThirds } from "./photoGeometry";
+import { acuteAngleBetweenLines, calculatePowellAngles, calculateVerticalFacialThirds, horizontalDistancePx, lineInclinationDegrees, signedPerpendicularDistance } from "./photoGeometry";
 export type PhotoMode =
   | "facial_frontal"
   | "facial_profile"
@@ -298,7 +298,7 @@ function getVerticalDistance(points: PointMap, a: string, b: string): number | n
 function getHorizontalDistance(points: PointMap, a: string, b: string): number | null {
   const pa = points[a];
   const pb = points[b];
-  return pa && pb ? Math.abs(pb.x - pa.x) : null;
+  return pa && pb ? horizontalDistancePx(pa,pb) : null;
 }
 
 function getAngle(points: PointMap, a: string, b: string, c: string): number | null {
@@ -314,21 +314,9 @@ function getAngle(points: PointMap, a: string, b: string, c: string): number | n
   return (Math.acos(cosine) * 180) / Math.PI;
 }
 
-function lineInclination(a: Point, b: Point): number | null {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  if (!Math.hypot(dx, dy)) return null;
-  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-  return (((angle + 90) % 180) + 180) % 180 - 90;
-}
+function lineInclination(a: Point, b: Point): number | null { return lineInclinationDegrees(a,b); }
 
-function angleDifference(a1: Point, a2: Point, b1: Point, b2: Point): number | null {
-  const first = lineInclination(a1, a2);
-  const second = lineInclination(b1, b2);
-  if (first === null || second === null) return null;
-  const difference = Math.abs(first - second);
-  return Math.min(difference, 180 - difference);
-}
+function angleDifference(a1: Point, a2: Point, b1: Point, b2: Point): number | null { return acuteAngleBetweenLines(a1,a2,b1,b2); }
 
 
 
@@ -414,8 +402,8 @@ export function calculatePhotoResults(mode: PhotoMode, points: PointMap): PhotoR
         ].forEach(([label, key]) => {
           const point = points[key];
           if (point) {
-            const signed = (vx * (point.y - bridge.y) - vy * (point.x - bridge.x)) / norm;
-            add(
+            const signed = signedPerpendicularDistance(bridge,lip,point);
+            if(signed!==null)add(
               label,
               (signed >= 0 ? "+" : "") + signed.toFixed(2) + " px",
               "Desviación perpendicular relativa al eje puente nasal–labio superior",
@@ -730,8 +718,8 @@ export function summarizePhotoAnalysis(
         const deviations = landmarks.flatMap(([label, key]) => {
           const point = points[key];
           if (!point) return [];
-          const signed = (vx * (point.y - bridge.y) - vy * (point.x - bridge.x)) / norm;
-          return [{ label, signed }];
+          const signed = signedPerpendicularDistance(bridge,points.LS,point);
+          return signed===null?[]:[{ label, signed }];
         });
         const displaced = deviations.filter((item) => Math.abs(item.signed) >= 0.01);
         conclusions.push("El punto LS (filtro / centro del labio superior) define el eje de referencia y no se interpreta como una desviación independiente.");
