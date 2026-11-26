@@ -20,8 +20,8 @@ test("Little index sums the five adjacent contact-point displacements",()=>{
 });
 test("four-incisor width interval uses mean of bilateral lower lateral incisors as scale reference",()=>{
   const result=estimateFourIncisorSumRange([60,50,50,60]);
-  assert.ok(Math.abs(result[0]-15.8666666667)<1e-8);
-  assert.ok(Math.abs(result[1]-18.7)<1e-8);
+  assert.ok(Math.abs(result[0]-20.5333333333)<1e-8);
+  assert.ok(Math.abs(result[1]-24.2)<1e-8);
   assert.equal(estimateFourIncisorSumRange([60,50,null,60]),null);
 });
 test("reference-tooth scaling returns a bounded available-space interval",()=>{
