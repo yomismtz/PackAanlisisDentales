@@ -24,21 +24,28 @@ export function littleIrregularityIndex(contactPoints) {
   return { segments, total: segments.reduce((sum, v) => sum + v, 0) };
 }
 
-export function estimateFourIncisorSumRange(widthsPx, lateralMeanMm = 6.1, lateralSdMm = 0.5) {
-  if (!Array.isArray(widthsPx) || widthsPx.length !== 4 || widthsPx.some((v) => !Number.isFinite(v) || v <= 0)) return null;
-  if (!Number.isFinite(lateralMeanMm) || !Number.isFinite(lateralSdMm) || lateralMeanMm <= lateralSdMm || lateralSdMm < 0) return null;
-  const lateralReferencePx = (widthsPx[0] + widthsPx[3]) / 2;
-  if (!(lateralReferencePx > 0)) return null;
-  const sumPx = widthsPx.reduce((sum, value) => sum + value, 0);
-  return [sumPx * (lateralMeanMm - lateralSdMm) / lateralReferencePx,
-    sumPx * (lateralMeanMm + lateralSdMm) / lateralReferencePx];
-}
+const MOYERS_SUMS = Array.from({ length: 13 }, (_, i) => 19.5 + i * 0.5);
+const MOYERS_75 = {
+  Masculino: {
+    superior: [20.3,20.5,20.8,21.0,21.3,21.5,21.8,22.0,22.3,22.5,22.8,23.0,23.3],
+    inferior: [20.3,20.5,20.8,21.0,21.3,21.5,21.8,22.0,22.3,22.5,22.8,23.0,23.3]
+  },
+  Femenino: {
+    superior: [20.4,20.5,20.6,20.8,20.9,21.0,21.2,21.3,21.5,21.6,21.8,21.9,22.1],
+    inferior: [19.6,19.8,20.1,20.3,20.6,20.8,21.1,21.3,21.6,21.9,22.1,22.4,22.7]
+  }
+};
 
-export function scaleSpaceRange(spacePx, referencePx, referenceMeanMm, referenceSdMm) {
-  if (![spacePx, referencePx, referenceMeanMm, referenceSdMm].every(Number.isFinite)) return null;
-  if (spacePx < 0 || referencePx <= 0 || referenceMeanMm <= referenceSdMm || referenceSdMm < 0) return null;
-  return [spacePx * (referenceMeanMm - referenceSdMm) / referencePx,
-    spacePx * (referenceMeanMm + referenceSdMm) / referencePx];
+export function moyers75Prediction(incisorSumMm, sex, arch) {
+  if (!Number.isFinite(incisorSumMm) || incisorSumMm < 19.5 || incisorSumMm > 25.5) return null;
+  if (!MOYERS_75[sex] || !MOYERS_75[sex][arch]) return null;
+  const exact = MOYERS_SUMS.findIndex((v) => Math.abs(v - incisorSumMm) < 1e-8);
+  if (exact >= 0) return MOYERS_75[sex][arch][exact];
+  const lowerIndex = MOYERS_SUMS.findIndex((v, i) => i < MOYERS_SUMS.length - 1 && v < incisorSumMm && incisorSumMm < MOYERS_SUMS[i + 1]);
+  if (lowerIndex < 0) return null;
+  const t = (incisorSumMm - MOYERS_SUMS[lowerIndex]) / (MOYERS_SUMS[lowerIndex + 1] - MOYERS_SUMS[lowerIndex]);
+  const values = MOYERS_75[sex][arch];
+  return Math.round((values[lowerIndex] + t * (values[lowerIndex + 1] - values[lowerIndex])) * 100) / 100;
 }
 
 export function tanakaJohnstonPrediction(incisorSumMm, arch) {
