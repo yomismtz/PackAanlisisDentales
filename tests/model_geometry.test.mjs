@@ -42,8 +42,8 @@ test("Moyers 75th percentile uses sex- and arch-specific published values",()=>{
   assert.equal(moyers75Prediction(22,"Femenino","superior"),21.0);
   assert.equal(moyers75Prediction(22,"Femenino","inferior"),20.8);
   assert.equal(moyers75Prediction(22,"Masculino","superior"),21.5);
-  assert.equal(moyers75Prediction(22,"Masculino","inferior"),21.5);
-  assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);
+  assert.equal(moyers75Prediction(22,"Masculino","inferior"),21.4);
+  assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);\n  assert.equal(moyers75Prediction(23,"Masculino","inferior"),21.9);
   assert.equal(moyers75Prediction(19,"Femenino","superior"),null);
 });
 
