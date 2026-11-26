@@ -125,7 +125,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const ip=points.incisors;const widths=INCISORS.map(t=>ip[t+"_M"]&&ip[t+"_D"]?distance(ip[t+"_M"],ip[t+"_D"]):null);
   if(widths.some(v=>v===null))return null;
   const referencePx=((widths[0]??0)+(widths[3]??0))/2;if(referencePx<=0)return null;
-  const total=widths.reduce((s,v)=>s+(v??0),0);
+  const total=widths.reduce<number>((s,v)=>s+(v??0),0);
   const incisorRange:[number,number]=[total*5.6/referencePx,total*6.6/referencePx];
   const rows=[];
   for(const a of ["upper","lower"] as const){
