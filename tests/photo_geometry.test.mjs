@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculatePowellAngles } from "../clients/web/src/photoGeometry.js";
+import { calculatePowellAngles, calculateVerticalFacialThirds } from "../clients/web/src/photoGeometry.js";
 const p=(x,y)=>({x,y}),rad=d=>d*Math.PI/180;
 test("Powell nasofrontal uses G-N and N-R with vertex N",()=>{
  const G=p(0,0),N=p(1,0),R=p(1+Math.cos(rad(60)),Math.sin(rad(60)));
