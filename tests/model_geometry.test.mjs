@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  distanceBetweenPoints, polylineLength, littleIrregularityIndex, pixelsToMillimeters,
+  distanceBetweenPoints, polylineLength, littleIrregularityIndex, pixelsPerMillimeter, pixelsToMillimeters,
   moyers75Prediction, tanakaJohnstonPrediction,
   classifySpaceRange
 } from "../clients/web/src/modelGeometry.js";
@@ -45,4 +45,10 @@ test("Moyers 75th percentile uses sex- and arch-specific published values",()=>{
   assert.equal(moyers75Prediction(22,"Masculino","inferior"),21.5);
   assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);
   assert.equal(moyers75Prediction(19,"Femenino","superior"),null);
+});
+
+test("calibration factor rejects zero and invalid known distances",()=>{
+  assert.equal(pixelsPerMillimeter(50,10),5);
+  assert.equal(pixelsPerMillimeter(0,10),null);
+  assert.equal(pixelsPerMillimeter(50,0),null);
 });
