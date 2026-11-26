@@ -43,7 +43,8 @@ test("Moyers 75th percentile uses sex- and arch-specific published values",()=>{
   assert.equal(moyers75Prediction(22,"Femenino","inferior"),20.8);
   assert.equal(moyers75Prediction(22,"Masculino","superior"),21.5);
   assert.equal(moyers75Prediction(22,"Masculino","inferior"),21.4);
-  assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);\n  assert.equal(moyers75Prediction(23,"Masculino","inferior"),21.9);
+  assert.equal(moyers75Prediction(21.25,"Femenino","superior"),20.85);
+  assert.equal(moyers75Prediction(23,"Masculino","inferior"),21.9);
   assert.equal(moyers75Prediction(19,"Femenino","superior"),null);
 });
 
@@ -57,7 +58,9 @@ test("Carey discrepancy equals arch perimeter minus ten-tooth material",()=>{
   const result=careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],61);
   assert.equal(result.requiredMm,61);
   assert.equal(result.availableMm,61);
-  assert.equal(result.discrepancyMm,0);\n  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],64).discrepancyMm,3);\n  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],59).discrepancyMm,-2);
+  assert.equal(result.discrepancyMm,0);
+  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],64).discrepancyMm,3);
+  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],59).discrepancyMm,-2);
   assert.equal(careySpaceAnalysis([6,6],61),null);
   assert.equal(careySpaceAnalysis(Array(10).fill(6),0),null);
 });
