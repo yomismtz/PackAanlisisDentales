@@ -58,8 +58,6 @@ export const PHOTO_CONFIG: Record<PhotoMode, PhotoConfig> = {
       { label: "N–Sn", a: "N", b: "Sn" },
       { label: "Sn–Me", a: "Sn", b: "Me" },
       { label: "N–Me", a: "N", b: "Me" },
-      { label: "Sn–St", a: "Sn", b: "Sts" },
-      { label: "St–Me", a: "Sti", b: "Me" },
     ],
   },
   facial_profile: {
