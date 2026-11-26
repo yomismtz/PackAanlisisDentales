@@ -33,8 +33,8 @@ function classifyRange(available:[number,number]|null,required:[number,number]|n
 }
 export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  const [method,setMethod]=useState<Method>("little");
- const [arch,setArch]=useState<"upper"|"lower">("upper");
- const [view,setView]=useState<ViewKey>("upper");
+ const [arch,setArch]=useState<"upper"|"lower">("lower");
+ const [view,setView]=useState<ViewKey>("lower");
  const [images,setImages]=useState<Partial<Record<ViewKey,ImageInfo>>>({});
  const objectUrls=useRef<Set<string>>(new Set());
  const [points,setPoints]=useState<PointSets>(EMPTY_POINTS);
@@ -83,7 +83,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   };
   img.src=image.url;
  },[image,view,method,points,traces,calibration]);
- function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setArch("upper");setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
+ function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":next==="little"?"lower":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setArch(next==="little"?"lower":"upper");setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
  function changeView(next:ViewKey){setView(next);setPlacing(false);setTraceMode("");setCalibrationMode(false);setCalibrationPoints([]);setSelected(pointOptions(method,next)[0]?.[0]??"");}
  function loadImage(event:React.ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0];if(!file)return;
