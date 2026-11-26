@@ -7,7 +7,11 @@ from PySide6.QtWidgets import (
     QDialog, QGraphicsView, QGraphicsScene, QLabel, QPushButton, QComboBox,
     QVBoxLayout, QHBoxLayout, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QDialogButtonBox, QTextEdit, QFormLayout, QMessageBox,
-    QLineEdit, QGroupBox, QGridLayout
+    QGroupBox, QGridLayout
+)
+from .photo_geometry import (
+    bilateral_difference, line_angle_difference_degrees,
+    line_inclination_degrees, segment_proportions_percent,
 )
 
 CONFIG = {
@@ -185,8 +189,6 @@ class PhotoAnalysisDialog(QDialog):
   for code,label in self.cfg["points"]:self.point_select.addItem(f"{code} · {label}",code)
   self.place=QPushButton("Colocar / corregir punto"); self.place.clicked.connect(self.activate_point)
   self.delete=QPushButton("Eliminar punto"); self.delete.clicked.connect(self.delete_point)
-  self.scale=QLineEdit(str(self.saved.get("Calibración mm/px",""))); self.scale.setPlaceholderText("mm por píxel (si aplica)")
-  self.scale.textChanged.connect(self.update_results)
   self.results=QTableWidget(0,3); self.results.setHorizontalHeaderLabels(["Medición","Resultado","Referencia / comparación"])
   self.results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
   self.observations=QTextEdit(self.existing.get("observations","")); self.observations.setMaximumHeight(65)
@@ -217,7 +219,7 @@ class PhotoAnalysisDialog(QDialog):
   left.addWidget(QLabel("Selecciona un punto, activa la colocación y haz clic sobre la fotografía. Rueda: zoom · arrastrar: desplazamiento."))
   row=QHBoxLayout(); row.addWidget(self.point_select,2); row.addWidget(self.place); row.addWidget(self.delete); left.addLayout(row)
   left.addWidget(self.canvas,1)
-  right=QVBoxLayout(); form=QFormLayout(); form.addRow("Estado",self.status); form.addRow("Calibración (mm/px)",self.scale); right.addLayout(form)
+  right=QVBoxLayout(); form=QFormLayout(); form.addRow("Estado",self.status); right.addLayout(form)
   right.addWidget(QLabel("Mediciones, proporciones y cálculos")); right.addWidget(self.results,1)
   if choices:right.addWidget(extra_box)
   right.addWidget(QLabel("Observaciones")); right.addWidget(self.observations); right.addWidget(QLabel("Conclusión profesional")); right.addWidget(self.conclusion)
@@ -242,17 +244,14 @@ class PhotoAnalysisDialog(QDialog):
  def distance_px(self,a,b):
   if a not in self.points or b not in self.points:return None
   return math.hypot(self.points[b][0]-self.points[a][0],self.points[b][1]-self.points[a][1])
- def scale_value(self):
-  try:
-   x=float(self.scale.text().replace(",",".")); return x if x>0 else None
-  except ValueError:return None
  def distance(self,a,b):
-  d=self.distance_px(a,b); s=self.scale_value()
-  return d*s if d is not None and s is not None else None
+  return self.distance_px(a,b)
  def vertical_distance(self,a,b):
   if a not in self.points or b not in self.points:return None
-  s=self.scale_value()
-  return abs(self.points[b][1]-self.points[a][1])*(s or 1)
+  return abs(self.points[b][1]-self.points[a][1])
+ def horizontal_distance(self,a,b):
+  if a not in self.points or b not in self.points:return None
+  return abs(self.points[b][0]-self.points[a][0])
  def angle(self,a,b,c):
   if any(x not in self.points for x in (a,b,c)):return None
   p,q,r=self.points[a],self.points[b],self.points[c]
@@ -263,27 +262,46 @@ class PhotoAnalysisDialog(QDialog):
  def add_result(self,rows,label,value,reference=""):
   rows.append((label,value,reference))
  def update_results(self,*args):
-  rows=[]; formula=self.cfg["formula"]; scale=self.scale_value()
+  rows=[]; formula=self.cfg["formula"]
   if formula in ("frontal","profile"):
    for label,a,b in self.cfg["measures"]:
     d=self.vertical_distance(a,b)
-    self.add_result(rows,label,f"{d:.2f} {'mm' if scale else 'px'}" if d is not None else "Pendiente")
-   total=self.distance("N","Me")
-   ns=self.distance("N","Sn"); sm=self.distance("Sn","Me")
-   if total and ns is not None and sm is not None:
-    p1=ns/total*100;p2=sm/total*100
-    self.add_result(rows,"N–Sn (%)",f"{p1:.1f} %","Ideal 43 %")
-    self.add_result(rows,"Sn–Me (%)",f"{p2:.1f} %","Ideal 57 %")
+    self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
+                    "Distancia relativa en píxeles de la fotografía")
+   total_nm=self.vertical_distance("N","Me")
+   ns=self.vertical_distance("N","Sn"); sm=self.vertical_distance("Sn","Me")
+   if total_nm and ns is not None and sm is not None:
+    p1=ns/total_nm*100;p2=sm/total_nm*100
+    self.add_result(rows,"N–Sn (%)",f"{p1:.1f} %","Proporción vertical dentro de N–Me")
+    self.add_result(rows,"Sn–Me (%)",f"{p2:.1f} %","Proporción vertical dentro de N–Me")
+   thirds=(self.vertical_distance("Tr","Of"),
+           self.vertical_distance("Of","Sn"),
+           self.vertical_distance("Sn","Me"))
+   if all(value is not None for value in thirds):
+    percentages=segment_proportions_percent(thirds)
+    if percentages is not None:
+     for label,value in zip(("Tercio superior (%)","Tercio medio (%)","Tercio inferior (%)"),percentages):
+      self.add_result(rows,label,f"{value:.1f} %","Proporción de la suma de los tres tercios Tr–Me")
    if all(k in self.points for k in ("Sn","Sts","Sti","Me")):
     st_y=(self.points["Sts"][1]+self.points["Sti"][1])/2
     sn_y=self.points["Sn"][1]; me_y=self.points["Me"][1]
-    snst=abs(st_y-sn_y)*(scale or 1); stme=abs(me_y-st_y)*(scale or 1)
+    snst=abs(st_y-sn_y); stme=abs(me_y-st_y)
     if snst+stme:
-     self.add_result(rows,"Sn–St (%)",f"{snst/(snst+stme)*100:.1f} %","Ideal 1/3")
-     self.add_result(rows,"St–Me (%)",f"{stme/(snst+stme)*100:.1f} %","Ideal 2/3")
+     self.add_result(rows,"Sn–St (%)",f"{snst/(snst+stme)*100:.1f} %","Proporción relativa de la imagen")
+     self.add_result(rows,"St–Me (%)",f"{stme/(snst+stme)*100:.1f} %","Proporción relativa de la imagen")
+  elif formula=="smile":
+   required=("PUP_R","PUP_L","LC_R","LC_L")
+   if all(key in self.points for key in required):
+    difference=line_angle_difference_degrees(
+     self.points["PUP_R"],self.points["PUP_L"],
+     self.points["LC_R"],self.points["LC_L"],
+    )
+    if difference is not None:
+     self.add_result(rows,"Diferencia angular bipupilar–comisural",f"{difference:.2f}°",
+                     "Ángulo agudo entre ambas líneas (0° paralelas; 90° perpendiculares); no es una clasificación clínica")
   elif formula=="midlines":
    # Eje de referencia: centro del puente nasal (punto medio intercantal)
-   # y centro del labio superior. La desviación se calcula perpendicularmente.
+   # y centro del labio superior. La desviación es perpendicular y relativa.
    if all(k in self.points for k in ("ICD","ICI","LS")):
     bridge=((self.points["ICD"][0]+self.points["ICI"][0])/2,
             (self.points["ICD"][1]+self.points["ICI"][1])/2)
@@ -296,15 +314,16 @@ class PhotoAnalysisDialog(QDialog):
       if key in self.points:
        p=self.points[key]
        signed=(vx*(p[1]-bridge[1])-vy*(p[0]-bridge[0]))/norm
-       self.add_result(rows,label,f"{signed*(scale or 1):+.2f} {'mm' if scale else 'px'}",
-                       "Desviación perpendicular al eje puente nasal–labio superior")
+       self.add_result(rows,label,f"{signed:+.2f} px",
+                       "Desviación perpendicular relativa al eje puente nasal–labio superior")
   elif formula=="levels":
    for label,a,b in self.cfg["measures"]:
     if a in self.points and b in self.points:
-     dy=(self.points[b][1]-self.points[a][1])*(scale or 1)
-     dx=self.points[b][0]-self.points[a][0]
-     ang=math.degrees(math.atan2(dy,dx))
-     self.add_result(rows,label,f"{ang:.2f}°",f"Desnivel {abs(dy):.2f} {'mm' if scale else 'px'}; registrar lado y dirección en evaluación visual")
+     dy=self.points[b][1]-self.points[a][1]
+     ang=line_inclination_degrees(self.points[a],self.points[b])
+     if ang is not None:
+      self.add_result(rows,label,f"{ang:+.2f}°",
+                      f"Desnivel relativo {abs(dy):.2f} px; inclinación respecto a la horizontal de la imagen; completar la dirección en evaluación visual")
   elif formula=="powell":
    for label,a,b,c,norm in (("Nasofrontal","G","N","R","115°–130°"),("Mesofacial","N","Pg","Prn","Mujer 30° · Hombre 40°"),("Nasomentón","Prn","Pg","N","120°–132°"),("Mentocervical","N","Pg","C","80°–95°")):
     val=self.angle(a,b,c)
@@ -312,28 +331,51 @@ class PhotoAnalysisDialog(QDialog):
   elif formula=="projections":
    if "N" in self.points:
     x0=self.points["N"][0]
-    for label,key,norm in (("Glabela","G","-8.5 mm"),("Reborde orbitario","OR","-18.7 / -22.4 mm"),
-     ("Pómulo","MAL","-20.6 / -25.2 mm"),("Punto subpupilar","SUBP","-14.8 / -18.4 mm"),
-     ("Base basal","BB","13 / 15 mm"),("Labio superior","LS","3.7 / 3.3 mm"),
-     ("Punta nasal","PRN","16.0 / 17.4 mm"),("Labio inferior","LI","-1.9 / -1.0 mm"),("Pogonion","PG","-2.6 / -3.5 mm")):
+    for label,key in (("Glabela","G"),("Reborde orbitario","OR"),("Pómulo","MAL"),
+                      ("Punto subpupilar","SUBP"),("Base basal","BB"),("Labio superior","LS"),
+                      ("Punta nasal","PRN"),("Labio inferior","LI"),("Pogonion","PG")):
      if key in self.points:
-      dx=(self.points[key][0]-x0)*(scale or 1)
-      self.add_result(rows,label,f"{dx:+.2f} {'mm' if scale else 'px'}",norm)
+      dx=self.points[key][0]-x0
+      self.add_result(rows,label,f"{dx:+.2f} px",
+                      "Desviación horizontal relativa respecto a N; no representa milímetros")
   elif formula=="symmetry":
    for label,a,b in self.cfg["measures"]:
     d=self.distance(a,b)
-    self.add_result(rows,label,f"{d:.2f} mm" if d is not None else "Pendiente","Comparar quintos y proporciones")
+    self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
+                    "Distancia relativa en la misma fotografía; no equivale a milímetros")
+   for label,right_pair,left_pair in (
+    ("Diferencia entre quintos laterales derecho–izquierdo",("F_R","CL_R"),("CL_L","F_L")),
+    ("Diferencia entre quintos oculares derecho–izquierdo",("CL_R","CM_R"),("CM_L","CL_L")),
+   ):
+    comparison=bilateral_difference(self.distance(*right_pair),self.distance(*left_pair))
+    if comparison is not None:
+     diff,percent=comparison
+     value=f"{diff:.2f} px"+(f" ({percent:.1f} % relativo)" if percent is not None else "")
+     self.add_result(rows,label,value,
+                     "Diferencia absoluta entre longitudes bilaterales marcadas; no constituye diagnóstico por sí sola")
   elif formula=="contour":
    for label,a,b in self.cfg["measures"]:
-    d=self.distance(a,b)
-    self.add_result(rows,label,f"{d:.2f} mm" if d is not None else "Pendiente","Comparación bilateral / referencia")
+    d=self.horizontal_distance(a,b)
+    self.add_result(rows,label,f"{d:.2f} px" if d is not None else "Pendiente",
+                    "Separación horizontal relativa en la fotografía; no equivale a milímetros")
+   for label,right_pair,left_pair in (
+    ("Diferencia bilateral cigomático–ángulo mandibular",("ZG_R","MA_R"),("ZG_L","MA_L")),
+    ("Diferencia bilateral ángulo–cuerpo mandibular",("MA_R","CB_R"),("MA_L","CB_L")),
+    ("Diferencia bilateral cuerpo mandibular–mentón",("CB_R","ME_R"),("CB_L","ME_L")),
+   ):
+    comparison=bilateral_difference(self.distance(*right_pair),self.distance(*left_pair))
+    if comparison is not None:
+     diff,percent=comparison
+     value=f"{diff:.2f} px"+(f" ({percent:.1f} % relativo)" if percent is not None else "")
+     self.add_result(rows,label,value,
+                     "Diferencia absoluta entre longitudes bilaterales marcadas; no constituye diagnóstico por sí sola")
   self.results.setRowCount(len(rows)); self.results.clearContents()
   for r,row in enumerate(rows):
    for c,val in enumerate(row):self.results.setItem(r,c,QTableWidgetItem(str(val)))
  def save(self):
   if not self.points and not any(x.currentText()!="Sin evaluar" for x in self.fields.values()):
    QMessageBox.warning(self,"Análisis vacío","Coloca los puntos anatómicos o registra los criterios visuales.");return
-  vals={"Puntos":self.points,"Calibración mm/px":self.scale_value(),
+  vals={"Puntos":self.points,"Unidad":"px_relativos",
    "Mediciones":{self.results.item(r,0).text():{"resultado":self.results.item(r,1).text(),"referencia":self.results.item(r,2).text()}
     for r in range(self.results.rowCount())},
    "Evaluación visual":{k:v.currentText() for k,v in self.fields.items()}}

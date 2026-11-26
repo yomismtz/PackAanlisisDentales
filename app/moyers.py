@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QDialog, QGraphicsView, QGraphicsScene, QLabel, QPushButton, QComboBox,
     QVBoxLayout, QHBoxLayout, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QDialogButtonBox, QTextEdit, QFormLayout, QMessageBox,
-    QTabWidget, QWidget, QLineEdit, QFileDialog, QCheckBox
+    QTabWidget, QWidget, QFileDialog, QCheckBox
 )
 
 # Tabla de predicción Moyers, percentil 75 %. Valores en mm por hemiarcada.
@@ -121,15 +121,12 @@ class MoyersDialog(QDialog):
         self.resize(1480,920); self.setMinimumSize(1120,740)
         self.status=QComboBox();self.status.addItems(["Pendiente","En proceso","Completo"])
         self.status.setCurrentText(self.existing.get("status","Pendiente"))
-        self.sex=QComboBox();self.sex.addItems(["Seleccionar","Masculino","Femenino"])
-        saved_sex=self.saved.get("Sexo",patient_sex)
-        if saved_sex in ("Masculino","Femenino"):self.sex.setCurrentText(saved_sex)
         self.incisors_present=QCheckBox("Los cuatro incisivos inferiores permanentes están erupcionados y medibles en el modelo")
         self.incisors_present.setChecked(self.saved.get("Incisivos inferiores erupcionados", False))
         self.paths["incisors"] = periapical_image or (lower_image if self.incisors_present.isChecked() else None)
         self.incisors_present.toggled.connect(self._incisor_source_changed)
         self.tabs=QTabWidget(); self.views={}
-        self.point_selects={};self.scales={}
+        self.point_selects={}
         self._build_view_tab("incisors","Incisivos inferiores · 42, 41, 31 y 32",INCISOR_POINTS)
         self._build_view_tab("upper","Arcada superior · espacio disponible",ARCH_POINTS)
         self._build_view_tab("lower","Arcada inferior · espacio disponible",ARCH_POINTS)
@@ -137,23 +134,25 @@ class MoyersDialog(QDialog):
         self.source_status=QLabel()
         self.upload=QPushButton("Cargar radiografía periapical…")
         self.upload.clicked.connect(self._load_periapical)
-        self.sex.currentTextChanged.connect(self.update_results)
         self.incisors_present.toggled.connect(self.update_results)
-        self.results=QTableWidget(4,5)
-        self.results.setHorizontalHeaderLabels(["Arcada / lado","Espacio disponible (mm)","Espacio requerido (mm)","Discrepancia (mm)","Interpretación"])
+        self.results=QTableWidget(4,2)
+        self.results.setHorizontalHeaderLabels(["Arcada / lado","Espacio disponible (px relativos)"])
         self.results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.results.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.inc_sum=QLabel("Suma de incisivos inferiores: —")
-        self.pred=QLabel("Predicción Moyers 75 %: —")
+        self.pred=QLabel(
+            "La tabla clásica de Moyers al 75 % no se calcula: requiere dimensiones reales en mm. "
+            "Con fotografías no calibradas AVIS registra únicamente distancias relativas en píxeles."
+        )
         self.inc_sum.setStyleSheet("font-size:13pt;font-weight:700")
         self.pred.setWordWrap(True)
         self.obs=QTextEdit(self.existing.get("observations",""));self.obs.setMaximumHeight(65)
         self.conclusion=QTextEdit(self.existing.get("conclusion",""));self.conclusion.setMaximumHeight(65)
-        top=QHBoxLayout();form=QFormLayout();form.addRow("Estado",self.status);form.addRow("Sexo para tabla Moyers",self.sex)
+        top=QHBoxLayout();form=QFormLayout();form.addRow("Estado",self.status)
         top.addLayout(form);top.addStretch()
         source=QHBoxLayout();source.addWidget(self.incisors_present);source.addWidget(self.upload)
         left=QVBoxLayout();left.addLayout(top);left.addLayout(source);left.addWidget(self.source_status);left.addWidget(self.tabs,1)
-        right=QVBoxLayout();right.addWidget(QLabel("Resultados bilaterales · discrepancia = disponible − requerido"));right.addWidget(self.inc_sum);right.addWidget(self.pred);right.addWidget(self.results,1)
+        right=QVBoxLayout();right.addWidget(QLabel("Registro geométrico relativo · no es una predicción clínica Moyers"));right.addWidget(self.inc_sum);right.addWidget(self.pred);right.addWidget(self.results,1)
         right.addWidget(QLabel("Observaciones"));right.addWidget(self.obs);right.addWidget(QLabel("Conclusión profesional"));right.addWidget(self.conclusion)
         split=QSplitter(Qt.Orientation.Horizontal);lw=QWidget();lw.setLayout(left);rw=QWidget();rw.setLayout(right)
         split.addWidget(lw);split.addWidget(rw);split.setStretchFactor(0,3);split.setStretchFactor(1,2)
@@ -171,12 +170,8 @@ class MoyersDialog(QDialog):
         self.point_selects[key]=select
         place=QPushButton("Colocar / corregir punto");place.clicked.connect(lambda k=key:self._activate_point(k))
         delete=QPushButton("Eliminar punto");delete.clicked.connect(lambda k=key:self._delete_point(k))
-        scale=QLineEdit(str(self.saved.get("Calibración mm/px",{}).get(key,"")))
-        scale.setPlaceholderText("mm por píxel · calibración obligatoria")
-        scale.textChanged.connect(self.update_results);self.scales[key]=scale
         row=QHBoxLayout();row.addWidget(select,2);row.addWidget(place);row.addWidget(delete)
         layout.addLayout(row);layout.addWidget(canvas,1)
-        calibration=QFormLayout();calibration.addRow("Escala calibrada (mm/px)",scale);layout.addLayout(calibration)
         self.tabs.addTab(w,title)
     def _tab_changed(self,index):
         if index>=0:
@@ -224,10 +219,7 @@ class MoyersDialog(QDialog):
     def _distance(self,view,a,b):
         p=self.points[view]
         if a not in p or b not in p:return None
-        try:scale=float(self.scales[view].text().replace(",","."))
-        except ValueError:return None
-        if scale<=0:return None
-        return math.hypot(p[b][0]-p[a][0],p[b][1]-p[a][1])*scale
+        return math.hypot(p[b][0]-p[a][0],p[b][1]-p[a][1])
     def _incisor_measurements(self):
         out={}
         for tooth in ("42","41","31","32"):
@@ -244,52 +236,57 @@ class MoyersDialog(QDialog):
         self.results.clearContents()
         measurements=self._incisor_measurements() if (self.incisors_present.isChecked() or self.periapical_image) else None
         inc_sum=round(sum(measurements.values()),2) if measurements else None
-        self.inc_sum.setText("Suma de incisivos inferiores: "+(f"{inc_sum:.2f} mm" if inc_sum is not None else "pendiente · requiere ocho puntos y escala calibrada"))
-        sex=self.sex.currentText()
-        predictions={}
-        if inc_sum is not None and sex in ("Masculino","Femenino"):
-            try:predictions={a:predict_moyers_75(inc_sum,sex,a) for a in ("superior","inferior")}
-            except ValueError as exc:self.pred.setText(str(exc))
-            else:self.pred.setText(f"Predicción por hemiarcada · 75 % — Superior: {predictions['superior']:.2f} mm · Inferior: {predictions['inferior']:.2f} mm")
-        else:self.pred.setText("Selecciona sexo y completa las mediciones de los cuatro incisivos.")
+        self.inc_sum.setText(
+            "Suma de anchos mesiodistales: " +
+            (f"{inc_sum:.2f} px relativos" if inc_sum is not None else "pendiente · faltan puntos")
+        )
+        self.pred.setText(
+            "Moyers 75 % no calculado: una suma en píxeles no se puede comparar con una tabla expresada en mm. "
+            "Las fotografías no se consideran escala 1:1."
+        )
         for row,(arch,label) in enumerate((("upper","Superior"),("lower","Inferior"))):
             for col,side in enumerate(("Derecho","Izquierdo")):
-                r=row*2+col;available=self._available(arch,side);required=predictions.get(arch)
-                vals=[f"{label} · {side}",f"{available:.2f}" if available is not None else "—",
-                      f"{required:.2f}" if required is not None else "—","—","Pendiente"]
-                if available is not None and required is not None:
-                    diff,meaning=moyers_discrepancy(available,required);vals[3]=f"{diff:+.2f}";vals[4]=meaning
-                for c,value in enumerate(vals):self.results.setItem(r,c,QTableWidgetItem(value))
+                available=self._available(arch,side)
+                vals=[f"{label} · {side}",f"{available:.2f} px" if available is not None else "Pendiente"]
+                for c,value in enumerate(vals):
+                    self.results.setItem(row*2+col,c,QTableWidgetItem(value))
     def _save(self):
-        if self.sex.currentText() not in ("Masculino","Femenino"):
-            QMessageBox.warning(self,"Dato requerido","Selecciona el sexo para consultar la tabla Moyers.");return
         if not self.incisors_present.isChecked() and not self.periapical_image:
-            QMessageBox.warning(self,"Radiografía requerida","Los incisivos inferiores no están erupcionados. Carga una radiografía periapical donde se observen.");return
+            QMessageBox.warning(
+                self,"Imagen requerida",
+                "Indica que los incisivos inferiores están presentes en el modelo o carga la radiografía periapical."
+            );return
         if self._incisor_measurements() is None:
-            QMessageBox.warning(self,"Medición incompleta","Marca mesial y distal de 42, 41, 31 y 32 y calibra la imagen de incisivos.");return
+            QMessageBox.warning(
+                self,"Medición incompleta",
+                "Marca los bordes mesial y distal de 42, 41, 31 y 32 en la imagen correspondiente."
+            );return
         for arch in ("upper","lower"):
             if any(self._available(arch,side) is None for side in ("Derecho","Izquierdo")):
-                QMessageBox.warning(self,"Medición incompleta",f"Completa los cuatro puntos y la calibración de la arcada {arch}.");return
-        try:
-            inc_sum=sum(self._incisor_measurements().values())
-            predictions={a:predict_moyers_75(inc_sum,self.sex.currentText(),a) for a in ("superior","inferior")}
-        except ValueError as exc:QMessageBox.warning(self,"Fuera de tabla",str(exc));return
+                QMessageBox.warning(
+                    self,"Medición incompleta",
+                    f"Completa los puntos de ambos lados de la arcada {arch}."
+                );return
         self.accept()
     def values(self):
-        measures=self._incisor_measurements();inc_sum=round(sum(measures.values()),2)
-        predictions={a:predict_moyers_75(inc_sum,self.sex.currentText(),a) for a in ("superior","inferior")}
-        results={}
+        measures=self._incisor_measurements() or {}
+        inc_sum=round(sum(measures.values()),2) if measures else None
+        available={}
         for arch,label in (("upper","Superior"),("lower","Inferior")):
             for side in ("Derecho","Izquierdo"):
-                available=round(self._available(arch,side),2)
-                required=predictions[arch];diff,meaning=moyers_discrepancy(available,required)
-                results[f"{label} · {side}"]={"Disponible (mm)":available,"Requerido (mm)":required,
-                    "Discrepancia (mm)":diff,"Interpretación":meaning}
-        values={"Sexo":self.sex.currentText(),"Percentil":75,"Suma incisivos inferiores (mm)":inc_sum,
-            "Diámetros incisivos (mm)":measures,"Predicción superior por hemiarcada (mm)":predictions["superior"],
-            "Predicción inferior por hemiarcada (mm)":predictions["inferior"],"Resultados por hemiarcada":results,
-            "Puntos":self.points,"Calibración mm/px":{k:float(v.text().replace(",",".")) for k,v in self.scales.items()},
+                value=self._available(arch,side)
+                available[f"{label} · {side}"]=round(value,2) if value is not None else None
+        values={
+            "Unidad":"px_relativos",
+            "Metodo":"Trazado geométrico relativo asociado a Moyers; no equivale a una predicción Moyers 75 %",
+            "Motivo sin prediccion":"La tabla Moyers 75 % requiere medidas reales en mm y las fotografías no están calibradas 1:1.",
+            "Suma de incisivos inferiores (px relativos)":inc_sum if inc_sum is not None else "",
+            "Anchos mesiodistales de incisivos (px relativos)":measures,
+            "Espacio disponible por hemiarcada (px relativos)":available,
+            "Puntos":self.points,
             "Incisivos inferiores erupcionados":self.incisors_present.isChecked(),
-            "Fuente incisivos": "Radiografía periapical" if self.periapical_image else "Modelo inferior",
-            "Radiografía periapical": self.periapical_image or ""}
+            "Fuente incisivos":"Radiografía periapical" if self.periapical_image else "Modelo inferior",
+            "Radiografía periapical":self.periapical_image or "",
+        }
+        return self.status.currentText(),values,self.obs.toPlainText().strip(),self.conclusion.toPlainText().strip()
         return self.status.currentText(),values,self.obs.toPlainText().strip(),self.conclusion.toPlainText().strip()

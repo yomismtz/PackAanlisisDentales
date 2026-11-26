@@ -6,12 +6,17 @@ from PySide6.QtCore import Qt, QTimer, QPointF, Signal, QUrl
 from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QDesktopServices
 from PySide6.QtWidgets import *
 
-from .catalog import GROUPS, SLOTS, ANALYSES, analyses_for_slot, CARPAL_STAGES
+from .catalog import (
+    GROUPS, SLOTS, ANALYSES, analyses_for_slot,
+    analyses_for_available_slots, CARPAL_STAGES,
+)
 from .analysis_forms import fields_for
 from .panoramic_form import PanoramicAnalysisDialog
 from .levandoski import LevandoskiDialog
 from .little import LittleDialog
-from .moyers import MoyersDialog
+from .mixed_dentition import MixedDentitionDialog
+from .space_analysis import CareySpaceDialog
+from .occlusion_analysis import BaumeDialog, IntermaxillaryDialog
 from .photo_analysis import PhotoAnalysisDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
@@ -21,6 +26,7 @@ from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_
 from .age_calculation import chronological_age, CERVICAL_STAGE_REFERENCE, CERVICAL_REFERENCE_NOTE
 from .cephalometry import LANDMARKS, TRACE_PAIRS, REFERENCES, calculate_cephalometry, distance as ceph_distance
 from .reports import REPORT_MODULES, available_modules, completed_keys, build_report_snapshot
+from .completion import analysis_completion_issue
 
 STYLE = stylesheet()
 
@@ -862,7 +868,8 @@ class CervicalMaturationDialog(QDialog):
         self.status.addItems(["Pendiente", "En proceso", "Completo"])
         self.status.setCurrentText(self.existing.get("status", "Pendiente"))
         self.stage = QComboBox()
-        self.stage.addItem("No evaluable", "")
+        self.stage.addItem("Seleccionar estadio", "")
+        self.stage.addItem("No evaluable", "No evaluable")
         for stage in self.STAGES:
             self.stage.addItem(stage, stage)
         old_stage = saved.get("Estadio vertebral", "")
@@ -1164,7 +1171,9 @@ class MediaRow(QFrame):
     def refresh(self):
         self.media=self.ws.db.get_media_for_slot(self.ws.pid,self.slot.key)
         if self.media:
-            self.state.setText("Cargado"); self.filename.setText(Path(self.media["filename"]).name+" · "+Path(self.media["current_path"]).name); self.edit.setEnabled(True); self.analyze.setEnabled(True)
+            self.state.setText("Cargado"); self.filename.setText(Path(self.media["filename"]).name+" · "+Path(self.media["current_path"]).name); self.edit.setEnabled(True)
+            candidates = {key for key, _ in analyses_for_slot(self.slot.key)}
+            self.analyze.setEnabled(bool(candidates & self.ws.available_analysis_keys))
         else:
             self.state.setText("Pendiente" if self.slot.required else "Opcional"); self.filename.setText("Sin archivo"); self.edit.setEnabled(False); self.analyze.setEnabled(False)
     def upload(self):
@@ -1182,66 +1191,117 @@ class MediaRow(QFrame):
 
 class Workspace(QWidget):
     def __init__(self,db,pid,back):
-        super().__init__(); self.db=db; self.pid=pid; self.back=back; self.patient=db.get_patient(pid); self.rows={}
-        if not self.patient: raise ValueError("No se encontró el expediente.")
+        super().__init__()
+        self.db=db; self.pid=pid; self.back=back
+        self.patient=db.get_patient(pid); self.rows={}
+        self.available_analysis_keys=set()
+        if not self.patient:
+            raise ValueError("No se encontró el expediente.")
         head=QHBoxLayout(); btn=QPushButton("← Expedientes"); btn.clicked.connect(back)
-        title=QLabel(f"{self.patient['full_name']}  ·  {self.patient['record_number']}"); title.setStyleSheet("font-size:16pt;font-weight:700")
+        title=QLabel(f"{self.patient['full_name']}  ·  {self.patient['record_number']}")
+        title.setStyleSheet("font-size:16pt;font-weight:700")
         pdf=QPushButton("Exportar informe PDF"); pdf.clicked.connect(self.export_pdf)
         head.addWidget(btn); head.addWidget(title,1); head.addWidget(pdf)
-        self.tabs=QTabWidget(); self.files=self.build_files(); self.analyses=QListWidget()
+        self.tabs=QTabWidget()
+        self.files=self.build_files()
+        self.analyses=QListWidget()
         self.analyses.itemDoubleClicked.connect(self.open_analysis_item)
-        self.tabs.addTab(self.build_overview(),"Resumen"); self.tabs.addTab(self.files,"Radiografías, fotografías y modelos")
-        page=QWidget(); pl=QVBoxLayout(page); pl.addWidget(QLabel("Los análisis disponibles se activan al cargar el estudio correspondiente.")); pl.addWidget(self.analyses)
-        openbtn=QPushButton("Abrir análisis seleccionado"); openbtn.clicked.connect(self.open_selected); pl.addWidget(openbtn)
+        self.tabs.addTab(self.build_overview(),"Resumen")
+        self.tabs.addTab(self.files,"Radiografías, fotografías y modelos")
+        page=QWidget(); pl=QVBoxLayout(page)
+        pl.addWidget(QLabel("Los análisis se habilitan cuando están cargadas todas las vistas necesarias."))
+        pl.addWidget(self.analyses)
+        openbtn=QPushButton("Abrir análisis seleccionado")
+        openbtn.clicked.connect(self.open_selected); pl.addWidget(openbtn)
         self.tabs.addTab(page,"Análisis")
         self.reports_page=ReportsPage(self)
         self.tabs.addTab(self.reports_page,"Informes")
-        l=QVBoxLayout(self); l.addLayout(head); l.addWidget(self.tabs,1); self.refresh()
+        layout=QVBoxLayout(self); layout.addLayout(head); layout.addWidget(self.tabs,1)
+        self.refresh()
+
     def build_overview(self):
-        w=QWidget(); l=QVBoxLayout(w); self.summary=QLabel(); self.summary.setWordWrap(True); l.addWidget(self.summary)
-        for label,key in [("Nacimiento","birth_date"),("Sexo","sex"),("Teléfono","phone"),("Correo","email"),("Notas","notes")]:
-            l.addWidget(QLabel(label+": "+(self.patient.get(key) or "—")))
-        go=QPushButton("Comenzar carga de estudios"); go.clicked.connect(lambda:self.tabs.setCurrentWidget(self.files)); l.addWidget(go); l.addStretch()
-        return w
+        widget=QWidget(); layout=QVBoxLayout(widget)
+        self.summary=QLabel(); self.summary.setWordWrap(True); layout.addWidget(self.summary)
+        for label,key in [
+            ("Nacimiento","birth_date"),("Sexo","sex"),("Teléfono","phone"),
+            ("Correo","email"),("Notas","notes")
+        ]:
+            layout.addWidget(QLabel(label+": "+(self.patient.get(key) or "—")))
+        go=QPushButton("Comenzar carga de estudios")
+        go.clicked.connect(lambda:self.tabs.setCurrentWidget(self.files))
+        layout.addWidget(go); layout.addStretch()
+        return widget
+
     def build_files(self):
-        w=QWidget(); l=QVBoxLayout(w); scroll=QScrollArea(); scroll.setWidgetResizable(True); inner=QWidget(); il=QVBoxLayout(inner)
+        widget=QWidget(); layout=QVBoxLayout(widget)
+        scroll=QScrollArea(); scroll.setWidgetResizable(True)
+        inner=QWidget(); inner_layout=QVBoxLayout(inner)
         for group,slots in GROUPS:
-            box=QGroupBox(group); bl=QVBoxLayout(box)
+            box=QGroupBox(group); box_layout=QVBoxLayout(box)
             for slot in slots:
-                row=MediaRow(self,slot); self.rows[slot.key]=row; bl.addWidget(row)
-            il.addWidget(box)
-        il.addStretch(); scroll.setWidget(inner); l.addWidget(QLabel("En cada vista puedes subir un archivo o tomar una fotografía con la cámara conectada.")); l.addWidget(scroll)
-        return w
+                row=MediaRow(self,slot)
+                self.rows[slot.key]=row
+                box_layout.addWidget(row)
+            inner_layout.addWidget(box)
+        inner_layout.addStretch(); scroll.setWidget(inner)
+        layout.addWidget(QLabel("En cada vista puedes subir un archivo o tomar una fotografía con una cámara conectada."))
+        layout.addWidget(scroll)
+        return widget
+
     def add_file(self,slot,src):
         try:
-            stored=import_media(self.pid,src,slot); self.db.add_media(self.pid,slot,stored,stored,Path(src).name); self.refresh()
-        except Exception as e: QMessageBox.critical(self,"No se pudo guardar",str(e))
+            stored=import_media(self.pid,src,slot)
+            self.db.add_media(self.pid,slot,stored,stored,Path(src).name)
+            self.refresh()
+        except Exception as exc:
+            QMessageBox.critical(self,"No se pudo guardar",str(exc))
+
     def refresh(self):
-        for row in self.rows.values(): row.refresh()
-        required=[s for _,group in GROUPS for s in group if s.required]
-        done=sum(bool(self.db.get_media_for_slot(self.pid,s.key)) for s in required)
+        media_items=self.db.media_for_patient(self.pid)
+        available=analyses_for_available_slots(item["slot_key"] for item in media_items)
+        self.available_analysis_keys={key for key,_ in available}
+        for row in self.rows.values():
+            row.refresh()
+        required=[slot for _,group in GROUPS for slot in group if slot.required]
+        done=sum(bool(self.db.get_media_for_slot(self.pid,slot.key)) for slot in required)
         counts=self.db.counts_for_patient(self.pid)
-        self.summary.setText(f"Vistas requeridas cargadas: {done}/{len(required)}\nArchivos: {counts['media']} · Análisis registrados: {counts['analyses']} · Completos: {counts['complete']}\nLos archivos anteriores de una vista se conservan como historial.")
-        available={}
-        for item in self.db.media_for_patient(self.pid):
-            for key,title in analyses_for_slot(item["slot_key"]): available[key]=title
-        self.analyses.clear(); saved=self.db.analysis_for_patient(self.pid)
-        for key,title in available.items():
-            entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}"); entry.setData(Qt.ItemDataRole.UserRole,key); self.analyses.addItem(entry)
-        if hasattr(self, "reports_page"):
+        self.summary.setText(
+            f"Vistas requeridas cargadas: {done}/{len(required)}\n"
+            f"Archivos: {counts['media']} · Análisis registrados: {counts['analyses']} · "
+            f"Completos: {counts['complete']}\n"
+            "Los archivos anteriores de una vista se conservan como historial."
+        )
+        saved=self.db.analysis_for_patient(self.pid)
+        self.analyses.clear()
+        for key,title in available:
+            entry=QListWidgetItem(f"{title} · {saved.get(key,{}).get('status','Pendiente')}")
+            entry.setData(Qt.ItemDataRole.UserRole,key)
+            self.analyses.addItem(entry)
+        if hasattr(self,"reports_page"):
             self.reports_page.refresh()
+
     def open_slot(self,slot):
-        options=analyses_for_slot(slot)
-        if not options:return
-        key=options[0][0]
-        for i in range(self.analyses.count()):
-            item=self.analyses.item(i)
+        options=[key for key,_ in analyses_for_slot(slot) if key in self.available_analysis_keys]
+        if not options:
+            return
+        preferred={
+            "model_upper_occlusal":"little_upper",
+            "model_lower_occlusal":"little_lower",
+        }.get(slot)
+        key=preferred if preferred in options else options[0]
+        for index in range(self.analyses.count()):
+            item=self.analyses.item(index)
             if item.data(Qt.ItemDataRole.UserRole)==key:
-                self.analyses.setCurrentItem(item); break
-        self.tabs.setCurrentIndex(2); self.open_selected()
+                self.analyses.setCurrentItem(item)
+                break
+        self.tabs.setCurrentIndex(2)
+        self.open_selected()
+
     def open_selected(self):
         item=self.analyses.currentItem()
-        if item:self.open_analysis_item(item)
+        if item:
+            self.open_analysis_item(item)
+
     def open_analysis_item(self,item):
         key=item.data(Qt.ItemDataRole.UserRole); existing=self.db.analysis_for_patient(self.pid).get(key,{})
         if key=="steiner":
@@ -1268,16 +1328,68 @@ class Workspace(QWidget):
             media = self.db.get_media_for_slot(self.pid, slot)
             image_path = media["current_path"] if media else None
             dlg = LittleDialog(image_path, existing, arch, self)
-        elif key == "moyers":
+        elif key in ("moyers", "tanaka_johnston"):
             upper = self.db.get_media_for_slot(self.pid, "model_upper_occlusal")
             lower = self.db.get_media_for_slot(self.pid, "model_lower_occlusal")
             periapical = self.db.get_media_for_slot(self.pid, "moyers_periapical")
-            dlg = MoyersDialog(
+            dlg = MixedDentitionDialog(
                 upper["current_path"] if upper else None,
                 lower["current_path"] if lower else None,
                 existing, self.patient.get("sex", ""),
-                periapical["current_path"] if periapical else None, self
+                periapical["current_path"] if periapical else None,
+                self, method=key
             )
+        elif key == "nance_carey":
+            upper = self.db.get_media_for_slot(self.pid, "model_upper_occlusal")
+            lower = self.db.get_media_for_slot(self.pid, "model_lower_occlusal")
+            dlg = CareySpaceDialog(
+                upper["current_path"] if upper else None,
+                lower["current_path"] if lower else None,
+                existing, self
+            )
+        elif key == "baume":
+            model_slots = (
+                "model_upper_occlusal", "model_lower_occlusal",
+                "model_both_right", "model_both_left",
+            )
+            if all(self.db.get_media_for_slot(self.pid, slot) for slot in model_slots):
+                image_slots = {
+                    "Oclusal superior": "model_upper_occlusal",
+                    "Oclusal inferior": "model_lower_occlusal",
+                    "Oclusión lateral derecha": "model_both_right",
+                    "Oclusión lateral izquierda": "model_both_left",
+                }
+            else:
+                image_slots = {
+                    "Oclusal superior": "intra_upper",
+                    "Oclusal inferior": "intra_lower",
+                    "Oclusión lateral derecha": "intra_right",
+                    "Oclusión lateral izquierda": "intra_left",
+                }
+            images = {}
+            for label, slot in image_slots.items():
+                media = self.db.get_media_for_slot(self.pid, slot)
+                images[label] = media["current_path"] if media else None
+            dlg = BaumeDialog(images, existing, self)
+        elif key == "intermaxillary":
+            intra_slots = ("intra_right", "intra_left", "intra_frontal")
+            if all(self.db.get_media_for_slot(self.pid, slot) for slot in intra_slots):
+                image_slots = {
+                    "Lateral derecha": "intra_right",
+                    "Lateral izquierda": "intra_left",
+                    "Frontal en oclusión": "intra_frontal",
+                }
+            else:
+                image_slots = {
+                    "Lateral derecha": "model_both_right",
+                    "Lateral izquierda": "model_both_left",
+                    "Frontal en oclusión": "model_both_front",
+                }
+            images = {}
+            for label, slot in image_slots.items():
+                media = self.db.get_media_for_slot(self.pid, slot)
+                images[label] = media["current_path"] if media else None
+            dlg = IntermaxillaryDialog(images, existing, self)
         elif key in ("facial_frontal","facial_profile","facial_midlines","facial_levels",
                      "facial_contour","powell","smile","facial_projections","facial_symmetry"):
             photo_slot = {
@@ -1293,13 +1405,26 @@ class Workspace(QWidget):
             dlg=AnalysisDialog(key,existing,self)
         if dlg.exec()==QDialog.DialogCode.Accepted:
             status,vals,obs,con=dlg.values()
-            if key == "moyers" and vals.get("Radiografía periapical"):
+            completion_issue = None
+            if status == "Completo":
+                completion_issue = analysis_completion_issue(key, vals)
+                if completion_issue:
+                    # Preserve the student's work without falsely presenting it as finished.
+                    status = "En proceso"
+            if key in ("moyers", "tanaka_johnston") and vals.get("Radiografía periapical"):
                 source = vals.pop("Radiografía periapical")
                 current = self.db.get_media_for_slot(self.pid, "moyers_periapical")
                 if not current or Path(current["current_path"]) != Path(source):
                     stored = import_media(self.pid, source, "moyers_periapical")
                     self.db.add_media(self.pid, "moyers_periapical", stored, stored, Path(source).name)
-            self.db.save_analysis(self.pid,key,status,vals,obs,con); self.refresh()
+            self.db.save_analysis(self.pid,key,status,vals,obs,con)
+            self.refresh()
+            if completion_issue:
+                QMessageBox.warning(
+                    self, "Análisis guardado como En proceso",
+                    "Se conservaron los datos capturados, pero no se marcó como Completo.\n\n"
+                    + completion_issue
+                )
     def export_pdf(self):
         self.tabs.setCurrentWidget(self.reports_page)
 

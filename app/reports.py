@@ -1,4 +1,5 @@
-"""Academic report module selection and completion rules."""
+"""Academic report module selection and validated completion rules."""
+from .completion import is_analysis_complete, analysis_completion_issue
 REPORT_MODULES = {
     "ceph": {
         "title": "Análisis cefalométrico",
@@ -11,9 +12,10 @@ REPORT_MODULES = {
         "media_slots": ("panoramic",),
     },
     "models": {
-        "title": "Análisis de modelos",
-        "analysis_keys": ("intermaxillary", "moyers", "tanaka_johnston", "little_upper", "little_lower"),
+        "title": "Modelos y relaciones oclusales",
+        "analysis_keys": ("intermaxillary", "baume", "nance_carey", "moyers", "tanaka_johnston", "little_upper", "little_lower"),
         "media_slots": (
+            "intra_right", "intra_left", "intra_frontal", "intra_upper", "intra_lower",
             "model_upper_right", "model_upper_left", "model_upper_front", "model_upper_occlusal",
             "model_lower_right", "model_lower_left", "model_lower_front", "model_lower_occlusal",
             "model_both_right", "model_both_left", "model_both_front", "moyers_periapical",
@@ -39,7 +41,7 @@ def completed_keys(analyses, module_id):
         raise KeyError(f"Módulo de informe desconocido: {module_id}")
     return tuple(
         key for key in REPORT_MODULES[module_id]["analysis_keys"]
-        if analyses.get(key, {}).get("status") == "Completo"
+        if is_analysis_complete(key, analyses.get(key, {}))
     )
 
 
@@ -68,5 +70,5 @@ def build_report_snapshot(analyses, selected_modules):
             key: analyses[key] for key in keys
         }
     if not snapshot:
-        raise ValueError("No hay análisis completos en los módulos seleccionados.")
+        raise ValueError("No hay análisis completos y validados en los módulos seleccionados.")
     return snapshot

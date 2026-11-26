@@ -18,9 +18,17 @@ Aplicación de escritorio para Windows, en español, para expediente odontológi
 - Radiografía carpal opcional.
 
 ## Análisis disponibles
-Steiner; posición craneofacial y postura cráneo-cervical; maduración vertebral cervical CS1–CS6; revisión sistemática panorámica; Levandoski; edad dental por Nolla; integración de maduración; relaciones intermaxilares; Moyers I (75 %); Nance y Carey; Tanaka-Johnston; Baumé; altura del paladar; análisis facial frontal y de perfil; líneas medias; sonrisa y simetrías horizontales; radiografía carpal.
+Steiner; posición craneofacial y postura cráneo-cervical; maduración vertebral cervical CS1–CS6; revisión sistemática panorámica; Levandoski; edad dental por Nolla; integración de maduración; relaciones intermaxilares; Moyers I (75 %); Carey para dentición permanente; Tanaka-Johnston; Baumé; análisis facial frontal y de perfil; líneas medias; sonrisa y simetrías horizontales; radiografía carpal. La altura palatina permanece fuera de la oferta automática hasta disponer de un estudio 3D adecuado.
 
 
+
+
+
+## Análisis de espacio y relaciones oclusales
+
+En la arcada mandibular, Carey compara el perímetro trazado desde mesial del primer molar de un lado hasta mesial del contralateral con la suma de los anchos mesiodistales de los diez dientes 5–5. La misma comparación en maxilar se identifica como análisis de perímetro de arcada. AVIS realiza ambas comparaciones en píxeles relativos de la misma fotografía de modelo; no los convierte a milímetros ni emite indicaciones terapéuticas. El método de Nance para dentición mixta no se automatiza: la estimación de caninos y premolares no erupcionados requiere mediciones radiográficas y corrección de magnificación que no forman parte de este módulo.
+
+Baumé registra por separado tipo I/II de las arcadas, espacios primates y planos terminales derecho e izquierdo. Relaciones intermaxilares organiza los hallazgos por planos sagital, vertical y transversal. Ambos módulos son formularios de clasificación clínica estructurada: el alumno registra lo que observa y AVIS no infiere una clase futura ni sustituye la valoración profesional.
 
 ## Cefalometría de Steiner simplificada
 
@@ -36,6 +44,10 @@ El módulo CS1–CS6 reutiliza la radiografía lateral de cráneo cargada en el 
 
 Los campos y referencias numéricas transcritos se basan en el documento de referencia aportado. No se automatizan tablas incompletas, fórmulas no especificadas o criterios que no aparecen en el documento. La ficha panorámica sistemática utiliza un formulario académico seleccionable organizado en 16 fases del protocolo: calidad técnica, orientación, anatomía maxilar y mandibular, anatomía e inventario dentario, soporte óseo, terceros molares, anatomía adyacente, integración, hallazgos radiolúcidos/radiopacos, región periapical, reabsorciones, morfología radicular, periodonto y corticales. El alumno registra principalmente mediante opciones de selección única, multiselección de regiones y dientes FDI, y fichas repetibles para hallazgos múltiples. Los comentarios y la conclusión son campos breves opcionales; las selecciones se conservan en el análisis y se presentan estructuradas en el informe académico PDF. Las fases 17–20 se incorporarán cuando se complete su contenido didáctico. La panorámica no permite confirmar por sí sola todos los hallazgos y el informe requiere revisión docente/profesional.
 
+
+## Modelos dentales en la versión web
+
+El módulo web permite cargar imágenes de modelos superiores e inferiores y, para dentición mixta, una vista independiente de los incisivos inferiores (modelo o radiografía periapical). Incluye índice de irregularidad de Little, predicción de Moyers al percentil 75 %, Tanaka-Johnston y comparación de perímetro de arcada de Carey. La colocación de puntos y el trazado de recorridos son manuales; se puede ampliar la imagen y exportar resultados en PDF y JSON. Little y Carey conservan las unidades relativas en píxeles; Moyers y Tanaka-Johnston utilizan intervalos de estimación derivados de las referencias internas existentes y solo clasifican cuando todo el intervalo coincide. No se convierten medidas de imagen a milímetros sin una calibración válida, y las estimaciones requieren confirmación profesional.
 
 ## Informes académicos
 
