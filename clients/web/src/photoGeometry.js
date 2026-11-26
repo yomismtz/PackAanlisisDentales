@@ -25,3 +25,12 @@ export function calculatePowellAngles(points){
   mentocervical:angleBetweenLines(points,"G","Pg","Me","C")
  };
 }
+
+export function calculateVerticalFacialThirds(points) {
+  const tr=points.Tr,g=points.G,sn=points.Sn,me=points.Me;
+  if(!tr||!g||!sn||!me)return null;
+  const lengths=[Math.abs(g.y-tr.y),Math.abs(sn.y-g.y),Math.abs(me.y-sn.y)];
+  const total=lengths.reduce((sum,value)=>sum+value,0);
+  if(!(total>0))return null;
+  return {lengths,percentages:lengths.map(value=>value/total*100)};
+}
