@@ -57,7 +57,7 @@ test("Carey discrepancy equals arch perimeter minus ten-tooth material",()=>{
   const result=careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],61);
   assert.equal(result.requiredMm,61);
   assert.equal(result.availableMm,61);
-  assert.equal(result.discrepancyMm,0);
+  assert.equal(result.discrepancyMm,0);\n  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],64).discrepancyMm,3);\n  assert.equal(careySpaceAnalysis([6,6,7,6,5.5,5.5,6,7,6,6],59).discrepancyMm,-2);
   assert.equal(careySpaceAnalysis([6,6],61),null);
   assert.equal(careySpaceAnalysis(Array(10).fill(6),0),null);
 });
