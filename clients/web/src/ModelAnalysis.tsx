@@ -98,7 +98,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const file=event.target.files?.[0];if(!file)return;
   if(file.type&&!file.type.startsWith("image/")){setError("Selecciona un archivo de imagen válido.");return;}
   const url=URL.createObjectURL(file),img=new Image();objectUrls.current.add(url);
-  img.onload=()=>{setImages(prev=>{const old=prev[view];if(old?.url){URL.revokeObjectURL(old.url);objectUrls.current.delete(old.url);}return {...prev,[view]:{url,name:file.name,width:img.naturalWidth,height:img.naturalHeight}};});setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setError("");};
+  img.onload=()=>{setImages(prev=>{const old=prev[view];if(old?.url){URL.revokeObjectURL(old.url);objectUrls.current.delete(old.url);}return {...prev,[view]:{url,name:file.name,width:img.naturalWidth,height:img.naturalHeight}};});setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setCalibration(prev=>{const next={...prev};delete next[view];return next;});setCalibrationMode(false);setCalibrationPoints([]);setError("");};
   img.onerror=()=>{URL.revokeObjectURL(url);setError("No fue posible abrir la imagen.");};img.src=url;event.target.value="";
  }
  function clickCanvas(event:React.MouseEvent<HTMLCanvasElement>){
@@ -119,51 +119,54 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
  function resetCurrent(){setPoints(prev=>({...prev,[view]:{}}));setTraces(prev=>({...prev,[view]:{}}));setCalibration(prev=>{const next={...prev};delete next[view];return next;});setCalibrationMode(false);setCalibrationPoints([]);setTraceMode("");setPlacing(false);}
  const little=useMemo(()=>{
   if(view!=="upper"&&view!=="lower")return null;
-  const p=points[view];const segments=Array.from({length:5},(_,i)=>{const a=p["P"+(i+1)],b=p["P"+(i+2)];return a&&b?distance(a,b):null;});
-  return {segments,total:segments.every(v=>v!==null)?segments.reduce((s,v)=>s+(v??0),0):null};
- },[points,view]);
+  const p=points[view],result=littleIrregularityIndex(Array.from({length:6},(_,i)=>p["P"+(i+1)]).filter((v):v is XY=>Boolean(v)));
+  const segments=Array.from({length:5},(_,i)=>{const x=p["P"+(i+1)],y=p["P"+(i+2)];return x&&y?distance(x,y):null;});
+  const scale=calibration[view]?.pxPerMm;
+  return {segments:segments.map(v=>v!==null&&scale?pixelsToMillimeters(v,scale):null),total:result&&scale?pixelsToMillimeters(result.total,scale):null};
+ },[points,view,calibration]);
  const carey=useMemo(()=>{
   if(view!=="upper"&&view!=="lower")return null;
-  const p=points[view],teeth=CAREY_TEETH[view];const widths=teeth.map(t=>p[t+"_M"]&&p[t+"_D"]?distance(p[t+"_M"],p[t+"_D"]):null);
-  const available=pathLength(traces[view].perimeter??[]);
-  if(widths.some(v=>v===null)||available===null)return null;
-  const required=widths.reduce<number>((s,v)=>s+(v??0),0),diff=available-required;
+  const p=points[view],teeth=CAREY_TEETH[view],widths=teeth.map(t=>p[t+"_M"]&&p[t+"_D"]?distance(p[t+"_M"],p[t+"_D"]):null);
+  const availablePx=pathLength(traces[view].perimeter??[]);
+  if(widths.some(v=>v===null)||availablePx===null)return null;
+  const scale=calibration[view]?.pxPerMm;if(!scale)return null;
+  const available=pixelsToMillimeters(availablePx,scale),required=pixelsToMillimeters(widths.reduce<number>((sum,v)=>sum+(v??0),0),scale);
+  if(available===null||required===null)return null;
+  const diff=available-required;
   return {available,required,diff,percent:required?Math.abs(diff)/required*100:0};
- },[points,traces,view]);
+ },[points,traces,view,calibration]);
  const mixed=useMemo(()=>{
+  const incisorScale=calibration.incisors?.pxPerMm;
+  if(!incisorScale)return null;
   const ip=points.incisors;
-  const widths=INCISORS.map(t=>ip[t+"_M"]&&ip[t+"_D"]?distance(ip[t+"_M"],ip[t+"_D"]):null);
-  if(widths.some(v=>v===null))return null;
-  const incisorRange=estimateFourIncisorSumRange(widths as number[]);
-  if(!incisorRange)return null;
+  const widthsPx=INCISORS.map(t=>ip[t+"_M"]&&ip[t+"_D"]?distance(ip[t+"_M"],ip[t+"_D"]):null);
+  if(widthsPx.some(v=>v===null))return null;
+  const widthsMm=(widthsPx as number[]).map(v=>pixelsToMillimeters(v,incisorScale));
+  if(widthsMm.some(v=>v===null))return null;
+  const incisorSumMm=(widthsMm as number[]).reduce((sum,v)=>sum+v,0);
   const rows=[];
   for(const a of ["upper","lower"] as const){
-   const p=points[a],ref=p.ref_M&&p.ref_D?distance(p.ref_M,p.ref_D):null;
-   const refKey=a==="lower"?"lower_lateral":upperReference;
-   const refInfo=TOOTH_REFERENCES[refKey];
+   const scale=calibration[a]?.pxPerMm;
    for(const side of ["Derecho","Izquierdo"]){
-    const start=p[side==="Derecho"?"lat_R":"lat_L"],end=p[side==="Derecho"?"mol_R":"mol_L"];
+    const start=points[a][side==="Derecho"?"lat_R":"lat_L"],end=points[a][side==="Derecho"?"mol_R":"mol_L"];
     const path=traces[a][side]??[];
     const px=start&&end&&path.length>=2?pathLength([start,...path,end]):null;
-    const available:[number,number]|null=px!==null&&ref!==null?scaleSpaceRange(px,ref,refInfo.mean,refInfo.sd):null;
-    let required:[number,number]|null=null;
+    const availableMm=px!==null&&scale?pixelsToMillimeters(px,scale):null;
+    let requiredMm:number|null=null;
     const arch=a==="upper"?"superior":"inferior";
-    if(method==="moyers"&&sex!=="Seleccionar"){
-     const r1=predictMoyers(incisorRange[0],sex,arch),r2=predictMoyers(incisorRange[1],sex,arch);
-     if(r1!==null&&r2!==null)required=[Math.min(r1,r2),Math.max(r1,r2)];
-    }else if(method==="tanaka"){
-     const r1=tanakaJohnstonPrediction(incisorRange[0],arch),r2=tanakaJohnstonPrediction(incisorRange[1],arch);
-     if(r1!==null&&r2!==null)required=[r1,r2];
-    }
+    if(method==="moyers"&&sex!=="Seleccionar")requiredMm=predictMoyers(incisorSumMm,sex,arch);
+    else if(method==="tanaka")requiredMm=tanakaJohnstonPrediction(incisorSumMm,arch);
+    const available:[number,number]|null=availableMm===null?null:[availableMm,availableMm];
+    const required:[number,number]|null=requiredMm===null?null:[requiredMm,requiredMm];
     rows.push({arch:a==="upper"?"Superior":"Inferior",side,available,required,result:classifyRange(available,required)});
    }
   }
-  return {incisorRange,rows};
- },[points,traces,method,sex,upperReference]);
+  return {incisorSumMm,rows};
+ },[points,traces,method,sex,calibration]);
  const activePoints=points[view];const activeTrace=traceMode?traces[view][traceMode]??[]:[];
  const canExport=Object.values(images).some(Boolean);
  function exportJson(){
-  const payload={application:"AVIS",analysis:method,images:Object.fromEntries(Object.entries(images).map(([k,v])=>[k,v?{name:v.name,width:v.width,height:v.height}:null])),points,traces,sex,upperReference,results:{little,carey,mixed},observations,conclusion,generatedAt:new Date().toISOString(),limitations:"Las medidas en píxeles son relativas; no equivalen a milímetros. Las estimaciones de dentición mixta conservan intervalos de incertidumbre y requieren validación profesional."};
+  const payload={application:"AVIS",analysis:method,images:Object.fromEntries(Object.entries(images).map(([k,v])=>[k,v?{name:v.name,width:v.width,height:v.height}:null])),points,traces,sex,calibration,results:{little,carey,mixed},observations,conclusion,generatedAt:new Date().toISOString(),limitations:"Las medidas en píxeles son relativas; no equivalen a milímetros. Las estimaciones de dentición mixta conservan intervalos de incertidumbre y requieren validación profesional."};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Analisis_Modelos.json";a.click();URL.revokeObjectURL(url);
  }
  function exportPdf(){
@@ -186,9 +189,10 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
     {image&&<div className="file-meta"><strong>{image.name}</strong><span>{image.width} × {image.height} px</span></div>}
     {error&&<p className="error-text" role="alert">{error}</p>}
     {image?<><div className="zoom-row"><label>Zoom</label><input type="range" min=".2" max="3" step=".05" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/><span>{Math.round(zoom*100)} %</span><button className="small-button" onClick={()=>setZoom(.7)}>Restablecer</button></div><div className="image-viewport"><canvas ref={canvasRef} onClick={clickCanvas} style={{width:image.width*zoom,height:image.height*zoom,cursor:placing||traceMode?"crosshair":"default"}}/></div></>:<div className="image-empty"><span>▧</span><strong>Vista no cargada</strong><p>Selecciona la imagen o fotografía del modelo que corresponde a esta vista.</p></div>}
-    {traceMode&&<p className="placement-hint">Trazando {traceMode==="perimeter"?"perímetro de arcada":traceMode==="Derecho"?"espacio derecho":"espacio izquierdo"}. Haz clic siguiendo la curva y finaliza el recorrido.</p>}
+    {calibrationMode&&<p className="placement-hint">Marca dos puntos separados por {knownDistanceMm} mm.</p>}{traceMode&&<p className="placement-hint">Trazando {traceMode==="perimeter"?"perímetro de arcada":traceMode==="Derecho"?"espacio derecho":"espacio izquierdo"}. Haz clic siguiendo la curva y finaliza el recorrido.</p>}
     <div className="point-controls"><label htmlFor="model-point">Punto anatómico / dental</label><select id="model-point" value={selected} onChange={e=>setSelected(e.target.value)}>{options.map(([k,label])=><option key={k} value={k}>{k} · {label}</option>)}</select>
      <div className="point-actions"><button className="primary" disabled={!image||!selected||!!traceMode} onClick={()=>setPlacing(true)}>Colocar / corregir punto</button><button className="secondary" disabled={!activePoints[selected]} onClick={deleteSelected}>Eliminar punto</button><button className="secondary" onClick={resetCurrent}>Limpiar vista</button></div>
+     <div className="point-controls"><h3>Calibración física de esta imagen</h3><label className="visual-field"><span>Distancia patrón conocida (mm)</span><input className="calibration-input" type="number" min="0.01" step="0.01" value={knownDistanceMm} onChange={e=>setKnownDistanceMm(e.target.value)}/></label><div className="point-actions"><button className="secondary" disabled={!image||!!traceMode} onClick={()=>{setCalibrationPoints([]);setCalibrationMode(true);setPlacing(false);setError("");}}>Marcar escala con dos puntos</button><span className="point-progress">{calibration[view]?calibration[view]!.pxPerMm.toFixed(3)+" px/mm":"Sin calibrar"}</span></div><p className="clinical-note">Usa una regla o patrón milimetrado coplanar con el modelo. Calibra por separado cada fotografía.</p></div>
      <div className="point-list">{options.map(([k])=><button key={k} className={activePoints[k]?"point-chip point-done":"point-chip"} onClick={()=>setSelected(k)}>{activePoints[k]?"✓ ":""}{k}</button>)}</div>
     </div>
     {(method==="carey"||method==="moyers"||method==="tanaka")&&view!=="incisors"&&<div className="point-controls"><h3>Recorrido curvo del espacio</h3>{method==="carey"?<button className="secondary" onClick={()=>traceMode?finishTrace():beginTrace("perimeter")}>{traceMode?"Finalizar perímetro":"Trazar perímetro completo"}</button>:<div className="point-actions">{["Derecho","Izquierdo"].map(side=><button key={side} className="secondary" onClick={()=>traceMode===side?finishTrace():beginTrace(side)}>{traceMode===side?"Finalizar "+side:"Trazar "+side}</button>)}</div>}<p className="clinical-note">Marca varios puntos siguiendo la curvatura real del arco. No cierres el recorrido por fuera de los puntos anatómicos.</p></div>}
@@ -196,12 +200,12 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
    <aside className="panel results-panel"><div className="panel-heading"><div><h2>Resultados</h2><p>Los valores se actualizan con los puntos disponibles.</p></div></div>
     {(method==="moyers"||method==="tanaka")&&view==="incisors"&&<p className="unit-notice">Coloca mesial y distal de 42, 41, 31 y 32. Se usa una referencia estadística del incisivo lateral inferior (6.1 ± 0.5 mm) para estimar un intervalo, no una medida directa en mm.</p>}
     {method==="moyers"&&<div className="form-field"><label htmlFor="model-sex">Sexo requerido por la tabla Moyers</label><select id="model-sex" value={sex} onChange={e=>setSex(e.target.value as typeof sex)}><option>Seleccionar</option><option>Femenino</option><option>Masculino</option></select></div>}
-    {(method==="moyers"||method==="tanaka")&&view!=="incisors"&&<div className="form-field"><label htmlFor="model-reference">Diente de referencia de esta arcada</label><select id="model-reference" value={view==="lower"?"lower_lateral":upperReference} disabled={view==="lower"} onChange={e=>setUpperReference(e.target.value as typeof upperReference)}>{(view==="lower"?["lower_lateral"]:["upper_central","upper_lateral"]).map(k=><option key={k} value={k}>{TOOTH_REFERENCES[k as keyof typeof TOOTH_REFERENCES].label}</option>)}</select></div>}
-    {method==="little"&&<><div className="unit-notice">Cinco distancias entre seis puntos de contacto. Unidad: píxeles relativos.</div><table><thead><tr><th>Segmento</th><th>Distancia</th></tr></thead><tbody>{CONTACTS.slice(0,5).map((_,i)=><tr key={i}><td>P{i+1}–P{i+2}</td><td className="result-value">{little?.segments[i]?.toFixed(2)??"—"}</td></tr>)}</tbody></table><p className="result-value">Índice de Little: {little?.total?.toFixed(2)??"Pendiente"} px</p></>}
-    {method==="carey"&&<><div className="unit-notice">Se requieren 20 puntos mesial/distal y el perímetro continuo de la arcada.</div><table><tbody><tr><td>Espacio disponible</td><td className="result-value">{carey?.available.toFixed(2)??"—"} px</td></tr><tr><td>Material dentario</td><td className="result-value">{carey?.required.toFixed(2)??"—"} px</td></tr><tr><td>Discrepancia</td><td className="result-value">{carey?.diff.toFixed(2)??"—"} px</td></tr></tbody></table><p>{carey?carey.diff>0?"Exceso de espacio relativo":carey.diff<0?"Déficit de espacio relativo":"Equilibrio geométrico relativo":"Faltan puntos o recorrido."}</p></>}
-    {(method==="moyers"||method==="tanaka")&&<><div className="unit-notice">La predicción solo se considera concluyente si todo el intervalo estimado queda del mismo lado de la discrepancia.</div><table><thead><tr><th>Arcada / lado</th><th>Espacio estimado</th><th>Resultado</th></tr></thead><tbody>{(mixed?.rows??["Superior · Derecho","Superior · Izquierdo","Inferior · Derecho","Inferior · Izquierdo"].map(label=>({arch:label.split(" · ")[0],side:label.split(" · ")[1],available:null,required:null,result:"Pendiente"}))).map((r,i)=><tr key={i}><td>{r.arch} · {r.side}</td><td>{r.available?r.available.map(v=>v.toFixed(1)).join("–")+" mm":"—"}</td><td>{r.result}</td></tr>)}</tbody></table><p className="clinical-note">La tabla Moyers usa percentil 75 % y requiere sexo. Tanaka-Johnston aplica 11 + (Σ incisivos/2) para maxilar y 10.5 + (Σ incisivos/2) para mandibular, por hemiarcada. Los valores se muestran como estimaciones con incertidumbre.</p></>}
+
+    {method==="little"&&<><div className="unit-notice">Cinco distancias entre seis puntos de contacto. Unidad: mm; requiere calibración.</div><table><thead><tr><th>Segmento</th><th>Distancia</th></tr></thead><tbody>{CONTACTS.slice(0,5).map((_,i)=><tr key={i}><td>P{i+1}–P{i+2}</td><td className="result-value">{little?.segments[i]?.toFixed(2)??"—"}</td></tr>)}</tbody></table><p className="result-value">Índice de Little: {little?.total?.toFixed(2)??"Pendiente"} mm</p></>}
+    {method==="carey"&&<><div className="unit-notice">Se requieren 20 puntos mesial/distal, perímetro continuo y calibración. Unidad: mm.</div><table><tbody><tr><td>Espacio disponible</td><td className="result-value">{carey?.available.toFixed(2)??"—"} mm</td></tr><tr><td>Material dentario</td><td className="result-value">{carey?.required.toFixed(2)??"—"} mm</td></tr><tr><td>Discrepancia</td><td className="result-value">{carey?.diff.toFixed(2)??"—"} mm</td></tr></tbody></table><p>{carey?carey.diff>0?"Exceso de espacio relativo":carey.diff<0?"Déficit de espacio relativo":"Equilibrio geométrico relativo":"Faltan puntos o recorrido."}</p></>}
+    {(method==="moyers"||method==="tanaka")&&<><div className="unit-notice">La predicción requiere calibración independiente de la vista de incisivos y de cada arcada.</div><table><thead><tr><th>Arcada / lado</th><th>Espacio estimado</th><th>Resultado</th></tr></thead><tbody>{(mixed?.rows??["Superior · Derecho","Superior · Izquierdo","Inferior · Derecho","Inferior · Izquierdo"].map(label=>({arch:label.split(" · ")[0],side:label.split(" · ")[1],available:null,required:null,result:"Pendiente"}))).map((r,i)=><tr key={i}><td>{r.arch} · {r.side}</td><td>{r.available?r.available.map(v=>v.toFixed(1)).join("–")+" mm":"—"}</td><td>{r.result}</td></tr>)}</tbody></table><p className="clinical-note">La tabla Moyers usa percentil 75 % y requiere sexo. Tanaka-Johnston aplica 11 + (Σ incisivos/2) para maxilar y 10.5 + (Σ incisivos/2) para mandibular, por hemiarcada. Los valores se muestran como estimaciones con incertidumbre.</p></>}
     <div className="form-field"><label htmlFor="model-observations">Observaciones</label><textarea id="model-observations" rows={3} value={observations} onChange={e=>setObservations(e.target.value)}/></div><div className="form-field"><label htmlFor="model-conclusion">Conclusión profesional / docente</label><textarea id="model-conclusion" rows={3} value={conclusion} onChange={e=>setConclusion(e.target.value)}/></div>
-    <button className="primary download-button" disabled={!image} onClick={exportPdf}>Descargar informe PDF de esta vista</button><button className="secondary download-button" disabled={!canExport} onClick={exportJson}>Exportar análisis completo (JSON)</button><p className="clinical-note">Los resultados en píxeles son relativos y no deben interpretarse como milímetros. Las predicciones de dentición mixta dependen de la referencia estadística y no sustituyen mediciones clínicas ni valoración profesional.</p>
+    <button className="primary download-button" disabled={!image} onClick={exportPdf}>Descargar informe PDF de esta vista</button><button className="secondary download-button" disabled={!canExport} onClick={exportJson}>Exportar análisis completo (JSON)</button><p className="clinical-note">Los cálculos lineales requieren calibración física válida en cada vista. Las predicciones estadísticas no sustituyen la medición clínica ni la valoración profesional.</p>
    </aside>
   </div>
  </section>;
