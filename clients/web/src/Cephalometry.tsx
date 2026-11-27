@@ -28,7 +28,19 @@ const REFERENCES: RefRow[] = [
   {key:"SL",label:"Segmento SL",normal:"51 mm ± 2 mm",min:49,max:53,unit:" mm",low:"Mandíbula corta o posición de Pogonion más retruida.",normalText:"Posición de Pogonion dentro del intervalo de referencia.",high:"Mandíbula larga o posición de Pogonion más adelantada."},
   {key:"SE",label:"Segmento SE",normal:"22 mm ± 2 mm",min:20,max:24,unit:" mm",low:"Cóndilo en posición más adelantada respecto a SN.",normalText:"Posición condilar dentro del intervalo de referencia.",high:"Cóndilo en posición más retrasada respecto a SN."},
 ];
+
 const distance = (a: XY,b: XY) => Math.hypot(b.x-a.x,b.y-a.y);
+function drawExtendedLine(ctx: CanvasRenderingContext2D, a: XY, b: XY, width: number) {
+  const dx=b.x-a.x, dy=b.y-a.y;
+  if(Math.hypot(dx,dy)<1e-6)return;
+  const candidates:XY[]=[];
+  if(Math.abs(dx)>1e-9){for(const x of [0,width]){const t=(x-a.x)/dx;const y=a.y+t*dy;if(y>=0&&y<=ctx.canvas.height)candidates.push({x,y});}}
+  if(Math.abs(dy)>1e-9){for(const y of [0,ctx.canvas.height]){const t=(y-a.y)/dy;const x=a.x+t*dx;if(x>=0&&x<=width)candidates.push({x,y});}}
+  if(candidates.length<2)return;
+  let first=candidates[0],last=candidates[1],max=-1;
+  for(let i=0;i<candidates.length;i++)for(let j=i+1;j<candidates.length;j++){const d=distance(candidates[i],candidates[j]);if(d>max){max=d;first=candidates[i];last=candidates[j];}}
+  ctx.beginPath();ctx.moveTo(first.x,first.y);ctx.lineTo(last.x,last.y);ctx.stroke();
+}
 export default function Cephalometry({ onBack }: { onBack: () => void }) {
   const [fileName,setFileName]=useState("");
   const [imageUrl,setImageUrl]=useState("");
@@ -52,8 +64,13 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
     const palette=getComputedStyle(document.documentElement);const accent=palette.getPropertyValue("--avis-accent").trim()||"#22B8B0";const primary=palette.getPropertyValue("--avis-primary").trim()||"#6D45A6";const plum=palette.getPropertyValue("--avis-plum").trim()||"#48263F";
     const lines:Array<[string,string]>=[["S","N"],["N","A"],["N","B"],["N","D"],["Ar","Go"],["Go","Me"],["Go","Gn"],["A","B"],["U1_apex","U1_tip"],["L1_apex","L1_tip"],["N","B"],["Go","Gn"],["S","L"],["S","E"]];
-    ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,imageSize.width/1200);
-    for(const [a,b] of lines){const p1=points[a]??result.calculated[a],p2=points[b]??result.calculated[b];if(p1&&p2){ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}}
+    ctx.lineWidth=Math.max(1,imageSize.width/1400);
+    for(const [index,[a,b]] of lines.entries()){
+      const p1=points[a]??result.calculated[a],p2=points[b]??result.calculated[b];
+      if(p1&&p2){ctx.strokeStyle=index>=8?"#D98A36":accent;drawExtendedLine(ctx,p1,p2,imageSize.width);}
+    }
+    // Guías de los ejes incisales y planos cefalométricos prolongadas hasta los bordes
+    // para hacer visibles sus intersecciones sobre toda la radiografía.
     for(const [code,p] of Object.entries(points)){const r=Math.max(3,imageSize.width/550);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle=primary;ctx.lineWidth=Math.max(1,imageSize.width/1500);ctx.stroke();ctx.fillStyle=plum;ctx.font=`bold ${Math.max(12,imageSize.width/100)}px system-ui`;ctx.fillText(code,p.x+r+4,p.y-r-4);}
     for(const [code,p] of Object.entries(result.calculated)){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(3,imageSize.width/600),0,Math.PI*2);ctx.fillStyle="#F4C95D";ctx.fill();}
     if(calibrationPoints.length===2){ctx.strokeStyle="#E07A5F";ctx.beginPath();ctx.moveTo(calibrationPoints[0].x,calibrationPoints[0].y);ctx.lineTo(calibrationPoints[1].x,calibrationPoints[1].y);ctx.stroke();}
