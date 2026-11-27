@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { getAvisPalette } from "./themePalettes";
 import Levandoski from "./Levandoski";
@@ -147,6 +147,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         professionalConclusion: conclusion,
         generatedAt: new Date(),
         palette,
+        logoDataUrl: await loadAvisLogoDataUrl(),
         reportLabel: "Reporte panorámico",
       };
       let blob: Blob;
