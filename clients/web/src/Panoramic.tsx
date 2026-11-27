@@ -34,8 +34,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [details, setDetails] = useState<AnswerMap>({});
-  const [regions, setRegions] = useState("");
-  const [teeth, setTeeth] = useState("");
+  const [presentTeeth, setPresentTeeth] = useState<string[]>([]);
   const [observations, setObservations] = useState("");
   const [conclusion, setConclusion] = useState("");
   const [status, setStatus] = useState("En proceso");
@@ -91,7 +90,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       application: "AVIS",
       analysis: "Revisión sistemática de radiografía panorámica",
       fileName, imageSize, status, review: REVIEW.map((item) => ({ phase: item.title, finding: answers[item.id] ?? "Pendiente", detail: details[item.id] ?? "" })),
-      affectedRegions: regions, teethFDI: teeth,
+      presentTeethFDI: presentTeeth,
       observations, professionalConclusion: conclusion, generatedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -109,8 +108,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       const reportConclusions = [
         ...conclusions,
         `Revisión sistemática: ${completed} de ${REVIEW.length} fases registradas.`,
-        regions ? "Regiones señaladas: " + regions : "",
-        teeth ? "Dientes FDI relacionados: " + teeth : "",
+        presentTeeth.length ? "Dientes presentes (FDI): " + presentTeeth.join(", ") : "No se registraron dientes presentes en el odontograma.",
         observations ? "Observaciones: " + observations : "",
         conclusion ? "Conclusión profesional: " + conclusion : "",
         "La panorámica es un estudio bidimensional con superposición y distorsión. Los hallazgos deben correlacionarse con exploración clínica y, cuando esté indicado, con proyecciones intraorales o CBCT. No se genera diagnóstico autónomo.",
@@ -166,8 +164,29 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         <label className="upload-control"><span>＋ Cargar radiografía panorámica</span><input ref={fileRef} type="file" accept="image/*" onChange={loadImage}/></label>
         {fileName && imageSize && <div className="file-meta"><strong>{fileName}</strong><span>{imageSize.width} × {imageSize.height} px</span></div>}
         {photoDataUrl ? <div className="image-viewport"><img src={photoDataUrl} alt="Radiografía panorámica cargada" style={{ display: "block", maxWidth: "none", width: "100%", height: "auto" }}/></div> : <div className="image-empty"><span>▧</span><strong>Radiografía no cargada</strong><p>La imagen se conserva en esta sesión del navegador y se incorpora al informe al exportarlo.</p></div>}
-        <div className="form-field"><label htmlFor="pano-regions">Regiones anatómicas involucradas</label><textarea id="pano-regions" rows={2} value={regions} onChange={(e) => setRegions(e.target.value)} placeholder="Ej. 16, 17, seno maxilar derecho, cuerpo mandibular izquierdo…"/></div>
-        <div className="form-field"><label htmlFor="pano-teeth">Dientes relacionados (nomenclatura FDI)</label><textarea id="pano-teeth" rows={2} value={teeth} onChange={(e) => setTeeth(e.target.value)} placeholder="Ej. 18, 28, 38, 48…"/></div>
+        <div className="form-field">
+          <label>Dentición · Odontograma FDI</label>
+          <p className="clinical-note">Selecciona los dientes presentes en la radiografía. Los dientes no seleccionados permanecen sin color; al seleccionarlos se resaltan.</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:10}}>
+            {([
+              {name:"Permanente superior",left:["18","17","16","15","14","13","12","11"],right:["21","22","23","24","25","26","27","28"]},
+              {name:"Temporal superior",left:["55","54","53","52","51"],right:["61","62","63","64","65"]},
+              {name:"Temporal inferior",left:["85","84","83","82","81"],right:["71","72","73","74","75"]},
+              {name:"Permanente inferior",left:["48","47","46","45","44","43","42","41"],right:["31","32","33","34","35","36","37","38"]}
+            ] as const).map((row) => (
+              <div key={row.name} style={{gridColumn:"span 4",border:"1px solid var(--avis-border,#d8dce3)",borderRadius:12,padding:10}}>
+                <strong style={{display:"block",fontSize:13,marginBottom:8}}>{row.name}</strong>
+                <div style={{display:"flex",justifyContent:"center",gap:5,flexWrap:"wrap"}}>
+                  {[...row.left,...row.right].map((tooth) => {
+                    const selected=presentTeeth.includes(tooth);
+                    return <button key={tooth} type="button" aria-pressed={selected} aria-label={`Diente ${tooth} ${selected?"presente":"no seleccionado"}`} onClick={()=>setPresentTeeth(prev=>selected?prev.filter(x=>x!==tooth):[...prev,tooth])} style={{width:36,height:42,borderRadius:7,border:selected?"2px solid var(--avis-primary,#6D45A6)":"1px solid #aeb7c2",background:selected?"var(--avis-accent,#22B8B0)":"transparent",color:selected?"#fff":"var(--avis-text,#354052)",fontWeight:700,cursor:"pointer",opacity:selected?1:.62,transition:"background .15s,border-color .15s"}}>{tooth}</button>;
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="clinical-note">Dientes marcados como presentes: {presentTeeth.length ? presentTeeth.slice().sort((a,b)=>Number(a)-Number(b)).join(", ") : "ninguno"}.</p>
+        </div>
         <div className="form-field"><label htmlFor="pano-observations">Observaciones generales</label><textarea id="pano-observations" rows={3} value={observations} onChange={(e) => setObservations(e.target.value)} placeholder="Describe distribución, límites, relación anatómica y correlación clínica…"/></div>
         <div className="form-field"><label htmlFor="pano-conclusion">Conclusión profesional / docente</label><textarea id="pano-conclusion" rows={3} value={conclusion} onChange={(e) => setConclusion(e.target.value)} placeholder="Integra la interpretación revisada por el profesional responsable…"/></div>
       </section>
