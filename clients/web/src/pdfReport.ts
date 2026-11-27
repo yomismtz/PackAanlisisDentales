@@ -231,16 +231,19 @@ function drawPageFrame(
 
 function createPdf(input: PhotoReportInput): Uint8Array {
   const photoBytes = base64ToBytes(input.photoDataUrl);
-  const logoBytes = input.logoDataUrl ? base64ToBytes(input.logoDataUrl) : null;\n  const clinicLogoBytes = input.clinicLogoDataUrl ? base64ToBytes(input.clinicLogoDataUrl) : null;
+  const logoBytes = input.logoDataUrl ? base64ToBytes(input.logoDataUrl) : null;
+  const clinicLogoBytes = input.clinicLogoDataUrl ? base64ToBytes(input.clinicLogoDataUrl) : null;
   const birdBytes = input.birdIconDataUrl ? base64ToBytes(input.birdIconDataUrl) : null;
   const watermarkBytes = input.birdWatermarkDataUrl ? base64ToBytes(input.birdWatermarkDataUrl) : null;
   let nextImageObject = 10;
   const logoObjectId = logoBytes ? nextImageObject++ : null;
-  const clinicLogoObjectId = clinicLogoBytes ? nextImageObject++ : null;\n  const birdObjectId = birdBytes ? nextImageObject++ : null;
+  const clinicLogoObjectId = clinicLogoBytes ? nextImageObject++ : null;
+  const birdObjectId = birdBytes ? nextImageObject++ : null;
   const watermarkObjectId = watermarkBytes ? nextImageObject++ : null;
   const page1XObjects = [
     "/Im1 7 0 R",
-    ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),\n    ...(clinicLogoObjectId ? [`/ClinicLogo ${clinicLogoObjectId} 0 R`] : []),
+    ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
+    ...(clinicLogoObjectId ? [`/ClinicLogo ${clinicLogoObjectId} 0 R`] : []),
     ...(birdObjectId ? [`/Bird ${birdObjectId} 0 R`] : []),
     ...(watermarkObjectId ? [`/Watermark ${watermarkObjectId} 0 R`] : []),
   ].join(" ");
@@ -309,7 +312,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
   page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
@@ -396,7 +399,8 @@ function createPdf(input: PhotoReportInput): Uint8Array {
       ascii("\nendstream\nendobj\n"),
     ]));
   };
-  if (logoBytes && logoObjectId) appendImageObject(logoObjectId, 96, 96, logoBytes);\n  if (clinicLogoBytes && clinicLogoObjectId) appendImageObject(clinicLogoObjectId, 220, 220, clinicLogoBytes);
+  if (logoBytes && logoObjectId) appendImageObject(logoObjectId, 96, 96, logoBytes);
+  if (clinicLogoBytes && clinicLogoObjectId) appendImageObject(clinicLogoObjectId, 220, 220, clinicLogoBytes);
   if (birdBytes && birdObjectId) appendImageObject(birdObjectId, 128, 128, birdBytes);
   if (watermarkBytes && watermarkObjectId) appendImageObject(watermarkObjectId, 320, 320, watermarkBytes);
 

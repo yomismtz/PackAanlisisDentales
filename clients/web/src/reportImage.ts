@@ -56,7 +56,8 @@ function fillPage(
   context.strokeStyle = plum;
   context.lineWidth = 2;
   context.strokeRect(54, 54, WIDTH - 108, height - 108);
-  if (logo) context.drawImage(logo, MARGIN, 68, 54, 54);\n  if (clinicLogo) { context.save(); context.globalAlpha=.78; context.drawImage(clinicLogo,WIDTH-MARGIN-94,62,82,82); context.restore(); }
+  if (logo) context.drawImage(logo, MARGIN, 68, 54, 54);
+  if (clinicLogo) { context.save(); context.globalAlpha=.78; context.drawImage(clinicLogo,WIDTH-MARGIN-94,62,82,82); context.restore(); }
   context.fillStyle = primary;
   context.font = "bold 44px Arial, sans-serif";
   context.textBaseline = "top";
@@ -159,12 +160,14 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   const photoHeight = photo.naturalHeight * scale;
   const photoX = photoBox.x + (photoBox.width - photoWidth) / 2;
   const photoY = photoBox.y + (photoBox.height - photoHeight) / 2;
-  context.drawImage(photo, photoX, photoY, photoWidth, photoHeight);\n  if(clinicLogo){context.save();context.globalAlpha=.13;context.drawImage(clinicLogo,photoX+photoWidth*.25,photoY+photoHeight*.32,photoWidth*.5,photoWidth*.5);context.restore();}
+  context.drawImage(photo, photoX, photoY, photoWidth, photoHeight);
+  if(clinicLogo){context.save();context.globalAlpha=.13;context.drawImage(clinicLogo,photoX+photoWidth*.25,photoY+photoHeight*.32,photoWidth*.5,photoWidth*.5);context.restore();}
 
   const boxY = 1060;
   const boxHeight = conclusionHeight;
   context.fillStyle = mint;
-  context.fillRect(MARGIN, boxY, CONTENT_WIDTH, boxHeight);\n  if(clinicLogo){context.save();context.globalAlpha=.10;context.drawImage(clinicLogo,WIDTH/2-150,boxY+boxHeight/2-150,300,300);context.restore();}
+  context.fillRect(MARGIN, boxY, CONTENT_WIDTH, boxHeight);
+  if(clinicLogo){context.save();context.globalAlpha=.10;context.drawImage(clinicLogo,WIDTH/2-150,boxY+boxHeight/2-150,300,300);context.restore();}
   context.strokeStyle = plum;
   context.lineWidth = 2.5;
   context.strokeRect(MARGIN, boxY, CONTENT_WIDTH, boxHeight);
@@ -229,7 +232,7 @@ function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageEleme
   canvas.height = pageHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No fue posible generar la segunda página del reporte.");
-  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input, logo, bird, watermark);
+  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input, logo, bird, watermark, clinicLogo);
 
   context.fillStyle = BLACK;
   context.font = "bold 21px Arial, sans-serif";
@@ -308,7 +311,8 @@ export async function renderPhotoReportImage(
   const [logo, bird, watermark, clinicLogo] = await Promise.all([
     input.logoDataUrl ? loadImage(input.logoDataUrl) : Promise.resolve(null),
     input.birdIconDataUrl ? loadImage(input.birdIconDataUrl) : Promise.resolve(null),
-    input.birdWatermarkDataUrl ? loadImage(input.birdWatermarkDataUrl) : Promise.resolve(null),\n    input.clinicLogoDataUrl ? loadImage(input.clinicLogoDataUrl) : Promise.resolve(null),
+    input.birdWatermarkDataUrl ? loadImage(input.birdWatermarkDataUrl) : Promise.resolve(null),
+    input.clinicLogoDataUrl ? loadImage(input.clinicLogoDataUrl) : Promise.resolve(null),
   ]);
   const date = input.generatedAt.toLocaleString("es-MX", {
     year: "numeric",
