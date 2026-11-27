@@ -17,8 +17,8 @@ export default defineConfig({
         theme_color: '#48263F',
         background_color: '#FFFFFF',
         display: 'standalone',
-        start_url: '/',
-        icons: [{ src: '/avis-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]
+        start_url: './',
+        icons: [{ src: 'avis-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]
       },
       workbox: {
         // The ten bird calls are embedded in the bundled JavaScript sprite.
