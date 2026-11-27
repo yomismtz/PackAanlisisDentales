@@ -19,7 +19,7 @@ const BIRD_AUDIO_BASE64 = [
   opus6k06, opus6k07, opus6k08, opus6k09,
 ].join("");
 
-const CLIPS: Record<PaletteId, { start: number; duration: number }> = {
+const CLIPS: Partial<Record<PaletteId, { start: number; duration: number }>> = {
   buho_real:      { start: 0.000,   duration: 8.005 },
   colibri:        { start: 8.255,   duration: 3.709 },
   guacamayo_azul: { start: 12.214,  duration: 14.545 },
