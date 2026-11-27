@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
+import IntermaxillaryRelations from "./IntermaxillaryRelations";
 import { careySpaceAnalysis, classifySpaceRange, littleIrregularityIndex, moyers75Prediction, pixelsPerMillimeter, pixelsToMillimeters, polylineLength, tanakaJohnstonPrediction } from "./modelGeometry";
 
 type XY = { x:number; y:number };
@@ -8,7 +9,7 @@ type ViewKey = "incisors" | "upper" | "lower";
 type ImageInfo = { url:string; name:string; width:number; height:number };
 type PointSets = Record<ViewKey,Record<string,XY>>;
 type TraceSets = Record<ViewKey,Record<string,XY[]>>;
-type Method = "little" | "moyers" | "tanaka" | "carey";
+type Method = "little" | "moyers" | "tanaka" | "carey" | "intermaxillary";
 const EMPTY_POINTS:PointSets={incisors:{},upper:{},lower:{}};
 const EMPTY_TRACES:TraceSets={incisors:{},upper:{},lower:{}};
 const LITTLE_CONTACTS=[
@@ -23,6 +24,7 @@ const CAREY_TEETH:Record<"upper"|"lower",string[]>={upper:["15","14","13","12","
 const distance=(a:XY,b:XY)=>Math.hypot(b.x-a.x,b.y-a.y);
 function pathLength(path:XY[]){return polylineLength(path);}
 function pointOptions(method:Method,view:ViewKey){
+ if(method==="intermaxillary")return [];
  if(method==="little")return view==="upper"||view==="lower"?LITTLE_CONTACTS.flatMap(c=>[[c.a,c.aLabel],[c.b,c.bLabel]] as [string,string][]):[];
  if(method==="carey")return CAREY_TEETH[view==="upper"?"upper":"lower"].flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
  if(view==="incisors")return INCISORS.flatMap(t=>[[t+"_M",t+" · mesial"],[t+"_D",t+" · distal"]]);
@@ -31,7 +33,7 @@ function pointOptions(method:Method,view:ViewKey){
 function classifyRange(available:[number,number]|null,required:[number,number]|null){
  return classifySpaceRange(available,required);
 }
-export default function ModelAnalysis({onBack}:{onBack:()=>void}){
+export default function ModelAnalysis({onBack,paletteId}:{onBack:()=>void;paletteId:string}){
  const [method,setMethod]=useState<Method>("little");
  const [view,setView]=useState<ViewKey>("lower");
  const [images,setImages]=useState<Partial<Record<ViewKey,ImageInfo>>>({});
@@ -81,7 +83,7 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   };
   img.src=image.url;
  },[image,view,method,points,traces,calibration,calibrationPoints]);
- function changeMethod(next:Method){const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":next==="little"?"lower":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
+ function changeMethod(next:Method){if(next==="intermaxillary"){setMethod(next);setPlacing(false);setTraceMode("");setCalibrationMode(false);return;}const nextView:ViewKey=next==="moyers"||next==="tanaka"?"incisors":next==="little"?"lower":"upper";setMethod(next);setTraceMode("");setPlacing(false);setCalibrationMode(false);setCalibrationPoints([]);setView(nextView);setSelected(pointOptions(next,nextView)[0]?.[0]??"");setZoom(.7);}
  function changeView(next:ViewKey){setView(next);setPlacing(false);setTraceMode("");setCalibrationMode(false);setCalibrationPoints([]);setSelected(pointOptions(method,next)[0]?.[0]??"");}
  function loadImage(event:React.ChangeEvent<HTMLInputElement>){
   const file=event.target.files?.[0];if(!file)return;
@@ -160,20 +162,21 @@ export default function ModelAnalysis({onBack}:{onBack:()=>void}){
   const payload={application:"AVIS",analysis:method,images:Object.fromEntries(Object.entries(images).map(([k,v])=>[k,v?{name:v.name,width:v.width,height:v.height}:null])),points,traces,sex,calibration,results:{little,carey,mixed},observations,conclusion,generatedAt:new Date().toISOString(),limitations:"Las medidas en mm dependen de una calibración física válida e independiente por imagen. Las predicciones de Moyers y Tanaka-Johnston son estimaciones estadísticas y requieren validación profesional."};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Analisis_Modelos.json";a.click();URL.revokeObjectURL(url);
  }
- function exportPdf(){
+ async function exportPdf(){
   const canvas=canvasRef.current;if(!canvas||!image){setError("Carga una imagen antes de generar el PDF.");return;}
   const rows=method==="little"?[{label:"Índice de Little",value:little?.total?.toFixed(2)??"Pendiente",reference:"Suma de cinco desplazamientos · mm calibrados"}]:method==="carey"?[{label:"Perímetro disponible",value:carey?.available.toFixed(2)??"Pendiente",reference:"mm calibrados"},{label:"Material dentario",value:carey?.required.toFixed(2)??"Pendiente",reference:"mm calibrados"},{label:"Discrepancia",value:carey?.diff.toFixed(2)??"Pendiente",reference:"mm calibrados"}]:(mixed?.rows??[]).flatMap(r=>[
    {label:r.arch+" · "+r.side+" · espacio disponible",value:r.available?.[0].toFixed(2)??"Pendiente",reference:"mm calibrados"},
    {label:r.arch+" · "+r.side+" · espacio requerido",value:r.required?.[0].toFixed(2)??"Pendiente",reference:method==="moyers"?"Moyers 75 %":"Tanaka-Johnston"},
    {label:r.arch+" · "+r.side+" · discrepancia",value:r.available&&r.required?(r.available[0]-r.required[0]).toFixed(2):"Pendiente",reference:"mm; positivo = espacio, negativo = apiñamiento"}
   ]);
-  const pdf=buildPhotoReportPdf({title:"Análisis de modelos dentales · "+(method==="carey"&&view==="upper"?"Perímetro de arcada superior":method),mode:"models",fileName:image.name,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",.92),photoWidth:image.width,photoHeight:image.height,horizontalGuides:false,points:activePoints,results:rows,conclusions:["Resultado de apoyo académico; verificar las referencias y la calidad del modelo.",observations,conclusion].filter(Boolean),visualAssessment:{},observations,professionalConclusion:"Las mediciones se convierten a milímetros mediante la calibración de esta imagen. Confirmar que el patrón de escala esté coplanar y que los puntos anatómicos sean correctos antes de la interpretación clínica.",generatedAt:new Date(),palette:getAvisPalette("colibri").colors,reportLabel:"Reporte de modelos dentales"});
+  const pdf=buildPhotoReportPdf({title:"Análisis de modelos dentales · "+(method==="carey"&&view==="upper"?"Perímetro de arcada superior":method),mode:"models",fileName:image.name,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",.92),photoWidth:image.width,photoHeight:image.height,horizontalGuides:false,points:activePoints,results:rows,conclusions:["Resultado de apoyo académico; verificar las referencias y la calidad del modelo.",observations,conclusion].filter(Boolean),visualAssessment:{},observations,professionalConclusion:"Las mediciones se convierten a milímetros mediante la calibración de esta imagen. Confirmar que el patrón de escala esté coplanar y que los puntos anatómicos sean correctos antes de la interpretación clínica.",generatedAt:new Date(),palette:getAvisPalette(paletteId).colors,logoDataUrl:await loadAvisLogoDataUrl(),reportLabel:"Reporte de modelos dentales"});
   const blob=new Blob([new Uint8Array(pdf).buffer as ArrayBuffer],{type:"application/pdf"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Analisis_Modelos.pdf";a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
  }
- const title=method==="little"?(view==="lower"?"Índice de irregularidad de Little":"Irregularidad anterior · adaptación maxilar"):method==="moyers"?"Dentición mixta · Moyers 75 %":method==="tanaka"?"Dentición mixta · Tanaka-Johnston":view==="upper"?"Perímetro de arcada superior":"Análisis de espacio · Carey";
+ if(method==="intermaxillary")return <IntermaxillaryRelations onBack={()=>setMethod("little")} paletteId={paletteId}/>;
+ const title=method==="intermaxillary"?"Relaciones intermaxilares":method==="little"?(view==="lower"?"Índice de irregularidad de Little":"Irregularidad anterior · adaptación maxilar"):method==="moyers"?"Dentición mixta · Moyers 75 %":method==="tanaka"?"Dentición mixta · Tanaka-Johnston":view==="upper"?"Perímetro de arcada superior":"Análisis de espacio · Carey";
  return <section className="analysis-page">
   <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · MODELOS DENTALES</p><h1>{title}</h1><p>Carga los modelos oclusales superior e inferior y registra los puntos y recorridos manualmente.</p></div><span className="module-count">{Object.values(images).filter(Boolean).length} / 3 vistas cargadas</span></div>
-  <div className="mode-row"><label htmlFor="model-method">Análisis</label><select id="model-method" value={method} onChange={e=>changeMethod(e.target.value as Method)}><option value="little">Little · irregularidad anterior</option><option value="moyers">Moyers · percentil 75 %</option><option value="tanaka">Tanaka-Johnston</option><option value="carey">Carey · perímetro de arcada</option></select></div>
+  <div className="mode-row"><label htmlFor="model-method">Análisis</label><select id="model-method" value={method} onChange={e=>changeMethod(e.target.value as Method)}><option value="little">Little · irregularidad anterior</option><option value="moyers">Moyers · percentil 75 %</option><option value="tanaka">Tanaka-Johnston</option><option value="carey">Carey · perímetro de arcada</option><option value="intermaxillary">Relaciones intermaxilares · sagital, vertical y transversal</option></select></div>
   <div className="guide"><strong>{method==="little"?"Diez puntos anatómicos en cinco pares de contacto":method==="carey"?"Diez anchos mesiodistales y perímetro de arcada": "Incisivos inferiores, espacio disponible y predicción por hemiarcada"}</strong><p>{method==="little"?"El índice original se aplica a la arcada inferior y suma cinco distancias entre pares anatómicos (43–42 a 32–33). La arcada superior se etiqueta como adaptación no equivalente a una norma validada. Se expresa en mm solo después de calibrar esta imagen.":method==="carey"?"Carey compara el perímetro mandibular disponible entre los primeros molares con la suma de los anchos mesiodistales de los diez dientes de 5 a 5. En maxilar se presenta como análisis de perímetro de arcada. Requiere calibración.":"Moyers y Tanaka-Johnston usan la suma real en mm de los cuatro incisivos inferiores. Calibra por separado la imagen de incisivos y cada arcada. Traza el espacio posterior considerando la posición prevista de los incisivos tras alineación; el registro de una arcada apiñada sin ajuste puede alterar el espacio disponible."}</p></div>
   <div className="mode-row"><label>Vista</label><div className="point-actions">
    {(method==="moyers"||method==="tanaka"?[["incisors","Incisivos inferiores"],["upper","Modelo superior"],["lower","Modelo inferior"]]:[["upper","Modelo superior"],["lower","Modelo inferior"]]).map(([k,label])=><button key={k} className={view===k?"primary":"secondary"} onClick={()=>changeView(k as ViewKey)}>{label}</button>)}
