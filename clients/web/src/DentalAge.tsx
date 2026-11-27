@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 
 type DentalMethod = "nolla" | "demirjian";
+type Study = "select" | "dental" | "cervical" | "carpal";
 type Sex = "Femenino" | "Masculino";
 const TEETH = ["37","36","35","34","33","32","31"];
 const NOLLA = ["0 · Ausencia de cripta","1 · Presencia de cripta","2 · Calcificación inicial","3 · Un tercio de corona","4 · Dos tercios de corona","5 · Corona casi completa","6 · Corona completa","7 · Un tercio de raíz","8 · Dos tercios de raíz","9 · Raíz casi completa, ápice abierto","10 · Ápice cerrado"];
@@ -21,6 +22,7 @@ const FISHMAN = [
 const selectStyle: React.CSSProperties = { width: "100%", minWidth: 0 };
 const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: 16 };
 export default function DentalAge({onBack}:{onBack:()=>void}){
+ const [study,setStudy]=useState<Study>("select");
  const [method,setMethod]=useState<DentalMethod>("nolla");
  const [sex,setSex]=useState<Sex>("Femenino");
  const [stages,setStages]=useState<Record<string,string>>({});
@@ -33,6 +35,9 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
  const [fishman,setFishman]=useState<Record<string,string>>({});
  const [carpalNotes,setCarpalNotes]=useState("");
  const [carpalSide,setCarpalSide]=useState("Izquierda");
+ const [cervicalImage,setCervicalImage]=useState("");
+ const [cervicalStage,setCervicalStage]=useState("");
+ const [cervicalNotes,setCervicalNotes]=useState("");
  const selected=Object.values(stages).filter(v=>v!=="").length;
  const score=useMemo(()=>Object.values(stages).reduce((s,v)=>s+(v===""?0:Number(v)),0),[stages]);
  const labels=method==="nolla"?NOLLA:DEMIRJIAN;
@@ -40,11 +45,22 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
  function loadImage(file:File|null,setter:(value:string)=>void){if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setter(String(reader.result??""));reader.readAsDataURL(file);}
  function changeMethod(v:DentalMethod){setMethod(v);setStages({});}
  function exportReport(){
-  const data={application:"AVIS",analysis:"Edad dental y maduración esquelética",sex,dental:{method,referenceTeeth:TEETH,stages:Object.fromEntries(TEETH.map(t=>[t,stages[t]??null])),totalNollaScore:method==="nolla"?score:null,evaluatedTeeth:selected,imageIncluded:Boolean(dentalImage),interpretation:method==="nolla"?"La suma de estadios no se convierte directamente a años. Requiere tabla normativa validada para sexo y población.":"Se requieren puntuaciones Demirjian específicas por sexo y tabla de conversión validada."},carpal:{method:"Greulich-Pyle y Fishman",side:carpalSide,greulichPyle:{closestAtlasStandard:gpPlate||null,manuallyRecordedBoneAge:gpAge||null,observations:gpNotes},fishman:{indicators:FISHMAN.map(([id,description],i)=>({id,description,status:fishman[String(i+1)]||"No evaluado"})),highestObservedIndicator:highestFishman||null,interpretation:"El indicador SMI más alto registrado describe maduración esquelética; no equivale por sí mismo a una edad cronológica en años."},imageIncluded:Boolean(carpalImage),observations:carpalNotes},observations:notes,createdAt:new Date().toISOString()};
+  const data={application:"AVIS",analysis:study==="dental"?"Edad dental":study==="carpal"?"Maduración esquelética carpal":"Maduración vertebral cervical",sex,study,
+   ...(study==="dental"?{dental:{method,referenceTeeth:TEETH,stages:Object.fromEntries(TEETH.map(t=>[t,stages[t]??null])),totalNollaScore:method==="nolla"?score:null,evaluatedTeeth:selected,imageIncluded:Boolean(dentalImage),observations:notes,interpretation:method==="nolla"?"La suma de estadios no se convierte directamente a años. Requiere tabla normativa validada para sexo y población.":"Se requieren puntuaciones Demirjian específicas por sexo y tabla de conversión validada."}}:{}),
+   ...(study==="carpal"?{carpal:{side:carpalSide,greulichPyle:{closestAtlasStandard:gpPlate||null,manuallyRecordedBoneAge:gpAge||null,observations:gpNotes},fishman:{indicators:FISHMAN.map(([id,description],i)=>({id,description,status:fishman[String(i+1)]||"No evaluado"})),highestObservedIndicator:highestFishman||null,interpretation:"El indicador SMI más alto registrado describe maduración esquelética; no equivale por sí mismo a una edad cronológica en años."},imageIncluded:Boolean(carpalImage),observations:carpalNotes}}:{}),
+   ...(study==="cervical"?{cervical:{method:"CVM · Baccetti",stage:cervicalStage||null,imageIncluded:Boolean(cervicalImage),observations:cervicalNotes}}:{}),createdAt:new Date().toISOString()};
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="AVIS_Edad_y_Maduracion.json";a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
  }
  return <section className="analysis-page">
-  <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · DESARROLLO Y MADURACIÓN</p><h1>Edad dental y maduración esquelética</h1><p>Registro de desarrollo dentario y valoración de maduración cervical y carpal.</p></div><span className="module-count">{selected}/7 dientes · SMI {highestFishman||"—"}/11</span></div>
+  {study==="select"?<>
+   <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · DESARROLLO Y MADURACIÓN</p><h1>Edad y maduración</h1><p>Selecciona un solo estudio para comenzar. No es necesario realizar los demás.</p></div></div>
+   <div className="workspace">
+    <button type="button" className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:170}} onClick={()=>setStudy("dental")}><h2>Edad dental</h2><p>Selecciona Nolla o Demirjian y registra el desarrollo de los siete dientes mandibulares izquierdos.</p><strong>Iniciar análisis dental →</strong></button>
+    <button type="button" className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:170}} onClick={()=>setStudy("cervical")}><h2>Maduración vertebral cervical</h2><p>Evalúa los estadios CVM (CS1–CS6) en la radiografía lateral.</p><strong>Iniciar análisis cervical →</strong></button>
+    <button type="button" className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:170}} onClick={()=>setStudy("carpal")}><h2>Maduración carpal</h2><p>Elige Greulich y Pyle o Fishman para la radiografía de mano y muñeca.</p><strong>Iniciar análisis carpal →</strong></button>
+   </div>
+  </>:<>
+  <div className="analysis-heading"><div><button className="text-button" onClick={()=>setStudy("select")}>← Cambiar tipo de estudio</button><p className="eyebrow">AVIS · DESARROLLO Y MADURACIÓN</p><h1>{study==="dental"?"Edad dental":study==="carpal"?"Maduración esquelética carpal":"Maduración vertebral cervical"}</h1><p>Se registra únicamente el estudio seleccionado.</p></div>{study==="dental"?<span className="module-count">{selected}/7 dientes</span>:study==="carpal"?<span className="module-count">SMI {highestFishman||"—"}/11</span>:null}</div>
   <div className="guide"><strong>Importante</strong><p>Los estadios radiográficos describen maduración. No deben convertirse automáticamente en edad cronológica sin las tablas normativas, población de referencia y validación correspondientes. La asignación de estadios es responsabilidad del profesional.</p></div>
   <section className="panel">
    <div className="panel-heading"><div><h2>Edad dental</h2><p>Selecciona el método y registra los siete dientes mandibulares izquierdos.</p></div></div>
