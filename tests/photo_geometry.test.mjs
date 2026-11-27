@@ -20,7 +20,7 @@ test("Powell mentocervical is the angle between G-Pg and Me-C",()=>{
 });
 test("Powell rejects missing or degenerate landmarks",()=>{
  assert.equal(calculatePowellAngles({G:p(0,0),N:p(0,0),R:p(1,0)}).nasofrontal,null);
- assert.equal(calculatePowellAngles({G:p(0,0),Pg:p(0,0),N:p(1,0),Prn:p(2,0)}).nasofacial,0);
+ assert.equal(calculatePowellAngles({G:p(0,0),Pg:p(0,0),N:p(1,0),Prn:p(2,0)}).nasofacial,null);
  assert.equal(calculatePowellAngles({}).mentocervical,null);
 });
 
