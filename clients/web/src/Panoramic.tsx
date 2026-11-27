@@ -57,6 +57,12 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
 
   const completed = useMemo(() => REVIEW.filter((item) => Boolean(answers[item.id])).length, [answers]);
   const levCompleted = useMemo(() => LEVANDOSKI.filter(([key]) => Boolean(levandoski[key])).length, [levandoski]);
+  const conclusions = useMemo(() => REVIEW.flatMap((item) => {
+    const answer = answers[item.id];
+    if (!answer || answer === "Sin alteraciones evidentes" || answer === "Sin hallazgos relevantes" || answer === "No identificados" || answer === "Adecuada" || answer === "Continuidad conservada" || answer === "Sin discrepancias aparentes") return [];
+    return [`${item.title}: ${answer}.${details[item.id] ? " " + details[item.id] : ""}`];
+  }), [answers, details]);
+
   if (analysisType === "levandoski") return <Levandoski onBack={() => setAnalysisType("select")} />;
   if (analysisType === "select") return <section className="analysis-page">
     <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · ANÁLISIS PANORÁMICO</p><h1>Radiografía panorámica</h1><p>Selecciona el tipo de análisis que deseas realizar.</p></div></div>
@@ -65,12 +71,6 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       <button className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:180}} onClick={() => setAnalysisType("levandoski")}><h2>Análisis de Levandoski</h2><p>Colocación de puntos anatómicos, trazado de líneas, mediciones bilaterales y cálculo de discrepancias derecha-izquierda.</p><strong>Iniciar análisis de Levandoski →</strong></button>
     </div>
   </section>;
-  const conclusions = useMemo(() => REVIEW.flatMap((item) => {
-    const answer = answers[item.id];
-    if (!answer || answer === "Sin alteraciones evidentes" || answer === "Sin hallazgos relevantes" || answer === "No identificados" || answer === "Adecuada" || answer === "Continuidad conservada" || answer === "Sin discrepancias aparentes") return [];
-    return [`${item.title}: ${answer}.${details[item.id] ? " " + details[item.id] : ""}`];
-  }), [answers, details]);
-
   function loadImage(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
