@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
-import { buildPhotoReportPdf } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
@@ -325,6 +325,7 @@ function App() {
         professionalConclusion: conclusion,
         generatedAt: new Date(),
         palette: activePalette.colors,
+        logoDataUrl: await loadAvisLogoDataUrl(),
       };
 
       let blob: Blob;
@@ -464,7 +465,7 @@ function App() {
       ) : screen === "panoramic" ? (
         <Panoramic onBack={returnHome} />
       ) : screen === "models" ? (
-        <ModelAnalysis onBack={returnHome} />
+        <ModelAnalysis onBack={returnHome} paletteId={paletteId} />
       ) : screen === "age" ? (
         <DentalAge onBack={returnHome} />
       ) : (
