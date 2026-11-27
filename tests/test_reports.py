@@ -176,3 +176,12 @@ def test_academic_report_renders_saved_cephalometric_landmarks(tmp_path):
     )
     assert output.is_file()
     assert output.stat().st_size > 1000
+
+
+def test_all_report_palettes_have_their_matching_bird_icon():
+    from app.theme import REPORT_PALETTES, report_bird_path
+
+    assert len(REPORT_PALETTES) == 10
+    for palette_id, palette in REPORT_PALETTES.items():
+        assert palette["name"]
+        assert report_bird_path(palette_id).is_file()

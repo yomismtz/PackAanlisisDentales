@@ -7,11 +7,77 @@ from reportlab.lib.units import mm
 from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle
 from .catalog import SLOTS,ANALYSES
+from .theme import REPORT_PALETTES, report_bird_path
 
-def export_patient_pdf(path,patient,media,analyses):
+def _logo_image_reader():
+    """Rasterize the existing AVIS SVG wordmark for ReportLab."""
+    try:
+        from io import BytesIO
+        from reportlab.lib.utils import ImageReader
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QImage, QPainter
+        from PySide6.QtSvg import QSvgRenderer
+
+        root = Path(getattr(__import__("sys"), "_MEIPASS", Path(__file__).resolve().parents[1]))
+        svg_path = root / "clients" / "web" / "public" / "avis-logo.svg"
+        renderer = QSvgRenderer(str(svg_path))
+        if not renderer.isValid():
+            return None
+        image = QImage(900, 263, QImage.Format.Format_ARGB32)
+        image.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(image)
+        renderer.render(painter)
+        painter.end()
+        buffer = BytesIO()
+        image.save(buffer, "PNG")
+        buffer.seek(0)
+        return ImageReader(buffer)
+    except Exception:
+        return None
+
+
+def _report_page_decorator(palette_id="colibri"):
+    from reportlab.lib.utils import ImageReader
+
+    palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])["colors"]
+    bird_path = report_bird_path(palette_id)
+    logo = _logo_image_reader()
+
+    def draw_page(canvas, doc):
+        canvas.saveState()
+        if bird_path.is_file():
+            try:
+                if hasattr(canvas, "setFillAlpha"):
+                    canvas.setFillAlpha(0.065)
+                canvas.drawImage(str(bird_path), 58*mm, 100*mm, width=92*mm, height=92*mm,
+                                 preserveAspectRatio=True, anchor="c", mask="auto")
+                if hasattr(canvas, "setFillAlpha"):
+                    canvas.setFillAlpha(1)
+                canvas.drawImage(str(bird_path), A4[0]-34*mm, A4[1]-29*mm,
+                                 width=20*mm, height=20*mm, preserveAspectRatio=True,
+                                 anchor="c", mask="auto")
+            except Exception:
+                pass
+        if logo:
+            canvas.drawImage(logo, 15*mm, A4[1]-27*mm, width=58*mm, height=17*mm,
+                             preserveAspectRatio=True, mask="auto")
+        canvas.setStrokeColor(colors.HexColor(palette["accent"]))
+        canvas.setLineWidth(1.2)
+        canvas.line(15*mm, A4[1]-31*mm, A4[0]-15*mm, A4[1]-31*mm)
+        canvas.setFillColor(colors.HexColor(palette["muted"]))
+        canvas.setFont("Helvetica", 7)
+        canvas.drawString(15*mm, 8*mm, "AVIS · Análisis Odontológico Integral")
+        canvas.drawRightString(A4[0]-15*mm, 8*mm, f"Página {doc.page}")
+        canvas.restoreState()
+
+    return draw_page
+
+
+def export_patient_pdf(path,patient,media,analyses,palette_id="colibri"):
     path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
+    palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])["colors"]
     styles=getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="SmallClinical",parent=styles["BodyText"],fontSize=8,leading=10))
+    styles.add(ParagraphStyle(name="SmallClinical",parent=styles["BodyText"],fontSize=8,leading=10,textColor=colors.HexColor(palette["text"])))
     story=[Paragraph("Expediente odontológico",styles["Title"]),
       Paragraph("Pack Análisis Dentales · Resumen de estudios y registros",styles["Normal"]),Spacer(1,6*mm),
       Paragraph("Datos del paciente",styles["Heading2"])]
@@ -46,7 +112,9 @@ def export_patient_pdf(path,patient,media,analyses):
     else: story.append(Paragraph("Aún no hay análisis registrados.",styles["BodyText"]))
     if patient.get("notes"): story += [Spacer(1,4*mm),Paragraph("Notas",styles["Heading2"]),Paragraph(escape(patient["notes"]),styles["BodyText"])]
     story += [Spacer(1,6*mm),Paragraph("Resumen de datos capturados. Debe ser revisado y validado por el odontólogo responsable; no constituye un diagnóstico autónomo.",styles["SmallClinical"])]
-    SimpleDocTemplate(str(path),pagesize=A4,rightMargin=15*mm,leftMargin=15*mm,topMargin=15*mm,bottomMargin=15*mm).build(story)
+    SimpleDocTemplate(str(path),pagesize=A4,rightMargin=15*mm,leftMargin=15*mm,topMargin=34*mm,bottomMargin=18*mm).build(
+        story, onFirstPage=_report_page_decorator(palette_id), onLaterPages=_report_page_decorator(palette_id)
+    )
     return path
 
 
@@ -281,7 +349,7 @@ def _image_bytes(path, cephalometric_points=None):
 
 
 def export_academic_report(path, patient, student_name, teacher_email,
-                           selected_modules, analyses_snapshot, media):
+                           selected_modules, analyses_snapshot, media, palette_id="colibri"):
     """Create a PDF containing only selected modules and completed analysis records."""
     from io import BytesIO
     from datetime import datetime
@@ -290,6 +358,7 @@ def export_academic_report(path, patient, student_name, teacher_email,
     from reportlab.lib.styles import ParagraphStyle
     from .reports import REPORT_MODULES
 
+    palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])["colors"]
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if not selected_modules:
@@ -300,11 +369,11 @@ def export_academic_report(path, patient, student_name, teacher_email,
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
         name="YSMSubtitle", parent=styles["Normal"], alignment=TA_CENTER,
-        textColor=colors.HexColor("#788A87"), fontSize=9, leading=12,
+        textColor=colors.HexColor(palette["muted"]), fontSize=9, leading=12,
     ))
     styles.add(ParagraphStyle(
         name="YSMSection", parent=styles["Heading1"],
-        textColor=colors.HexColor("#356B72"), spaceBefore=8*mm, spaceAfter=3*mm,
+        textColor=colors.HexColor(palette["primary"]), spaceBefore=8*mm, spaceAfter=3*mm,
     ))
     styles.add(ParagraphStyle(
         name="YSMBody", parent=styles["BodyText"], fontSize=8.5, leading=11,
@@ -312,7 +381,7 @@ def export_academic_report(path, patient, student_name, teacher_email,
     ))
     styles.add(ParagraphStyle(
         name="YSMCaption", parent=styles["BodyText"], fontSize=7.5, leading=9,
-        textColor=colors.HexColor("#788A87"), alignment=TA_CENTER,
+        textColor=colors.HexColor(palette["muted"]), alignment=TA_CENTER,
     ))
     styles.add(ParagraphStyle(
         name="YSMCell", parent=styles["BodyText"], fontSize=7.2, leading=9,
@@ -324,11 +393,11 @@ def export_academic_report(path, patient, student_name, teacher_email,
 
     story = [
         Spacer(1, 8*mm),
-        Paragraph("YSM ANÁLISIS", ParagraphStyle(
+        Paragraph("INFORME ACADÉMICO", ParagraphStyle(
             name="YSMTitle", parent=styles["Title"],
-            textColor=colors.HexColor("#356B72"), fontSize=25, leading=29,
+            textColor=colors.HexColor(palette["primary"]), fontSize=22, leading=26,
         )),
-        Paragraph("INFORME ACADÉMICO DE ANÁLISIS ORTODÓNCICOS", styles["YSMSubtitle"]),
+        Paragraph("ANÁLISIS ODONTOLÓGICO INTEGRAL · REGISTRO ACADÉMICO", styles["YSMSubtitle"]),
         Spacer(1, 9*mm),
         Paragraph("Datos del expediente", styles["Heading2"]),
     ]
@@ -344,10 +413,10 @@ def export_academic_report(path, patient, student_name, teacher_email,
     info = Table(patient_rows, colWidths=[27*mm, 61*mm, 25*mm, 65*mm])
     info.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#D5DEDA")),
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#E7ECE9")),
-        ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#E7ECE9")),
-        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#273B43")),
-        ("TEXTCOLOR", (2, 0), (2, -1), colors.HexColor("#273B43")),
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor(palette["soft"])),
+        ("BACKGROUND", (2, 0), (2, -1), colors.HexColor(palette["soft"])),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor(palette["text"])),
+        ("TEXTCOLOR", (2, 0), (2, -1), colors.HexColor(palette["text"])),
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 7.7),
@@ -425,12 +494,12 @@ def export_academic_report(path, patient, student_name, teacher_email,
                         ])
                     table = Table(data, colWidths=[57*mm, 121*mm], repeatRows=1)
                 table.setStyle(TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#356B72")),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(palette["primary"])),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("GRID", (0, 0), (-1, -1), .3, colors.HexColor("#D5DEDA")),
+                    ("GRID", (0, 0), (-1, -1), .3, colors.HexColor(palette["border"])),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-                     [colors.white, colors.HexColor("#F3F4F1")]),
+                     [colors.white, colors.HexColor(palette["background"])]),
                     ("LEFTPADDING", (0, 0), (-1, -1), 4),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 4),
                     ("TOPPADDING", (0, 0), (-1, -1), 4),
@@ -495,20 +564,10 @@ def export_academic_report(path, patient, student_name, teacher_email,
         ),
     ])
 
-    def footer(canvas, doc):
-        canvas.saveState()
-        canvas.setStrokeColor(colors.HexColor("#D5DEDA"))
-        canvas.line(15*mm, 12*mm, A4[0]-15*mm, 12*mm)
-        canvas.setFont("Helvetica", 7)
-        canvas.setFillColor(colors.HexColor("#788A87"))
-        canvas.drawString(15*mm, 8*mm, "YSM Análisis · Informe académico")
-        canvas.drawRightString(A4[0]-15*mm, 8*mm, f"Página {doc.page}")
-        canvas.restoreState()
-
     SimpleDocTemplate(
         str(path), pagesize=A4, rightMargin=15*mm, leftMargin=15*mm,
-        topMargin=15*mm, bottomMargin=18*mm,
-        title="YSM Análisis · Informe académico",
+        topMargin=34*mm, bottomMargin=18*mm,
+        title="AVIS · Informe académico",
         author=student_name,
-    ).build(story, onFirstPage=footer, onLaterPages=footer)
+    ).build(story, onFirstPage=_report_page_decorator(palette_id), onLaterPages=_report_page_decorator(palette_id))
     return path

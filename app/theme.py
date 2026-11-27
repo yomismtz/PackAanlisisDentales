@@ -1,4 +1,27 @@
-"""Paleta única de ocho colores para toda la aplicación."""
+"""Paleta de interfaz y paletas cromáticas disponibles en los informes AVIS."""
+from pathlib import Path
+import sys
+
+REPORT_PALETTES = {
+    "buho_real": {"name": "Búho real", "bird_file": "buho_real.png", "colors": {"plum": "#49372D", "primary": "#795A42", "accent": "#D58B31", "mint": "#E9DDC8", "background": "#F8F4EB", "surface": "#FFFFFF", "soft": "#ECE2D2", "border": "#CFB999", "text": "#302923", "muted": "#75695C"}},
+    "colibri": {"name": "Colibrí", "bird_file": "colibri.png", "colors": {"plum": "#263C50", "primary": "#087F75", "accent": "#C34C8A", "mint": "#D9F0E8", "background": "#F4F9F7", "surface": "#FFFFFF", "soft": "#E3F1EC", "border": "#BFDCD4", "text": "#263C50", "muted": "#536A66"}},
+    "guacamayo_azul": {"name": "Guacamayo azul", "bird_file": "guacamayo_azul.png", "colors": {"plum": "#173B63", "primary": "#1769AA", "accent": "#D49B18", "mint": "#D8EEE5", "background": "#F4F8FB", "surface": "#FFFFFF", "soft": "#E4EFF6", "border": "#BDD1E0", "text": "#173B63", "muted": "#60778B"}},
+    "guacamaya_roja": {"name": "Guacamaya roja", "bird_file": "guacamaya_roja.png", "colors": {"plum": "#38262C", "primary": "#D9272E", "accent": "#D9A51E", "mint": "#F4E4D6", "background": "#FBF5EF", "surface": "#FFFFFF", "soft": "#F3E4D7", "border": "#DCC5B4", "text": "#38262C", "muted": "#77665F"}},
+    "quetzal": {"name": "Quetzal", "bird_file": "quetzal.png", "colors": {"plum": "#183D35", "primary": "#087E70", "accent": "#C8463F", "mint": "#D8EEE5", "background": "#F5F9F4", "surface": "#FFFFFF", "soft": "#E4F1E7", "border": "#C8B26D", "text": "#183D35", "muted": "#60766E"}},
+    "faisan": {"name": "Faisán", "bird_file": "faisan.png", "colors": {"plum": "#49352D", "primary": "#A45136", "accent": "#C18B2B", "mint": "#E9DDC9", "background": "#FAF6EF", "surface": "#FFFFFF", "soft": "#F0E6D6", "border": "#D8C3A7", "text": "#49352D", "muted": "#74675E"}},
+    "ninfa": {"name": "Ninfa", "bird_file": "ninfa.png", "colors": {"plum": "#3B4146", "primary": "#737B81", "accent": "#D87542", "mint": "#EEECE3", "background": "#FAF9F3", "surface": "#FFFFFF", "soft": "#EEECE3", "border": "#D2D0C6", "text": "#30363B", "muted": "#74777B"}},
+    "pavo_real": {"name": "Pavo real", "bird_file": "pavo_real.png", "colors": {"plum": "#23304F", "primary": "#087E80", "accent": "#A58A36", "mint": "#D9EEE7", "background": "#F4F8F8", "surface": "#FFFFFF", "soft": "#E3F0ED", "border": "#BBD5CF", "text": "#23304F", "muted": "#61747D"}},
+    "tucan": {"name": "Tucán", "bird_file": "tucan.png", "colors": {"plum": "#202124", "primary": "#323D43", "accent": "#E97824", "mint": "#F5E8C8", "background": "#FBF8F0", "surface": "#FFFFFF", "soft": "#F5F1E8", "border": "#CEC7B7", "text": "#202124", "muted": "#686A6B"}},
+    "agapornis": {"name": "Agapornis", "bird_file": "agapornis.png", "colors": {"plum": "#553B59", "primary": "#328C55", "accent": "#D98567", "mint": "#D9EEE6", "background": "#FFFCF4", "surface": "#FFFFFF", "soft": "#EFE7F2", "border": "#D7C9D9", "text": "#3F3643", "muted": "#5F6F69"}},
+}
+
+
+def report_bird_path(palette_id="colibri"):
+    palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return root / "clients" / "web" / "public" / "birds" / palette["bird_file"]
+
+
 PALETTE = {
     "primary": "#356B72",
     "secondary": "#8CA7A2",

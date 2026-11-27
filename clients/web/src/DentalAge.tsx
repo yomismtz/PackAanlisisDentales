@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { getAvisPalette } from "./themePalettes";
 
 type DentalMethod = "nolla" | "demirjian";
 type Study = "select" | "nolla" | "demirjian" | "cervical" | "greulich" | "fishman";
@@ -43,7 +44,9 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
  const highestFishman=useMemo(()=>{let highest=0;for(let i=1;i<=11;i++){if(fishman[String(i)]==="Presente")highest=i;}return highest;},[fishman]);
  function loadImage(file:File|null,setter:(value:string)=>void){if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setter(String(reader.result??""));reader.readAsDataURL(file);}
  function exportReport(){
-  const data={application:"AVIS",analysis:study==="nolla"?"Edad dental · Nolla":study==="demirjian"?"Edad dental · Demirjian":study==="greulich"?"Edad ósea · Greulich y Pyle":study==="fishman"?"Maduración carpal · Fishman":"Maduración vertebral cervical",sex,study,
+  const paletteId=(()=>{try{return window.localStorage.getItem("avis.palette")??"colibri";}catch{return "colibri";}})();
+  const activePalette=getAvisPalette(paletteId);
+  const data={application:"AVIS",palette:{id:activePalette.id,name:activePalette.name,colors:activePalette.colors,birdIcon:activePalette.birdImage},analysis:study==="nolla"?"Edad dental · Nolla":study==="demirjian"?"Edad dental · Demirjian":study==="greulich"?"Edad ósea · Greulich y Pyle":study==="fishman"?"Maduración carpal · Fishman":"Maduración vertebral cervical",sex,study,
    ...((study==="nolla"||study==="demirjian")?{dental:{method:study,referenceTeeth:TEETH,stages:Object.fromEntries(TEETH.map(t=>[t,stages[t]??null])),totalNollaScore:study==="nolla"?score:null,evaluatedTeeth:selected,imageIncluded:Boolean(dentalImage),observations:notes,interpretation:study==="nolla"?"La suma de estadios no se convierte directamente a años. Requiere tabla normativa validada para sexo y población.":"Se requieren puntuaciones Demirjian específicas por sexo y tabla de conversión validada."}}:{}),
    ...(study==="greulich"?{carpal:{method:"Greulich y Pyle",side:carpalSide,closestAtlasStandard:gpPlate||null,manuallyRecordedBoneAge:gpAge||null,imageIncluded:Boolean(carpalImage),observations:gpNotes}}:{}),
    ...(study==="fishman"?{carpal:{method:"Fishman",side:carpalSide,indicators:FISHMAN.map(([id,description],i)=>({id,description,status:fishman[String(i+1)]||"No evaluado"})),highestObservedIndicator:highestFishman||null,imageIncluded:Boolean(carpalImage),observations:carpalNotes,interpretation:"El SMI más alto registrado describe maduración esquelética; no equivale por sí mismo a edad cronológica."}}:{}),

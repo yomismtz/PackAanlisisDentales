@@ -29,7 +29,7 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
       - name: Build executable
-        run: python -m PyInstaller --noconfirm --clean --windowed --name AVIS --collect-all PySide6 --collect-all cv2 run.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name AVIS --collect-all PySide6 --collect-all cv2 --add-data "clients/web/public/avis-logo.svg;clients/web/public" --add-data "clients/web/public/birds;clients/web/public" run.py
       - name: Verify executable
         run: |
           if (!(Test-Path 'dist/AVIS/AVIS.exe')) { throw 'AVIS.exe was not generated' }

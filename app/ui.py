@@ -3,7 +3,7 @@ import mimetypes, tempfile, re
 from pathlib import Path
 import cv2
 from PySide6.QtCore import Qt, QTimer, QPointF, Signal, QUrl
-from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QDesktopServices
+from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import *
 
 from .catalog import (
@@ -21,7 +21,7 @@ from .photo_analysis import PhotoAnalysisDialog
 from .database import Database
 from .storage import database_path, import_media, save_processed
 from . import imaging
-from .theme import PALETTE, stylesheet
+from .theme import PALETTE, stylesheet, REPORT_PALETTES, report_bird_path
 from .nolla import NOLLA_STAGES, NOLLA_TABLE, QUADRANT_TEETH, estimate_age, sum_stages, format_age
 from .age_calculation import chronological_age, CERVICAL_STAGE_REFERENCE, CERVICAL_REFERENCE_NOTE
 from .cephalometry import LANDMARKS, TRACE_PAIRS, REFERENCES, calculate_cephalometry, distance as ceph_distance
@@ -1000,6 +1000,11 @@ class ReportsPage(QWidget):
         self.teacher_email.setPlaceholderText("docente@institucion.edu")
         form.addRow("Estudiante *", self.student)
         form.addRow("Correo del docente *", self.teacher_email)
+        self.palette_select = QComboBox()
+        for palette_id, palette in REPORT_PALETTES.items():
+            self.palette_select.addItem(QIcon(str(report_bird_path(palette_id))), palette["name"], palette_id)
+        self.palette_select.setCurrentIndex(max(0, self.palette_select.findData("colibri")))
+        form.addRow("Paleta del informe", self.palette_select)
         layout.addLayout(form)
 
         self.selection_group = QGroupBox("Apartados que se incluirán")
@@ -1115,7 +1120,7 @@ class ReportsPage(QWidget):
             QMessageBox.warning(self, "Selección de informe", str(exc))
             return
 
-        suggested = f"YSM_Informe_{self.workspace.patient['record_number']}.pdf"
+        suggested = f"AVIS_Informe_{self.workspace.patient['record_number']}.pdf"
         path, _ = QFileDialog.getSaveFileName(
             self, "Guardar informe académico", suggested, "PDF (*.pdf)"
         )
@@ -1134,6 +1139,7 @@ class ReportsPage(QWidget):
                 selected_modules=selected,
                 analyses_snapshot=snapshot,
                 media=self.workspace.db.media_for_patient(self.workspace.pid),
+                palette_id=self.palette_select.currentData() or "colibri",
             )
             self.workspace.db.save_report(
                 self.workspace.pid, student, teacher, selected, snapshot, path
