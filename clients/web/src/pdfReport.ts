@@ -235,9 +235,9 @@ function drawPageFrame(
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
   output += text(generatedAt, 300, 795, 7.5, "F1", muted);
   output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
-  output += text(`AVIS · ${reportLabel} · Página ${pageNumber}`, 48, 41, 7, "F1", muted);
-  output += text("YomDental · Generado por la Dra. Yomira Salgado Martínez", 48, 31, 6, "F1", muted);
-  output += text("Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación", 48, 22, 5.1, "F1", muted);
+  output += text(`AVIS · ${reportLabel} · Página ${pageNumber}`, 48, 58, 7, "F1", muted);
+  output += text("YomDental · Generado por la Dra. Yomira Salgado Martínez", 48, 46, 6, "F1", muted);
+  output += text("Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación", 48, 35, 5.1, "F1", muted);
   return output;
 }
 
