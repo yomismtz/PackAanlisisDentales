@@ -94,8 +94,8 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
   const [leftCanineUnavailable, setLeftCanineUnavailable] = useState(false);
   const [rightTerminalUnavailable, setRightTerminalUnavailable] = useState(false);
   const [leftTerminalUnavailable, setLeftTerminalUnavailable] = useState(false);
-  const [rightOpenBite, setRightOpenBite] = useState("No valorable");
-  const [leftOpenBite, setLeftOpenBite] = useState("No valorable");
+  const [rightOpenBite, setRightOpenBite] = useState("No");
+  const [leftOpenBite, setLeftOpenBite] = useState("No");
   const [posteriorCrossbite, setPosteriorCrossbite] = useState("No valorable");
   const [anteriorCrossbite, setAnteriorCrossbite] = useState("No valorable");
   const [scissorBite, setScissorBite] = useState("No valorable");
@@ -470,7 +470,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
               </div>
               <p className="clinical-note">Configura el intervalo de referencia que utilizarás para esta dentición y método. No hay un único intervalo porcentual aplicable a todas las edades. Sin escala equivalente, AVIS no declara el porcentaje como válido.</p>
               <div className="visual-grid">
-                <label className="visual-field"><span>Mordida abierta posterior derecha</span><select value={rightOpenBite} onChange={event => setRightOpenBite(event.target.value)}><option>No valorable</option><option>Sí</option><option>No</option></select></label>
+                <label className="visual-field"><span>Mordida abierta posterior derecha</span><select value={rightOpenBite} onChange={event => setRightOpenBite(event.target.value)}><option>Sí</option><option>No</option></select></label>
                 <label className="visual-field"><span>Mordida abierta posterior izquierda</span><select value={leftOpenBite} onChange={event => setLeftOpenBite(event.target.value)}><option>No valorable</option><option>Sí</option><option>No</option></select></label>
               </div>
             </div>
