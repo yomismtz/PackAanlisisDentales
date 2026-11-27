@@ -170,8 +170,8 @@ function loadBirdRasterDataUrl(source: string, size: number, opacity: number): P
   });
 }
 
-export async function loadYomDentalLogoDataUrl(palette: PaletteColors): Promise<string> {
- const image=new Image(); image.src="/yomdental-logo.svg";
+export async function loadYomDentalLogoDataUrl(palette: PaletteColors, source = "/yomdental-logo.svg"): Promise<string> {
+ const image=new Image(); image.src=source;
  await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar el logotipo de YomDental."));});
  const canvas=document.createElement("canvas");canvas.width=220;canvas.height=220;
  const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar el logotipo de YomDental.");
@@ -179,8 +179,8 @@ export async function loadYomDentalLogoDataUrl(palette: PaletteColors): Promise<
  const scale=Math.min(204/image.naturalWidth,204/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
  context.drawImage(image,(220-w)/2,(220-h)/2,w,h);return canvas.toDataURL("image/jpeg",.92);
 }
-export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Promise<string> {
- const image=new Image();image.src="/yomdental-logo.svg";
+export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors, source = "/yomdental-logo.svg"): Promise<string> {
+ const image=new Image();image.src=source;
  await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar la marca de agua YomDental."));});
  const canvas=document.createElement("canvas");canvas.width=400;canvas.height=400;
  const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar la marca de agua YomDental.");
