@@ -175,11 +175,9 @@ export async function loadYomDentalLogoDataUrl(palette: PaletteColors): Promise<
  await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar el logotipo de YomDental."));});
  const canvas=document.createElement("canvas");canvas.width=220;canvas.height=220;
  const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar el logotipo de YomDental.");
- context.fillStyle="#FFFFFF";context.fillRect(0,0,220,220);
+ context.clearRect(0,0,220,220);
  const scale=Math.min(204/image.naturalWidth,204/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
- context.drawImage(image,(220-w)/2,(220-h)/2,w,h);context.globalCompositeOperation="source-in";
- const gradient=context.createLinearGradient(10,10,210,210);gradient.addColorStop(0,palette.plum);gradient.addColorStop(.55,palette.primary);gradient.addColorStop(1,palette.accent);
- context.fillStyle=gradient;context.fillRect(0,0,220,220);return canvas.toDataURL("image/jpeg",.92);
+ context.drawImage(image,(220-w)/2,(220-h)/2,w,h);return canvas.toDataURL("image/png");
 }
 export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Promise<string> {
  const image=new Image();image.src="/yomdental-logo.svg";
@@ -279,10 +277,10 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   });
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
-  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), false, Boolean(watermarkBytes), Boolean(clinicWatermarkBytes));
-  page1 += text(input.title, 48, 732, 10.5, "F2", primary);
-  page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
-  page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
+  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), Boolean(watermarkBytes), Boolean(clinicWatermarkBytes));
+  page1 += text(input.title, 48, 718, 10.5, "F2", primary);
+  page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 702, 8, "F1", muted);
+  page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 687, 7.5, "F1", BLACK);
 
   const photoBox = { x: 48, y: 313, width: PAGE_W - 96, height: 370 };
   const scale = Math.min(
