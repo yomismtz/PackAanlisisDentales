@@ -175,9 +175,9 @@ export async function loadYomDentalLogoDataUrl(palette: PaletteColors): Promise<
  await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar el logotipo de YomDental."));});
  const canvas=document.createElement("canvas");canvas.width=220;canvas.height=220;
  const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar el logotipo de YomDental.");
- context.clearRect(0,0,220,220);
+ context.fillStyle="#FFFFFF";context.fillRect(0,0,220,220);
  const scale=Math.min(204/image.naturalWidth,204/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
- context.drawImage(image,(220-w)/2,(220-h)/2,w,h);return canvas.toDataURL("image/png");
+ context.drawImage(image,(220-w)/2,(220-h)/2,w,h);return canvas.toDataURL("image/jpeg",.92);
 }
 export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Promise<string> {
  const image=new Image();image.src="/yomdental-logo.svg";
