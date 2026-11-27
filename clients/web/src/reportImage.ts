@@ -53,6 +53,7 @@ function fillPage(
   context.fillStyle = "#FFFFFF";
   context.fillRect(0, 0, WIDTH, height);
   if (watermark) context.drawImage(watermark, WIDTH / 2 - 150, height / 2 - 150, 300, 300);
+  if (clinicWatermark) { context.save(); context.globalAlpha = 0.07; context.drawImage(clinicWatermark, WIDTH / 2 - 170, height / 2 - 170, 340, 340); context.restore(); }
   context.strokeStyle = plum;
   context.lineWidth = 2;
   context.strokeRect(54, 54, WIDTH - 108, height - 108);
@@ -192,7 +193,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   return canvas;
 }
 
-function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null, clinicLogo: HTMLImageElement | null): HTMLCanvasElement {
+function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null, clinicLogo: HTMLImageElement | null, clinicWatermark: HTMLImageElement | null): HTMLCanvasElement {
   const plum = input.palette.plum;
   const primary = input.palette.primary;
   const accent = input.palette.accent;
@@ -232,7 +233,7 @@ function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageEleme
   canvas.height = pageHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No fue posible generar la segunda página del reporte.");
-  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input, logo, bird, watermark, clinicLogo);
+  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input, logo, bird, watermark, clinicLogo, clinicWatermark);
 
   context.fillStyle = BLACK;
   context.font = "bold 21px Arial, sans-serif";
