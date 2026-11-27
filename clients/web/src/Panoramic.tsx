@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { buildPhotoReportPdf } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { getAvisPalette } from "./themePalettes";
+import Levandoski from "./Levandoski";
 
 type ReviewField = { id: string; title: string; prompt: string; options: string[] };
 const REVIEW: ReviewField[] = [
@@ -38,6 +39,7 @@ type AnswerMap = Record<string, string>;
 type LevMap = Record<string, string>;
 
 export default function Panoramic({ onBack }: { onBack: () => void }) {
+  const [analysisType, setAnalysisType] = useState<"select" | "systematic" | "levandoski">("select");
   const [fileName, setFileName] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState("");
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
@@ -55,6 +57,14 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
 
   const completed = useMemo(() => REVIEW.filter((item) => Boolean(answers[item.id])).length, [answers]);
   const levCompleted = useMemo(() => LEVANDOSKI.filter(([key]) => Boolean(levandoski[key])).length, [levandoski]);
+  if (analysisType === "levandoski") return <Levandoski onBack={() => setAnalysisType("select")} />;
+  if (analysisType === "select") return <section className="analysis-page">
+    <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · ANÁLISIS PANORÁMICO</p><h1>Radiografía panorámica</h1><p>Selecciona el tipo de análisis que deseas realizar.</p></div></div>
+    <div className="workspace">
+      <button className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:180}} onClick={() => setAnalysisType("systematic")}><h2>Análisis sistemático</h2><p>Revisión estructurada en 16 fases: calidad técnica, orientación, anatomía, dentición, soporte óseo y hallazgos.</p><strong>Iniciar revisión sistemática →</strong></button>
+      <button className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:180}} onClick={() => setAnalysisType("levandoski")}><h2>Análisis de Levandoski</h2><p>Colocación de puntos anatómicos, trazado de líneas, mediciones bilaterales y cálculo de discrepancias derecha-izquierda.</p><strong>Iniciar análisis de Levandoski →</strong></button>
+    </div>
+  </section>;
   const conclusions = useMemo(() => REVIEW.flatMap((item) => {
     const answer = answers[item.id];
     if (!answer || answer === "Sin alteraciones evidentes" || answer === "Sin hallazgos relevantes" || answer === "No identificados" || answer === "Adecuada" || answer === "Continuidad conservada" || answer === "Sin discrepancias aparentes") return [];
@@ -159,7 +169,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   }
 
   return <section className="analysis-page">
-    <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Radiografía panorámica</h1><p>Revisión sistemática estructurada y registro independiente de Levandoski. La imagen y los datos se procesan localmente.</p></div><span className="module-count">{completed}/16 fases · {levCompleted}/8 registros</span></div>
+    <div className="analysis-heading"><div><button className="text-button" onClick={() => setAnalysisType("select")}>← Cambiar tipo de análisis</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Revisión sistemática panorámica</h1><p>Registra los hallazgos en las 16 fases. La imagen y los datos se procesan localmente.</p></div><span className="module-count">{completed}/16 fases · {levCompleted}/8 registros</span></div>
     <div className="guide"><strong>Revisión panorámica sistemática</strong><p>Registra calidad técnica, anatomía, dentición, soporte óseo y hallazgos. Selecciona una opción por fase y añade localización o descripción cuando sea necesario. Las fases son una guía académica, no una lectura diagnóstica automática.</p></div>
     <div className="workspace">
       <section className="panel photo-panel">
