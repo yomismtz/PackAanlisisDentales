@@ -599,6 +599,10 @@ function App() {
           </div>
         </section>
       )}
+      <footer className="yomdental-footer">
+        <strong>YomDental</strong> · Este sistema fue generado por la Dra. Yomira Salgado Martínez
+        <span>Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación</span>
+      </footer>
     </main>
   );
 }

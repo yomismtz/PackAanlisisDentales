@@ -1437,7 +1437,9 @@ class Workspace(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(); self.db=Database(database_path()); self.setWindowTitle("Pack Análisis Dentales"); self.resize(1320,880)
-        self.central=QVBoxLayout(); host=QWidget(); host.setLayout(self.central); self.setCentralWidget(host); self.home()
+        self.central=QVBoxLayout(); host=QWidget(); host.setLayout(self.central); self.setCentralWidget(host)
+        self.statusBar().showMessage("YomDental · Generado por la Dra. Yomira Salgado Martínez · Cirujano Dentista, Especialista en Ortodoncia, Maestra en Ciencias Odontológicas y Doctora en Educación")
+        self.home()
     def clear(self):
         while self.central.count():
             x=self.central.takeAt(0); w=x.widget()

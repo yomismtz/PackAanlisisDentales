@@ -86,6 +86,10 @@ function fillPage(
   context.fillStyle = muted;
   context.font = "14px Arial, sans-serif";
   context.fillText(`AVIS · ${input.reportLabel || "Reporte"} · Página ${pageNumber}`, MARGIN, height - 76);
+  context.font = "12px Arial, sans-serif";
+  context.fillText("YomDental · Generado por la Dra. Yomira Salgado Martínez", MARGIN, height - 96);
+  context.font = "10px Arial, sans-serif";
+  context.fillText("Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación", MARGIN, height - 112);
 }
 
 function drawWrapped(

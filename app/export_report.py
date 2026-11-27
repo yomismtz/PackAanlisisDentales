@@ -43,8 +43,12 @@ def _report_page_decorator(palette_id="colibri"):
         canvas.line(15*mm, A4[1]-31*mm, A4[0]-15*mm, A4[1]-31*mm)
         canvas.setFillColor(colors.HexColor(palette["muted"]))
         canvas.setFont("Helvetica", 7)
-        canvas.drawString(15*mm, 8*mm, "AVIS · Análisis Odontológico Integral")
-        canvas.drawRightString(A4[0]-15*mm, 8*mm, f"Página {doc.page}")
+        canvas.setFont("Helvetica-Bold", 6.5)
+        canvas.drawString(15*mm, 15*mm, "YomDental · Generado por la Dra. Yomira Salgado Martínez")
+        canvas.setFont("Helvetica", 5.8)
+        canvas.drawString(15*mm, 9*mm, "Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación")
+        canvas.setFont("Helvetica", 7)
+        canvas.drawRightString(A4[0]-15*mm, 15*mm, f"Página {doc.page}")
         canvas.restoreState()
 
     return draw_page
