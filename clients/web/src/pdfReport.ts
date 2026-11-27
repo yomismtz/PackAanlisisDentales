@@ -24,6 +24,7 @@ export type PhotoReportInput = {
   generatedAt: Date;
   palette: PaletteColors;
   reportLabel?: string;
+  logoDataUrl?: string;
 };
 
 type RGB = [number, number, number];
@@ -123,6 +124,24 @@ function base64ToBytes(dataUrl: string): Uint8Array {
   return bytes;
 }
 
+
+export async function loadAvisLogoDataUrl(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 96;
+      canvas.height = 96;
+      const context = canvas.getContext("2d");
+      if (!context) { reject(new Error("No fue posible preparar el logotipo de AVIS.")); return; }
+      context.drawImage(image, 0, 0, 96, 96);
+      resolve(canvas.toDataURL("image/jpeg", 0.94));
+    };
+    image.onerror = () => reject(new Error("No fue posible cargar el logotipo de AVIS."));
+    image.src = "/avis-icon.svg";
+  });
+}
+
 function ascii(value: string): Uint8Array {
   return new TextEncoder().encode(value);
 }
@@ -138,14 +157,15 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
   return output;
 }
 
-function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors, reportLabel = "Reporte fotográfico"): string {
+function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors, reportLabel = "Reporte fotográfico", hasLogo = false): string {
   const plum = toRgb(palette.plum);
   const primary = toRgb(palette.primary);
   const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
   let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  output += text("AVIS", 48, 790, 19, "F2", primary);
-  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", 101, 795, 8, "F2", plum);
+  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\\n";
+  output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
+  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
   output += text(generatedAt, PAGE_W - 190, 795, 7.5, "F1", muted);
   output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
@@ -155,6 +175,8 @@ function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: strin
 
 function createPdf(input: PhotoReportInput): Uint8Array {
   const photoBytes = base64ToBytes(input.photoDataUrl);
+  const logoBytes = input.logoDataUrl ? base64ToBytes(input.logoDataUrl) : null;
+  const logoResource = logoBytes ? " /Logo 10 0 R" : "";
   const plum = toRgb(input.palette.plum);
   const mint = toRgb(input.palette.mint);
   const primary = toRgb(input.palette.primary);
@@ -166,7 +188,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   });
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
-  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel);
+  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes));
   page1 += text(input.title, 48, 732, 10.5, "F2", primary);
   page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
@@ -215,7 +237,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel);
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes));
   page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
@@ -286,8 +308,8 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const objects: Uint8Array[] = [
     ascii("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"),
     ascii("2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>\nendobj\n"),
-    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R >> >> /Contents 8 0 R >>\nendobj\n"),
-    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 9 0 R >>\nendobj\n"),
+    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R${logoResource} >> >> /Contents 8 0 R >>\nendobj\n"),
+    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >>${logoBytes ? " /XObject << /Logo 10 0 R >>" : ""} >> /Contents 9 0 R >>\nendobj\n"),
     ascii("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n"),
     ascii("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n"),
     imageObject,
