@@ -201,12 +201,12 @@ function drawPageFrame(
   const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
   let output = "";
-  if (hasWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\\n";
+  if (hasWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\n";
   output += rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\\n";
+  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\n";
   output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
   output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
-  if (hasBird) output += "q 29 0 0 29 532 778 cm /Bird Do Q\\n";
+  if (hasBird) output += "q 29 0 0 29 532 778 cm /Bird Do Q\n";
   output += text(paletteName.toUpperCase(), 465, 773, 6.5, "F2", primary);
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
   output += text(generatedAt, 300, 795, 7.5, "F1", muted);
@@ -377,9 +377,9 @@ function createPdf(input: PhotoReportInput): Uint8Array {
 
   const appendImageObject = (objectId: number, width: number, height: number, bytes: Uint8Array) => {
     objects.push(concatBytes([
-      ascii(`${objectId} 0 obj\\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\\nstream\\n`),
+      ascii(`${objectId} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`),
       bytes,
-      ascii("\\nendstream\\nendobj\\n"),
+      ascii("\nendstream\nendobj\n"),
     ]));
   };
   if (logoBytes && logoObjectId) appendImageObject(logoObjectId, 96, 96, logoBytes);
