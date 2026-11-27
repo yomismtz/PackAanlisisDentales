@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
 import { calculateCephalometry } from "./cephalometryCalculations";
 
@@ -93,12 +93,13 @@ export default function Cephalometry({ onBack }: { onBack: () => void }) {
     if(!canvas||!imageSize){setError("Carga una radiografía antes de generar el informe.");return;}
     try{
       const paletteId=(()=>{try{return window.localStorage.getItem("avis.palette")??"colibri";}catch{return "colibri";}})();
-      const palette=getAvisPalette(paletteId).colors;
+      const activePalette=getAvisPalette(paletteId);
+      const palette=activePalette.colors;
       const rows=REFERENCES.map(r=>({label:r.label,value:result.values[r.key]===undefined?"Pendiente":result.values[r.key].toFixed(2)+r.unit,reference:r.normal}));
       const conclusions=REFERENCES.filter(r=>result.values[r.key]!==undefined).map(r=>{const v=result.values[r.key];return `${r.label}: ${v<r.min?r.low:v>r.max?r.high:r.normalText} Resultado: ${v.toFixed(2)}${r.unit}.`;});
       if(!conclusions.length)conclusions.push("No hay mediciones completas. Coloca los puntos anatómicos requeridos para obtener resultados.");
       conclusions.push("Interpretación descriptiva generada a partir de los puntos colocados. Las referencias son orientativas y deben validarse según edad, población, método cefalométrico y criterio profesional.");
-      const pdf=buildPhotoReportPdf({title:"Radiografía lateral de cráneo · Análisis cefalométrico de Steiner",mode:"cephalometry",fileName,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",0.92),photoWidth:imageSize.width,photoHeight:imageSize.height,horizontalGuides:false,points,results:rows,conclusions,visualAssessment:{},observations:pxPerMm?`Calibración registrada: ${pxPerMm.toFixed(4)} px/mm. Distancia patrón: ${knownDistance} mm.`:"Sin calibración métrica. Las distancias lineales permanecen pendientes.",professionalConclusion:"Informe de apoyo académico y registro cefalométrico. Verificar la identificación de los puntos, la orientación de los ejes y las referencias antes de tomar decisiones clínicas.",generatedAt:new Date(),palette,logoDataUrl:await loadAvisLogoDataUrl(),reportLabel:"Reporte cefalométrico"});
+      const pdf=buildPhotoReportPdf({title:"Radiografía lateral de cráneo · Análisis cefalométrico de Steiner",mode:"cephalometry",fileName,status:"En proceso",photoDataUrl:canvas.toDataURL("image/jpeg",0.92),photoWidth:imageSize.width,photoHeight:imageSize.height,horizontalGuides:false,points,results:rows,conclusions,visualAssessment:{},observations:pxPerMm?`Calibración registrada: ${pxPerMm.toFixed(4)} px/mm. Distancia patrón: ${knownDistance} mm.`:"Sin calibración métrica. Las distancias lineales permanecen pendientes.",professionalConclusion:"Informe de apoyo académico y registro cefalométrico. Verificar la identificación de los puntos, la orientación de los ejes y las referencias antes de tomar decisiones clínicas.",generatedAt:new Date(),palette,paletteName:activePalette.name,logoDataUrl:await loadAvisLogoDataUrl(),birdIconDataUrl:await loadAvisBirdIconDataUrl(activePalette.birdImage),birdWatermarkDataUrl:await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),reportLabel:"Reporte cefalométrico"});
       const pdfBuffer=new Uint8Array(pdf).buffer as ArrayBuffer;const blob=new Blob([pdfBuffer],{type:"application/pdf"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="AVIS_Reporte_Cefalometria_Lateral.pdf";a.click();URL.revokeObjectURL(url);setError("");
     }catch(e){setError(e instanceof Error?e.message:"No fue posible generar el informe PDF.");}
   }

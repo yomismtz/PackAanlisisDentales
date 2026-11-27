@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
 
 type XY = { x: number; y: number };
@@ -306,6 +306,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
         const current = images[view.key]!;
         return { label: "Fotografía · " + view.label, value: current.name, reference: current.width + " × " + current.height + " px" };
       });
+      const activePalette = getAvisPalette(paletteId);
       const pdf = buildPhotoReportPdf({
         title: "Relaciones intermaxilares · " + dentition,
         mode: "models-intermaxillary",
@@ -328,8 +329,11 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
         observations,
         professionalConclusion: conclusion || "Registro de apoyo clínico y docente. Verificar el paralelismo, orientación y escala equivalente de las fotografías antes de interpretar medidas entre vistas.",
         generatedAt: new Date(),
-        palette: getAvisPalette(paletteId).colors,
+        palette: activePalette.colors,
+        paletteName: activePalette.name,
         logoDataUrl: await loadAvisLogoDataUrl(),
+        birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
+        birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
         reportLabel: "Relaciones intermaxilares",
       });
       const blob = new Blob([new Uint8Array(pdf).buffer as ArrayBuffer], { type: "application/pdf" });

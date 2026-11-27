@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
@@ -325,7 +325,10 @@ function App() {
         professionalConclusion: conclusion,
         generatedAt: new Date(),
         palette: activePalette.colors,
+        paletteName: activePalette.name,
         logoDataUrl: await loadAvisLogoDataUrl(),
+        birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
+        birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
       };
 
       let blob: Blob;
@@ -403,6 +406,7 @@ function App() {
         <div className="topbar-actions">
           <label className="palette-control" htmlFor="palette-select">
             <span>PALETA</span>
+            <img className="palette-bird-icon" src={activePalette.birdImage} alt={`Ave de la paleta ${activePalette.name}`} />
             <select
               id="palette-select"
               value={paletteId}
@@ -410,7 +414,7 @@ function App() {
               aria-label="Seleccionar paleta de colores"
             >
               {AVIS_PALETTES.map((palette) => (
-                <option key={palette.id} value={palette.id}>{palette.bird} {palette.name}</option>
+                <option key={palette.id} value={palette.id}>{palette.name}</option>
               ))}
             </select>
             <span className="palette-swatches" aria-label="Colores de la paleta activa">

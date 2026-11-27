@@ -23,8 +23,11 @@ export type PhotoReportInput = {
   professionalConclusion: string;
   generatedAt: Date;
   palette: PaletteColors;
+  paletteName?: string;
   reportLabel?: string;
   logoDataUrl?: string;
+  birdIconDataUrl?: string;
+  birdWatermarkDataUrl?: string;
 };
 
 type RGB = [number, number, number];
@@ -142,6 +145,37 @@ export async function loadAvisLogoDataUrl(): Promise<string> {
   });
 }
 
+function loadBirdRasterDataUrl(source: string, size: number, opacity: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext("2d");
+      if (!context) { reject(new Error("No fue posible preparar el icono de la paleta.")); return; }
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, size, size);
+      const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight);
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      context.globalAlpha = opacity;
+      context.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.94));
+    };
+    image.onerror = () => reject(new Error("No fue posible cargar el ave de la paleta seleccionada."));
+    image.src = source;
+  });
+}
+
+export function loadAvisBirdIconDataUrl(source: string): Promise<string> {
+  return loadBirdRasterDataUrl(source, 128, 1);
+}
+
+export function loadAvisBirdWatermarkDataUrl(source: string): Promise<string> {
+  return loadBirdRasterDataUrl(source, 320, 0.075);
+}
+
 function ascii(value: string): Uint8Array {
   return new TextEncoder().encode(value);
 }
@@ -157,17 +191,25 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
   return output;
 }
 
-function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors, reportLabel = "Reporte fotográfico", hasLogo = false): string {
+function drawPageFrame(
+  pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors,
+  reportLabel = "Reporte", hasLogo = false, hasBird = false, hasWatermark = false,
+  paletteName = "Colibrí",
+): string {
   const plum = toRgb(palette.plum);
   const primary = toRgb(palette.primary);
   const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
-  let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\n";
+  let output = "";
+  if (hasWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\\n";
+  output += rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
+  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\\n";
   output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
   output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
+  if (hasBird) output += "q 29 0 0 29 532 778 cm /Bird Do Q\\n";
+  output += text(paletteName.toUpperCase(), 465, 773, 6.5, "F2", primary);
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
-  output += text(generatedAt, PAGE_W - 190, 795, 7.5, "F1", muted);
+  output += text(generatedAt, 300, 795, 7.5, "F1", muted);
   output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
   output += text(`AVIS · ${reportLabel} · Página ${pageNumber}`, 48, 41, 7, "F1", muted);
   return output;
@@ -176,7 +218,23 @@ function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: strin
 function createPdf(input: PhotoReportInput): Uint8Array {
   const photoBytes = base64ToBytes(input.photoDataUrl);
   const logoBytes = input.logoDataUrl ? base64ToBytes(input.logoDataUrl) : null;
-  const logoResource = logoBytes ? " /Logo 10 0 R" : "";
+  const birdBytes = input.birdIconDataUrl ? base64ToBytes(input.birdIconDataUrl) : null;
+  const watermarkBytes = input.birdWatermarkDataUrl ? base64ToBytes(input.birdWatermarkDataUrl) : null;
+  let nextImageObject = 10;
+  const logoObjectId = logoBytes ? nextImageObject++ : null;
+  const birdObjectId = birdBytes ? nextImageObject++ : null;
+  const watermarkObjectId = watermarkBytes ? nextImageObject++ : null;
+  const page1XObjects = [
+    "/Im1 7 0 R",
+    ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
+    ...(birdObjectId ? [`/Bird ${birdObjectId} 0 R`] : []),
+    ...(watermarkObjectId ? [`/Watermark ${watermarkObjectId} 0 R`] : []),
+  ].join(" ");
+  const page2XObjects = [
+    ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
+    ...(birdObjectId ? [`/Bird ${birdObjectId} 0 R`] : []),
+    ...(watermarkObjectId ? [`/Watermark ${watermarkObjectId} 0 R`] : []),
+  ].join(" ");
   const plum = toRgb(input.palette.plum);
   const mint = toRgb(input.palette.mint);
   const primary = toRgb(input.palette.primary);
@@ -188,7 +246,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   });
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
-  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes));
+  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
   page1 += text(input.title, 48, 732, 10.5, "F2", primary);
   page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
@@ -237,7 +295,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes));
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
   page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
@@ -308,8 +366,8 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const objects: Uint8Array[] = [
     ascii("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"),
     ascii("2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>\nendobj\n"),
-    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R" + logoResource + " >> >> /Contents 8 0 R >>\nendobj\n"),
-    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >>" + (logoBytes ? " /XObject << /Logo 10 0 R >>" : "") + " >> /Contents 9 0 R >>\nendobj\n"),
+    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << " + page1XObjects + " >> >> /Contents 8 0 R >>\nendobj\n"),
+    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << " + page2XObjects + " >> >> /Contents 9 0 R >>\nendobj\n"),
     ascii("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n"),
     ascii("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n"),
     imageObject,
@@ -317,14 +375,16 @@ function createPdf(input: PhotoReportInput): Uint8Array {
     concatBytes([ascii(`9 0 obj\n<< /Length ${ascii(page2).length} >>\nstream\n`), ascii(page2), ascii("\nendstream\nendobj\n")]),
   ];
 
-  if (logoBytes) {
-    const logoObject = concatBytes([
-      ascii("10 0 obj\n<< /Type /XObject /Subtype /Image /Width 96 /Height 96 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + logoBytes.length + " >>\nstream\n"),
-      logoBytes,
-      ascii("\nendstream\nendobj\n"),
-    ]);
-    objects.push(logoObject);
-  }
+  const appendImageObject = (objectId: number, width: number, height: number, bytes: Uint8Array) => {
+    objects.push(concatBytes([
+      ascii(`${objectId} 0 obj\\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\\nstream\\n`),
+      bytes,
+      ascii("\\nendstream\\nendobj\\n"),
+    ]));
+  };
+  if (logoBytes && logoObjectId) appendImageObject(logoObjectId, 96, 96, logoBytes);
+  if (birdBytes && birdObjectId) appendImageObject(birdObjectId, 128, 128, birdBytes);
+  if (watermarkBytes && watermarkObjectId) appendImageObject(watermarkObjectId, 320, 320, watermarkBytes);
 
   const chunks: Uint8Array[] = [ascii("%PDF-1.4\n")];
   const offsets: number[] = [0];

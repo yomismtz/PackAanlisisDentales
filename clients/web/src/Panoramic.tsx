@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { getAvisPalette } from "./themePalettes";
 import Levandoski from "./Levandoski";
@@ -117,7 +117,8 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
     if (!photoDataUrl || !imageSize) { setError("Carga la radiografía panorámica antes de generar el informe."); return; }
     try {
       const paletteId = (() => { try { return window.localStorage.getItem("avis.palette") ?? "colibri"; } catch { return "colibri"; } })();
-      const palette = getAvisPalette(paletteId).colors;
+      const activePalette = getAvisPalette(paletteId);
+      const palette = activePalette.colors;
       const results = REVIEW.map((item) => ({ label: item.title, value: answers[item.id] ?? "Pendiente", reference: details[item.id] || item.prompt }));
       const levRows = LEVANDOSKI.map(([key, prompt]) => ({ label: "Levandoski · " + key, value: levandoski[key] || "Pendiente", reference: prompt }));
       const reportConclusions = [
@@ -147,7 +148,10 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         professionalConclusion: conclusion,
         generatedAt: new Date(),
         palette,
+        paletteName: activePalette.name,
         logoDataUrl: await loadAvisLogoDataUrl(),
+        birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
+        birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
         reportLabel: "Reporte panorámico",
       };
       let blob: Blob;

@@ -31,6 +31,7 @@ export type AvisPalette = {
   id: PaletteId;
   name: string;
   bird: string;
+  birdImage: string;
   /** Eight distinctive colors inspired by this bird's plumage and markings. */
   swatches: PaletteSwatches;
   /** Accessible semantic colors used by the interface and reports. */
@@ -42,6 +43,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "buho_real",
     name: "Búho real",
     bird: "🦉",
+    birdImage: "/birds/buho_real.png",
     swatches: ["#49372D", "#795A42", "#D58B31", "#C7A77C", "#F8F4EB", "#D1B895", "#B6A18D", "#34383A"],
     colors: {
       plum: "#49372D", primary: "#795A42", accent: "#D58B31", mint: "#E9DDC8",
@@ -53,6 +55,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "colibri",
     name: "Colibrí",
     bird: "🐦",
+    birdImage: "/birds/colibri.png",
     swatches: ["#263C50", "#087F75", "#14A6A0", "#2674B8", "#C34C8A", "#D5B94B", "#7B4CA0", "#E2F2EB"],
     colors: {
       plum: "#263C50", primary: "#087F75", accent: "#C34C8A", mint: "#D9F0E8",
@@ -64,6 +67,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "guacamayo_azul",
     name: "Guacamayo azul",
     bird: "🦜",
+    birdImage: "/birds/guacamayo_azul.png",
     swatches: ["#173B63", "#1769AA", "#E9C72E", "#168B55", "#F07A24", "#B9D8E8", "#D9272E", "#F4F8FB"],
     colors: {
       plum: "#173B63", primary: "#1769AA", accent: "#D49B18", mint: "#D8EEE5",
@@ -75,6 +79,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "guacamaya_roja",
     name: "Guacamaya roja",
     bird: "🦜",
+    birdImage: "/birds/guacamaya_roja.png",
     swatches: ["#38262C", "#D9272E", "#E9C72E", "#168B55", "#F07A24", "#1769AA", "#F4D9D2", "#FBF5EF"],
     colors: {
       plum: "#38262C", primary: "#D9272E", accent: "#D9A51E", mint: "#F4E4D6",
@@ -86,6 +91,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "quetzal",
     name: "Quetzal",
     bird: "🪶",
+    birdImage: "/birds/quetzal.png",
     swatches: ["#183D35", "#087E70", "#159A78", "#42B9A6", "#C8463F", "#A58A36", "#2764B4", "#F5F9F4"],
     colors: {
       plum: "#183D35", primary: "#087E70", accent: "#C8463F", mint: "#D8EEE5",
@@ -97,6 +103,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "faisan",
     name: "Faisán",
     bird: "🐦",
+    birdImage: "/birds/faisan.png",
     swatches: ["#49352D", "#A45136", "#D2A12F", "#79513D", "#277B73", "#D8C3A7", "#E8DDC9", "#FAF6EF"],
     colors: {
       plum: "#49352D", primary: "#A45136", accent: "#C18B2B", mint: "#E9DDC9",
@@ -108,6 +115,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "ninfa",
     name: "Ninfa",
     bird: "🐦",
+    birdImage: "/birds/ninfa.png",
     swatches: ["#3B4146", "#81888D", "#E27C45", "#E8CA56", "#F5F1E8", "#EEECE3", "#D2D0C6", "#A9A9A4"],
     colors: {
       plum: "#3B4146", primary: "#737B81", accent: "#D87542", mint: "#EEECE3",
@@ -119,6 +127,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "pavo_real",
     name: "Pavo real",
     bird: "🦚",
+    birdImage: "/birds/pavo_real.png",
     swatches: ["#23304F", "#087E80", "#176C9B", "#159A78", "#A58A36", "#4B347C", "#2764B4", "#F4F8F8"],
     colors: {
       plum: "#23304F", primary: "#087E80", accent: "#A58A36", mint: "#D9EEE7",
@@ -130,6 +139,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "tucan",
     name: "Tucán",
     bird: "🐦",
+    birdImage: "/birds/tucan.png",
     swatches: ["#202124", "#323D43", "#F0C928", "#E97824", "#D94B25", "#B8B8B8", "#F5F1E8", "#FBF8F0"],
     colors: {
       plum: "#202124", primary: "#323D43", accent: "#E97824", mint: "#F5E8C8",
@@ -141,6 +151,7 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "agapornis",
     name: "Agapornis",
     bird: "🦜",
+    birdImage: "/birds/agapornis.png",
     swatches: ["#713B68", "#328C55", "#F2A16D", "#35B9B0", "#FFFCF4", "#B8A0D4", "#E8D84A", "#277DA1"],
     colors: {
       plum: "#553B59", primary: "#328C55", accent: "#D98567", mint: "#D9EEE6",

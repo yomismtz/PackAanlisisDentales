@@ -40,26 +40,39 @@ function wrapText(
   return lines;
 }
 
-function fillPage(context: CanvasRenderingContext2D, height: number, pageTitle: string, pageNumber: number, date: string, palette: PaletteColors) {
+function fillPage(
+  context: CanvasRenderingContext2D, height: number, pageTitle: string, pageNumber: number,
+  date: string, input: PhotoReportInput, logo: HTMLImageElement | null,
+  bird: HTMLImageElement | null, watermark: HTMLImageElement | null,
+) {
+  const palette = input.palette;
   const plum = palette.plum;
   const primary = palette.primary;
   const accent = palette.accent;
   const muted = palette.muted;
   context.fillStyle = "#FFFFFF";
   context.fillRect(0, 0, WIDTH, height);
+  if (watermark) context.drawImage(watermark, WIDTH / 2 - 150, height / 2 - 150, 300, 300);
   context.strokeStyle = plum;
   context.lineWidth = 2;
   context.strokeRect(54, 54, WIDTH - 108, height - 108);
+  if (logo) context.drawImage(logo, MARGIN, 68, 54, 54);
   context.fillStyle = primary;
   context.font = "bold 44px Arial, sans-serif";
   context.textBaseline = "top";
-  context.fillText("AVIS", MARGIN, 76);
+  context.fillText("AVIS", MARGIN + 65, 76);
   context.font = "bold 17px Arial, sans-serif";
-  context.fillText("ANÁLISIS ODONTOLÓGICO INTEGRAL", MARGIN + 125, 91);
+  context.fillStyle = plum;
+  context.fillText("ANÁLISIS ODONTOLÓGICO INTEGRAL", MARGIN + 190, 91);
   context.fillStyle = muted;
-  context.font = "15px Arial, sans-serif";
+  context.font = "14px Arial, sans-serif";
   context.textAlign = "right";
-  context.fillText(date, WIDTH - MARGIN, 91);
+  context.fillText(date, WIDTH - MARGIN - 54, 91);
+  if (bird) context.drawImage(bird, WIDTH - MARGIN - 42, 68, 42, 42);
+  context.textAlign = "right";
+  context.fillStyle = primary;
+  context.font = "bold 12px Arial, sans-serif";
+  context.fillText((input.paletteName || "Colibrí").toUpperCase(), WIDTH - MARGIN - 52, 119);
   context.textAlign = "left";
   context.fillStyle = primary;
   context.font = "bold 25px Arial, sans-serif";
@@ -72,7 +85,7 @@ function fillPage(context: CanvasRenderingContext2D, height: number, pageTitle: 
   context.stroke();
   context.fillStyle = muted;
   context.font = "14px Arial, sans-serif";
-  context.fillText(`AVIS · Reporte fotográfico · Página ${pageNumber}`, MARGIN, height - 76);
+  context.fillText(`AVIS · ${input.reportLabel || "Reporte"} · Página ${pageNumber}`, MARGIN, height - 76);
 }
 
 function drawWrapped(
@@ -97,7 +110,7 @@ function drawWrapped(
   return y;
 }
 
-function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string): HTMLCanvasElement {
+function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null): HTMLCanvasElement {
   const plum = input.palette.plum;
   const accent = input.palette.accent;
   const mint = input.palette.mint;
@@ -114,7 +127,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   canvas.height = pageHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No fue posible generar la imagen del reporte.");
-  fillPage(context, pageHeight, "Registro fotográfico", 1, date, input.palette);
+  fillPage(context, pageHeight, "Registro fotográfico", 1, date, input, logo, bird, watermark);
 
   context.fillStyle = BLACK;
   context.font = "bold 22px Arial, sans-serif";
@@ -172,7 +185,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   return canvas;
 }
 
-function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
+function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null): HTMLCanvasElement {
   const plum = input.palette.plum;
   const primary = input.palette.primary;
   const accent = input.palette.accent;
@@ -212,7 +225,7 @@ function drawPageTwo(input: PhotoReportInput, date: string): HTMLCanvasElement {
   canvas.height = pageHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No fue posible generar la segunda página del reporte.");
-  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input.palette);
+  fillPage(context, pageHeight, "Resultados y mediciones", 2, date, input, logo, bird, watermark);
 
   context.fillStyle = BLACK;
   context.font = "bold 21px Arial, sans-serif";
@@ -288,6 +301,11 @@ export async function renderPhotoReportImage(
   format: "png" | "jpeg",
 ): Promise<Blob> {
   const photo = await loadImage(input.photoDataUrl);
+  const [logo, bird, watermark] = await Promise.all([
+    input.logoDataUrl ? loadImage(input.logoDataUrl) : Promise.resolve(null),
+    input.birdIconDataUrl ? loadImage(input.birdIconDataUrl) : Promise.resolve(null),
+    input.birdWatermarkDataUrl ? loadImage(input.birdWatermarkDataUrl) : Promise.resolve(null),
+  ]);
   const date = input.generatedAt.toLocaleString("es-MX", {
     year: "numeric",
     month: "long",
@@ -295,8 +313,8 @@ export async function renderPhotoReportImage(
     hour: "2-digit",
     minute: "2-digit",
   });
-  const firstPage = drawPageOne(input, photo, date);
-  const secondPage = drawPageTwo(input, date);
+  const firstPage = drawPageOne(input, photo, date, logo, bird, watermark);
+  const secondPage = drawPageTwo(input, date, logo, bird, watermark);
   const gap = 28;
 
   const combined = document.createElement("canvas");
