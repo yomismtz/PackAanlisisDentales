@@ -65,7 +65,7 @@ def export_patient_pdf(path,patient,media,analyses,palette_id="colibri"):
       ["Nacimiento",escape(patient.get("birth_date") or "No registrado"),"Sexo",escape(patient.get("sex") or "No especificado")],
       ["Teléfono",escape(patient.get("phone") or "—"),"Correo",escape(patient.get("email") or "—")]]
     t=Table(rows,colWidths=[25*mm,64*mm,25*mm,64*mm])
-        t.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.35,colors.HexColor(palette["border"])),
+    t.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.35,colors.HexColor(palette["border"])),
       ("BACKGROUND",(0,0),(0,-1),colors.HexColor(palette["soft"])),("BACKGROUND",(2,0),(2,-1),colors.HexColor(palette["soft"])),
       ("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),("FONTNAME",(2,0),(2,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8)]))
     story += [t,Spacer(1,5*mm),Paragraph("Estudios cargados",styles["Heading2"])]
