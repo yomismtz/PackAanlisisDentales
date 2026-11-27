@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { buildPhotoReportPdf, loadAvisLogoDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
-import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
+import { AVIS_PALETTES, AVIS_SWATCH_KEYS, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
 import Cephalometry from "./Cephalometry";
 import Panoramic from "./Panoramic";
@@ -414,8 +414,8 @@ function App() {
               ))}
             </select>
             <span className="palette-swatches" aria-label="Colores de la paleta activa">
-              {[activePalette.colors.plum, activePalette.colors.primary, activePalette.colors.accent, activePalette.colors.mint].map((value) => (
-                <i key={value} style={{ backgroundColor: value }} />
+              {AVIS_SWATCH_KEYS.map((key) => (
+                <i key={key} style={{ backgroundColor: activePalette.colors[key] }} />
               ))}
             </span>
           </label>
