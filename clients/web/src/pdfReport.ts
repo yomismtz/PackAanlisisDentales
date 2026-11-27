@@ -184,10 +184,10 @@ export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Pro
  await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar la marca de agua YomDental."));});
  const canvas=document.createElement("canvas");canvas.width=400;canvas.height=400;
  const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar la marca de agua YomDental.");
- const scale=Math.min(380/image.naturalWidth,380/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
- context.drawImage(image,(400-w)/2,(400-h)/2,w,h);context.globalCompositeOperation="source-in";
- const gradient=context.createLinearGradient(20,20,380,380);gradient.addColorStop(0,palette.plum);gradient.addColorStop(.55,palette.primary);gradient.addColorStop(1,palette.accent);
- context.fillStyle=gradient;context.fillRect(0,0,400,400);return canvas.toDataURL("image/jpeg", 0.92);
+ context.fillStyle=palette.mint;context.fillRect(0,0,400,400);
+ const scale=Math.min(340/image.naturalWidth,340/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
+ context.globalAlpha=0.10;context.drawImage(image,(400-w)/2,(400-h)/2,w,h);context.globalAlpha=1;
+ return canvas.toDataURL("image/jpeg", 0.94);
 }
 export function loadAvisBirdIconDataUrl(source: string): Promise<string> {
   return loadBirdRasterDataUrl(source, 128, 1);
@@ -301,6 +301,8 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const boxW = PAGE_W - 96;
   const boxH = 224;
   page1 += rectangle(boxX, boxY, boxW, boxH, mint, plum, 1.2);
+  if (clinicWatermarkBytes) page1 += "q " + (boxW - 30).toFixed(2) + " 0 0 " + (boxH - 30).toFixed(2) + " " + (boxX + 15).toFixed(2) + " " + (boxY + 15).toFixed(2) + " cm /ClinicWatermark Do Q\\n";
+  if (clinicLogoBytes) page1 += "q 22 0 0 22 " + (boxX + boxW - 37).toFixed(2) + " " + (boxY + boxH - 31).toFixed(2) + " cm /ClinicLogo Do Q\\n";
   page1 += text("CONCLUSIONES DEL REPORTE", boxX + 15, boxY + boxH - 23, 10, "F2", plum);
   page1 += line(boxX + 15, boxY + boxH - 33, boxX + boxW - 15, boxY + boxH - 33, plum, 0.55);
 
