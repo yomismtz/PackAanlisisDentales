@@ -131,7 +131,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         generatedAt: new Date(),
         palette,
         paletteName: activePalette.name,
-        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors),clinicWatermarkDataUrl:await loadYomDentalWatermarkDataUrl(activePalette.colors),
+        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors, activePalette.clinicLogoImage),clinicWatermarkDataUrl:await loadYomDentalWatermarkDataUrl(activePalette.colors, activePalette.clinicLogoImage),
         birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
         birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
         reportLabel: "Reporte panorámico",
