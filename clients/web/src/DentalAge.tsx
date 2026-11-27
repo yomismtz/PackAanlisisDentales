@@ -23,7 +23,6 @@ const selectStyle: React.CSSProperties = { width: "100%", minWidth: 0 };
 const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: 16 };
 export default function DentalAge({onBack}:{onBack:()=>void}){
  const [study,setStudy]=useState<Study>("select");
- const [method,setMethod]=useState<DentalMethod>("nolla");
  const [sex,setSex]=useState<Sex>("Femenino");
  const [stages,setStages]=useState<Record<string,string>>({});
  const [notes,setNotes]=useState("");
@@ -43,10 +42,9 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
  const labels=study==="demirjian"?DEMIRJIAN:NOLLA;
  const highestFishman=useMemo(()=>{let highest=0;for(let i=1;i<=11;i++){if(fishman[String(i)]==="Presente")highest=i;}return highest;},[fishman]);
  function loadImage(file:File|null,setter:(value:string)=>void){if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setter(String(reader.result??""));reader.readAsDataURL(file);}
- function changeMethod(v:DentalMethod){setMethod(v);setStages({});}
  function exportReport(){
   const data={application:"AVIS",analysis:study==="nolla"?"Edad dental · Nolla":study==="demirjian"?"Edad dental · Demirjian":study==="greulich"?"Edad ósea · Greulich y Pyle":study==="fishman"?"Maduración carpal · Fishman":"Maduración vertebral cervical",sex,study,
-   ...((study==="nolla"||study==="demirjian")?{dental:{method:study,referenceTeeth:TEETH,stages:Object.fromEntries(TEETH.map(t=>[t,stages[t]??null])),totalNollaScore:method==="nolla"?score:null,evaluatedTeeth:selected,imageIncluded:Boolean(dentalImage),observations:notes,interpretation:method==="nolla"?"La suma de estadios no se convierte directamente a años. Requiere tabla normativa validada para sexo y población.":"Se requieren puntuaciones Demirjian específicas por sexo y tabla de conversión validada."}}:{}),
+   ...((study==="nolla"||study==="demirjian")?{dental:{method:study,referenceTeeth:TEETH,stages:Object.fromEntries(TEETH.map(t=>[t,stages[t]??null])),totalNollaScore:study==="nolla"?score:null,evaluatedTeeth:selected,imageIncluded:Boolean(dentalImage),observations:notes,interpretation:study==="nolla"?"La suma de estadios no se convierte directamente a años. Requiere tabla normativa validada para sexo y población.":"Se requieren puntuaciones Demirjian específicas por sexo y tabla de conversión validada."}}:{}),
    ...(study==="greulich"?{carpal:{method:"Greulich y Pyle",side:carpalSide,closestAtlasStandard:gpPlate||null,manuallyRecordedBoneAge:gpAge||null,imageIncluded:Boolean(carpalImage),observations:gpNotes}}:{}),
    ...(study==="fishman"?{carpal:{method:"Fishman",side:carpalSide,indicators:FISHMAN.map(([id,description],i)=>({id,description,status:fishman[String(i+1)]||"No evaluado"})),highestObservedIndicator:highestFishman||null,imageIncluded:Boolean(carpalImage),observations:carpalNotes,interpretation:"El SMI más alto registrado describe maduración esquelética; no equivale por sí mismo a edad cronológica."}}:{}),
    ...(study==="cervical"?{cervical:{method:"CVM · Baccetti",stage:cervicalStage||null,imageIncluded:Boolean(cervicalImage),observations:cervicalNotes}}:{}),createdAt:new Date().toISOString()};
@@ -66,7 +64,7 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
   <div className="analysis-heading"><div><button className="text-button" onClick={()=>setStudy("select")}>← Cambiar tipo de estudio</button><p className="eyebrow">AVIS · DESARROLLO Y MADURACIÓN</p><h1>{study==="nolla"?"Edad dental · Nolla":study==="demirjian"?"Edad dental · Demirjian":study==="greulich"?"Edad ósea · Greulich y Pyle":study==="fishman"?"Maduración carpal · Fishman":"Maduración vertebral cervical"}</h1><p>Se registra únicamente el estudio seleccionado.</p></div>{(study==="nolla"||study==="demirjian")?<span className="module-count">{selected}/7 dientes</span>:study==="fishman"?<span className="module-count">SMI {highestFishman||"—"}/11</span>:null}</div>
   <div className="guide"><strong>Importante</strong><p>Los estadios radiográficos describen maduración. No deben convertirse automáticamente en edad cronológica sin las tablas normativas, población de referencia y validación correspondientes. La asignación de estadios es responsabilidad del profesional.</p></div>
   {(study==="nolla"||study==="demirjian")&&<section className="panel">
-   <div className="panel-heading"><div><h2>Edad dental</h2><p>Selecciona el método y registra los siete dientes mandibulares izquierdos.</p></div></div>
+   <div className="panel-heading"><div><h2>Edad dental</h2><p>Registra los siete dientes mandibulares izquierdos según el método seleccionado.</p></div></div>
    <div style={gridStyle}>
     <div className="form-field"><label>Método seleccionado</label><input readOnly value={study==="nolla"?"Nolla · estadios 0–10":"Demirjian · estadios A–H"} style={selectStyle}/></div>
     <div className="form-field"><label htmlFor="age-sex">Sexo requerido por las referencias normativas</label><select id="age-sex" style={selectStyle} value={sex} onChange={e=>setSex(e.target.value as Sex)}><option>Femenino</option><option>Masculino</option></select></div>
@@ -79,7 +77,7 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
    <div className="form-field"><label htmlFor="age-notes">Observaciones dentales</label><textarea id="age-notes" rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></div>
   </section>}
   {(study==="greulich"||study==="fishman")&&<section className="panel" style={{marginTop:20}}>
-   <div className="panel-heading"><div><h2>Maduración esquelética carpal</h2><p>Dos métodos complementarios para radiografía de mano y muñeca.</p></div></div>
+   <div className="panel-heading"><div><h2>{study==="greulich"?"Edad ósea · Greulich y Pyle":"Maduración carpal · Fishman"}</h2><p>Valoración independiente mediante el método seleccionado.</p></div></div>
    <div className="form-field"><label htmlFor="carpal-image">Cargar radiografía de mano y muñeca</label><input id="carpal-image" type="file" accept="image/*" onChange={e=>loadImage(e.target.files?.[0]??null,setCarpalImage)}/></div>
    {carpalImage&&<img src={carpalImage} alt="Radiografía carpal cargada" style={{maxWidth:"100%",maxHeight:360,objectFit:"contain",display:"block",margin:"12px auto"}}/>}
    <div style={gridStyle}>
