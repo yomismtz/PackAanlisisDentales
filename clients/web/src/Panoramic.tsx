@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl, loadYomDentalLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl, loadYomDentalLogoDataUrl, loadYomDentalWatermarkDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { getAvisPalette } from "./themePalettes";
 import Levandoski from "./Levandoski";
@@ -149,7 +149,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         generatedAt: new Date(),
         palette,
         paletteName: activePalette.name,
-        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors),
+        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors),clinicWatermarkDataUrl:await loadYomDentalWatermarkDataUrl(activePalette.colors),
         birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
         birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
         reportLabel: "Reporte panorámico",
