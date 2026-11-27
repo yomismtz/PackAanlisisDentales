@@ -326,7 +326,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), false, false);
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), Boolean(watermarkBytes), false);
   page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
