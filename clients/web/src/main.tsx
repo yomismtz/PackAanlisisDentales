@@ -8,6 +8,7 @@ import { playBirdCall, stopBirdCall } from "./birdAudio";
 import Cephalometry from "./Cephalometry";
 import Panoramic from "./Panoramic";
 import ModelAnalysis from "./ModelAnalysis";
+import DentalAge from "./DentalAge";
 import {
   calculatePhotoResults,
   PHOTO_CONFIG,
@@ -22,7 +23,7 @@ import {
 const PHOTO_MODES = Object.keys(PHOTO_CONFIG) as PhotoMode[];
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry" | "panoramic" | "models">("home");
+  const [screen, setScreen] = useState<"home" | "photo" | "cephalometry" | "panoramic" | "models" | "age">("home");
   const [mode, setMode] = useState<PhotoMode>("facial_frontal");
   const [imageUrl, setImageUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -429,11 +430,6 @@ function App() {
             <p className="hero-description">Plataforma de análisis odontológico. Las fotografías se procesan localmente en este navegador.</p>
           </section>
           <section className="grid">
-            <article className="module-card">
-              <span>01</span><h2>Expedientes</h2>
-              <p>Organización local de pacientes y estudios.</p>
-              <button disabled>En desarrollo</button>
-            </article>
             <article className="module-card module-card-active">
               <span>02</span><h2>Radiografía lateral</h2>
               <p>Trazado de Steiner, puntos anatómicos, mediciones angulares y calibración para SL y SE.</p>
@@ -454,10 +450,10 @@ function App() {
               <p>Little, Moyers 75 %, Tanaka-Johnston y Carey. Carga de modelos, trazado y reportes.</p>
               <button className="primary" onClick={() => setScreen("models")}>Abrir análisis de modelos</button>
             </article>
-            <article className="module-card">
-              <span>06</span><h2>Informes</h2>
-              <p>Integración de informes y respaldos locales.</p>
-              <button disabled>En desarrollo</button>
+            <article className="module-card module-card-active">
+              <span>06</span><h2>Edad dental</h2>
+              <p>Registro de maduración dental mediante Nolla y Demirjian.</p>
+              <button className="primary" onClick={() => setScreen("age")}>Abrir análisis de edad</button>
             </article>
           </section>
           <footer className="home-footer">Versión web de prueba. Utiliza fotografías ficticias o desidentificadas.</footer>
@@ -468,6 +464,8 @@ function App() {
         <Panoramic onBack={returnHome} />
       ) : screen === "models" ? (
         <ModelAnalysis onBack={returnHome} />
+      ) : screen === "age" ? (
+        <DentalAge onBack={returnHome} />
       ) : (
         <section className="analysis-page">
           <div className="analysis-heading">
