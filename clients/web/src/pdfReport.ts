@@ -308,8 +308,8 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const objects: Uint8Array[] = [
     ascii("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"),
     ascii("2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>\nendobj\n"),
-    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R${logoResource} >> >> /Contents 8 0 R >>\nendobj\n"),
-    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >>${logoBytes ? " /XObject << /Logo 10 0 R >>" : ""} >> /Contents 9 0 R >>\nendobj\n"),
+    ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R" + logoResource + " >> >> /Contents 8 0 R >>\nendobj\n"),
+    ascii("4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >>" + (logoBytes ? " /XObject << /Logo 10 0 R >>" : "") + " >> /Contents 9 0 R >>\nendobj\n"),
     ascii("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n"),
     ascii("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n"),
     imageObject,
