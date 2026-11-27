@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl, loadYomDentalLogoDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl, loadYomDentalLogoDataUrl, loadYomDentalWatermarkDataUrl } from "./pdfReport";
 import { getAvisPalette } from "./themePalettes";
 
 type XY = { x: number; y: number };
@@ -331,7 +331,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
         generatedAt: new Date(),
         palette: activePalette.colors,
         paletteName: activePalette.name,
-        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors),
+        logoDataUrl: await loadAvisLogoDataUrl(),clinicLogoDataUrl:await loadYomDentalLogoDataUrl(activePalette.colors),clinicWatermarkDataUrl:await loadYomDentalWatermarkDataUrl(activePalette.colors),
         birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
         birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
         reportLabel: "Relaciones intermaxilares",
