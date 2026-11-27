@@ -26,7 +26,8 @@ export type PhotoReportInput = {
   paletteName?: string;
   reportLabel?: string;
   logoDataUrl?: string;
-  clinicLogoDataUrl?: string;\n  clinicWatermarkDataUrl?: string;
+  clinicLogoDataUrl?: string;
+  clinicWatermarkDataUrl?: string;
   birdIconDataUrl?: string;
   birdWatermarkDataUrl?: string;
 };

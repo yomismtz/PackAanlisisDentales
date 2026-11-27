@@ -327,7 +327,8 @@ function App() {
         palette: activePalette.colors,
         paletteName: activePalette.name,
         logoDataUrl: await loadAvisLogoDataUrl(),
-        clinicLogoDataUrl: await loadYomDentalLogoDataUrl(activePalette.colors),\n        clinicWatermarkDataUrl: await loadYomDentalWatermarkDataUrl(activePalette.colors),
+        clinicLogoDataUrl: await loadYomDentalLogoDataUrl(activePalette.colors),
+        clinicWatermarkDataUrl: await loadYomDentalWatermarkDataUrl(activePalette.colors),
         birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
         birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
       };
