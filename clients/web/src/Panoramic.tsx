@@ -24,19 +24,8 @@ const REVIEW: ReviewField[] = [
   { id: "cortices", title: "16. Corticales y límites óseos", prompt: "Continuidad y contorno de corticales y límites anatómicos", options: ["Continuidad conservada", "Alteración / discontinuidad por estudiar", "Asimetría aparente", "No valorable"] },
 ];
 
-const LEVANDOSKI = [
-  ["Cóndilo derecho", "Identificación del contorno condilar derecho"],
-  ["Cóndilo izquierdo", "Identificación del contorno condilar izquierdo"],
-  ["Rama mandibular derecha", "Altura y contorno de la rama derecha"],
-  ["Rama mandibular izquierda", "Altura y contorno de la rama izquierda"],
-  ["Cuerpo mandibular derecho", "Longitud / contorno del cuerpo derecho"],
-  ["Cuerpo mandibular izquierdo", "Longitud / contorno del cuerpo izquierdo"],
-  ["Plano mandibular", "Trayecto y comparación bilateral"],
-  ["Línea media mandibular", "Relación de la línea media con referencias faciales disponibles"],
-] as const;
 
 type AnswerMap = Record<string, string>;
-type LevMap = Record<string, string>;
 
 export default function Panoramic({ onBack }: { onBack: () => void }) {
   const [analysisType, setAnalysisType] = useState<"select" | "systematic" | "levandoski">("select");
@@ -47,7 +36,6 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   const [details, setDetails] = useState<AnswerMap>({});
   const [regions, setRegions] = useState("");
   const [teeth, setTeeth] = useState("");
-  const [levandoski, setLevandoski] = useState<LevMap>({});
   const [observations, setObservations] = useState("");
   const [conclusion, setConclusion] = useState("");
   const [status, setStatus] = useState("En proceso");
@@ -56,7 +44,6 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const completed = useMemo(() => REVIEW.filter((item) => Boolean(answers[item.id])).length, [answers]);
-  const levCompleted = useMemo(() => LEVANDOSKI.filter(([key]) => Boolean(levandoski[key])).length, [levandoski]);
   const conclusions = useMemo(() => REVIEW.flatMap((item) => {
     const answer = answers[item.id];
     if (!answer || answer === "Sin alteraciones evidentes" || answer === "Sin hallazgos relevantes" || answer === "No identificados" || answer === "Adecuada" || answer === "Continuidad conservada" || answer === "Sin discrepancias aparentes") return [];
@@ -102,10 +89,9 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   function exportJson() {
     const payload = {
       application: "AVIS",
-      analysis: "Revisión sistemática de radiografía panorámica y registro de Levandoski",
+      analysis: "Revisión sistemática de radiografía panorámica",
       fileName, imageSize, status, review: REVIEW.map((item) => ({ phase: item.title, finding: answers[item.id] ?? "Pendiente", detail: details[item.id] ?? "" })),
       affectedRegions: regions, teethFDI: teeth,
-      levandoski: LEVANDOSKI.map(([key, prompt]) => ({ structure: key, note: levandoski[key] ?? "", prompt })),
       observations, professionalConclusion: conclusion, generatedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -120,11 +106,9 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       const activePalette = getAvisPalette(paletteId);
       const palette = activePalette.colors;
       const results = REVIEW.map((item) => ({ label: item.title, value: answers[item.id] ?? "Pendiente", reference: details[item.id] || item.prompt }));
-      const levRows = LEVANDOSKI.map(([key, prompt]) => ({ label: "Levandoski · " + key, value: levandoski[key] || "Pendiente", reference: prompt }));
       const reportConclusions = [
         ...conclusions,
         `Revisión sistemática: ${completed} de ${REVIEW.length} fases registradas.`,
-        `Levandoski: ${levCompleted} de ${LEVANDOSKI.length} estructuras documentadas.`,
         regions ? "Regiones señaladas: " + regions : "",
         teeth ? "Dientes FDI relacionados: " + teeth : "",
         observations ? "Observaciones: " + observations : "",
@@ -132,7 +116,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         "La panorámica es un estudio bidimensional con superposición y distorsión. Los hallazgos deben correlacionarse con exploración clínica y, cuando esté indicado, con proyecciones intraorales o CBCT. No se genera diagnóstico autónomo.",
       ].filter(Boolean);
       const input = {
-        title: "Radiografía panorámica · Revisión sistemática y registro de Levandoski",
+        title: "Radiografía panorámica · Revisión sistemática",
         mode: "panoramic",
         fileName,
         status,
@@ -141,7 +125,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
         photoHeight: imageSize.height,
         horizontalGuides: false,
         points: {},
-        results: [...results, ...levRows],
+        results,
         conclusions: reportConclusions,
         visualAssessment: {},
         observations,
@@ -174,7 +158,7 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
   }
 
   return <section className="analysis-page">
-    <div className="analysis-heading"><div><button className="text-button" onClick={() => setAnalysisType("select")}>← Cambiar tipo de análisis</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Revisión sistemática panorámica</h1><p>Registra los hallazgos en las 16 fases. La imagen y los datos se procesan localmente.</p></div><span className="module-count">{completed}/16 fases · {levCompleted}/8 registros</span></div>
+    <div className="analysis-heading"><div><button className="text-button" onClick={() => setAnalysisType("select")}>← Cambiar tipo de análisis</button><p className="eyebrow">AVIS · HERRAMIENTA WEB</p><h1>Revisión sistemática panorámica</h1><p>Registra los hallazgos en las 16 fases. La imagen y los datos se procesan localmente.</p></div><span className="module-count">{completed}/16 fases </span></div>
     <div className="guide"><strong>Revisión panorámica sistemática</strong><p>Registra calidad técnica, anatomía, dentición, soporte óseo y hallazgos. Selecciona una opción por fase y añade localización o descripción cuando sea necesario. Las fases son una guía académica, no una lectura diagnóstica automática.</p></div>
     <div className="workspace">
       <section className="panel photo-panel">
@@ -190,9 +174,6 @@ export default function Panoramic({ onBack }: { onBack: () => void }) {
       <aside className="panel results-panel">
         <div className="panel-heading"><div><h2>Revisión sistemática</h2><p>{completed} de 16 fases registradas.</p></div></div>
         <div className="table-wrap"><table><thead><tr><th>Fase</th><th>Registro</th></tr></thead><tbody>{REVIEW.map((item) => <tr key={item.id}><td>{item.title}<div className="clinical-note">{item.prompt}</div></td><td><select aria-label={item.title} value={answers[item.id] ?? ""} onChange={(e) => setAnswers((prev) => ({ ...prev, [item.id]: e.target.value }))}><option value="">Pendiente</option>{item.options.map((option) => <option key={option}>{option}</option>)}</select><textarea aria-label={"Detalle " + item.title} rows={2} value={details[item.id] ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, [item.id]: e.target.value }))} placeholder="Localización, límites, dimensiones y descripción…"/></td></tr>)}</tbody></table></div>
-        <section className="visual-box"><h3>Registro independiente · Levandoski</h3><p className="clinical-note">Documenta la observación bilateral. Esta versión no calcula índices ni emite clasificaciones automáticas: requiere puntos y criterios de trazado validados antes de automatizar mediciones.</p>
-          <div className="visual-grid">{LEVANDOSKI.map(([key, prompt]) => <label className="visual-field" key={key}><span>{key} · {prompt}</span><textarea rows={2} value={levandoski[key] ?? ""} onChange={(e) => setLevandoski((prev) => ({ ...prev, [key]: e.target.value }))} placeholder="Registrar observación…"/></label>)}</div>
-        </section>
         <div className="form-field"><label htmlFor="pano-status">Estado del análisis</label><select id="pano-status" value={status} onChange={(e) => setStatus(e.target.value)}><option>Pendiente</option><option>En proceso</option><option>Completo</option></select></div>
         <div className="form-field"><label htmlFor="pano-format">Formato del informe</label><select id="pano-format" value={format} onChange={(e) => setFormat(e.target.value as "pdf" | "jpeg" | "png")}><option value="pdf">PDF · Informe completo</option><option value="jpeg">JPEG · Imagen del informe</option><option value="png">PNG · Imagen del informe</option></select></div>
         {error && <p className="error-text" role="alert">{error}</p>}
