@@ -23,19 +23,17 @@ export type PaletteColors = {
   muted: string;
 };
 
-/**
- * Eight bird-derived swatches per palette. The semantic surface/text tokens
- * alias background/plum to preserve compatibility with existing UI and reports.
- */
-export const AVIS_SWATCH_KEYS = [
-  "plum", "primary", "accent", "mint",
-  "background", "soft", "border", "muted",
-] as const satisfies readonly (keyof PaletteColors)[];
+export type PaletteSwatches = readonly [
+  string, string, string, string, string, string, string, string
+];
 
 export type AvisPalette = {
   id: PaletteId;
   name: string;
   bird: string;
+  /** Eight distinctive colors inspired by this bird's plumage and markings. */
+  swatches: PaletteSwatches;
+  /** Accessible semantic colors used by the interface and reports. */
   colors: PaletteColors;
 };
 
@@ -44,100 +42,110 @@ export const AVIS_PALETTES: AvisPalette[] = [
     id: "buho_real",
     name: "Búho real",
     bird: "🦉",
+    swatches: ["#49372D", "#795A42", "#D58B31", "#C7A77C", "#F8F4EB", "#D1B895", "#B6A18D", "#34383A"],
     colors: {
-      plum: "#49372D", primary: "#795A42", accent: "#A98462", mint: "#77746B",
-      background: "#F8F4EB", surface: "#F8F4EB", soft: "#D1B895", border: "#B6A18D",
-      text: "#49372D", muted: "#34383A",
+      plum: "#49372D", primary: "#795A42", accent: "#D58B31", mint: "#E9DDC8",
+      background: "#F8F4EB", surface: "#FFFFFF", soft: "#ECE2D2", border: "#CFB999",
+      text: "#302923", muted: "#75695C",
     },
   },
   {
     id: "colibri",
     name: "Colibrí",
     bird: "🐦",
+    swatches: ["#263C50", "#087F75", "#14A6A0", "#2674B8", "#C34C8A", "#D5B94B", "#7B4CA0", "#E2F2EB"],
     colors: {
-      plum: "#263C50", primary: "#087F75", accent: "#C34C8A", mint: "#14A6A0",
-      background: "#F4F9F7", surface: "#F4F9F7", soft: "#2674B8", border: "#7B4CA0",
-      text: "#263C50", muted: "#D5B94B",
+      plum: "#263C50", primary: "#087F75", accent: "#C34C8A", mint: "#D9F0E8",
+      background: "#F4F9F7", surface: "#FFFFFF", soft: "#E3F1EC", border: "#BFDCD4",
+      text: "#263C50", muted: "#536A66",
     },
   },
   {
     id: "guacamayo_azul",
     name: "Guacamayo azul",
     bird: "🦜",
+    swatches: ["#173B63", "#1769AA", "#E9C72E", "#168B55", "#F07A24", "#B9D8E8", "#D9272E", "#F4F8FB"],
     colors: {
-      plum: "#173B63", primary: "#1769AA", accent: "#E9C72E", mint: "#168B55",
-      background: "#F4F8FB", surface: "#F4F8FB", soft: "#F07A24", border: "#B9D8E8",
-      text: "#173B63", muted: "#D9272E",
+      plum: "#173B63", primary: "#1769AA", accent: "#D49B18", mint: "#D8EEE5",
+      background: "#F4F8FB", surface: "#FFFFFF", soft: "#E4EFF6", border: "#BDD1E0",
+      text: "#173B63", muted: "#60778B",
     },
   },
   {
     id: "guacamaya_roja",
     name: "Guacamaya roja",
     bird: "🦜",
+    swatches: ["#38262C", "#D9272E", "#E9C72E", "#168B55", "#F07A24", "#1769AA", "#F4D9D2", "#FBF5EF"],
     colors: {
-      plum: "#38262C", primary: "#D9272E", accent: "#E9C72E", mint: "#168B55",
-      background: "#FBF5EF", surface: "#FBF5EF", soft: "#F07A24", border: "#DCC5B4",
-      text: "#38262C", muted: "#1769AA",
+      plum: "#38262C", primary: "#D9272E", accent: "#D9A51E", mint: "#F4E4D6",
+      background: "#FBF5EF", surface: "#FFFFFF", soft: "#F3E4D7", border: "#DCC5B4",
+      text: "#38262C", muted: "#77665F",
     },
   },
   {
     id: "quetzal",
     name: "Quetzal",
     bird: "🪶",
+    swatches: ["#183D35", "#087E70", "#159A78", "#42B9A6", "#C8463F", "#A58A36", "#2764B4", "#F5F9F4"],
     colors: {
-      plum: "#183D35", primary: "#087E70", accent: "#C8463F", mint: "#159A78",
-      background: "#F5F9F4", surface: "#F5F9F4", soft: "#42B9A6", border: "#A58A36",
-      text: "#183D35", muted: "#2764B4",
+      plum: "#183D35", primary: "#087E70", accent: "#C8463F", mint: "#D8EEE5",
+      background: "#F5F9F4", surface: "#FFFFFF", soft: "#E4F1E7", border: "#C8B26D",
+      text: "#183D35", muted: "#60766E",
     },
   },
   {
     id: "faisan",
     name: "Faisán",
     bird: "🐦",
+    swatches: ["#49352D", "#A45136", "#D2A12F", "#79513D", "#277B73", "#D8C3A7", "#E8DDC9", "#FAF6EF"],
     colors: {
-      plum: "#49352D", primary: "#A45136", accent: "#D2A12F", mint: "#79513D",
-      background: "#FAF6EF", surface: "#FAF6EF", soft: "#D8C3A7", border: "#B66A43",
-      text: "#49352D", muted: "#E8DDC9",
+      plum: "#49352D", primary: "#A45136", accent: "#C18B2B", mint: "#E9DDC9",
+      background: "#FAF6EF", surface: "#FFFFFF", soft: "#F0E6D6", border: "#D8C3A7",
+      text: "#49352D", muted: "#74675E",
     },
   },
   {
     id: "ninfa",
     name: "Ninfa",
     bird: "🐦",
+    swatches: ["#3B4146", "#81888D", "#E27C45", "#E8CA56", "#F5F1E8", "#EEECE3", "#D2D0C6", "#A9A9A4"],
     colors: {
-      plum: "#3B4146", primary: "#81888D", accent: "#E27C45", mint: "#E8CA56",
-      background: "#FAF9F3", surface: "#FAF9F3", soft: "#EEECE3", border: "#D2D0C6",
-      text: "#3B4146", muted: "#F5F1E8",
+      plum: "#3B4146", primary: "#737B81", accent: "#D87542", mint: "#EEECE3",
+      background: "#FAF9F3", surface: "#FFFFFF", soft: "#EEECE3", border: "#D2D0C6",
+      text: "#30363B", muted: "#74777B",
     },
   },
   {
     id: "pavo_real",
     name: "Pavo real",
     bird: "🦚",
+    swatches: ["#23304F", "#087E80", "#176C9B", "#159A78", "#A58A36", "#4B347C", "#2764B4", "#F4F8F8"],
     colors: {
-      plum: "#23304F", primary: "#087E80", accent: "#A58A36", mint: "#159A78",
-      background: "#F4F8F8", surface: "#F4F8F8", soft: "#176C9B", border: "#4B347C",
-      text: "#23304F", muted: "#2764B4",
+      plum: "#23304F", primary: "#087E80", accent: "#A58A36", mint: "#D9EEE7",
+      background: "#F4F8F8", surface: "#FFFFFF", soft: "#E3F0ED", border: "#BBD5CF",
+      text: "#23304F", muted: "#61747D",
     },
   },
   {
     id: "tucan",
     name: "Tucán",
     bird: "🐦",
+    swatches: ["#202124", "#323D43", "#F0C928", "#E97824", "#D94B25", "#B8B8B8", "#F5F1E8", "#FBF8F0"],
     colors: {
-      plum: "#202124", primary: "#F0C928", accent: "#E97824", mint: "#D94B25",
-      background: "#FBF8F0", surface: "#FBF8F0", soft: "#F5F1E8", border: "#454545",
-      text: "#202124", muted: "#B8B8B8",
+      plum: "#202124", primary: "#323D43", accent: "#E97824", mint: "#F5E8C8",
+      background: "#FBF8F0", surface: "#FFFFFF", soft: "#F5F1E8", border: "#CEC7B7",
+      text: "#202124", muted: "#686A6B",
     },
   },
   {
     id: "agapornis",
     name: "Agapornis",
     bird: "🦜",
+    swatches: ["#713B68", "#328C55", "#F2A16D", "#35B9B0", "#FFFCF4", "#B8A0D4", "#E8D84A", "#277DA1"],
     colors: {
-      plum: "#713B68", primary: "#328C55", accent: "#F2A16D", mint: "#35B9B0",
-      background: "#FFFCF4", surface: "#FFFCF4", soft: "#277DA1", border: "#B8A0D4",
-      text: "#713B68", muted: "#E8D84A",
+      plum: "#553B59", primary: "#328C55", accent: "#D98567", mint: "#D9EEE6",
+      background: "#FFFCF4", surface: "#FFFFFF", soft: "#EFE7F2", border: "#D7C9D9",
+      text: "#3F3643", muted: "#5F6F69",
     },
   },
 ];
