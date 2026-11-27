@@ -51,7 +51,7 @@ export default function DentalAge({onBack}:{onBack:()=>void}){
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="AVIS_Edad_y_Maduracion.json";a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
  }
  return <section className="analysis-page">
-  {study==="select"?<>
+  {String(study)==="select"?<>
    <div className="analysis-heading"><div><button className="text-button" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">AVIS · DESARROLLO Y MADURACIÓN</p><h1>Edad y maduración</h1><p>Selecciona un solo estudio para comenzar. No es necesario realizar los demás.</p></div></div>
    <div className="workspace">
     <button type="button" className="panel" style={{textAlign:"left",cursor:"pointer",minHeight:170}} onClick={()=>setStudy("nolla")}><h2>Edad dental · Nolla</h2><p>Estadios 0–10 en los siete dientes mandibulares izquierdos.</p><strong>Iniciar Nolla →</strong></button>
