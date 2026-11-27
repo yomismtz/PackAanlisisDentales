@@ -312,7 +312,8 @@ export async function renderPhotoReportImage(
     input.logoDataUrl ? loadImage(input.logoDataUrl) : Promise.resolve(null),
     input.birdIconDataUrl ? loadImage(input.birdIconDataUrl) : Promise.resolve(null),
     input.birdWatermarkDataUrl ? loadImage(input.birdWatermarkDataUrl) : Promise.resolve(null),
-    input.clinicLogoDataUrl ? loadImage(input.clinicLogoDataUrl) : Promise.resolve(null),\n    input.clinicWatermarkDataUrl ? loadImage(input.clinicWatermarkDataUrl) : Promise.resolve(null),
+    input.clinicLogoDataUrl ? loadImage(input.clinicLogoDataUrl) : Promise.resolve(null),
+    input.clinicWatermarkDataUrl ? loadImage(input.clinicWatermarkDataUrl) : Promise.resolve(null),
   ]);
   const date = input.generatedAt.toLocaleString("es-MX", {
     year: "numeric",
