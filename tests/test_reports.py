@@ -182,6 +182,12 @@ def test_all_report_palettes_have_their_matching_bird_icon():
     from app.theme import REPORT_PALETTES, report_bird_path
 
     assert len(REPORT_PALETTES) == 10
+    from PIL import Image
+
     for palette_id, palette in REPORT_PALETTES.items():
         assert palette["name"]
-        assert report_bird_path(palette_id).is_file()
+        icon_path = report_bird_path(palette_id)
+        assert icon_path.is_file()
+        with Image.open(icon_path) as icon:
+            assert icon.format == "PNG"
+            icon.verify()

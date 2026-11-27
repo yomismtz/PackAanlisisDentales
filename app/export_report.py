@@ -77,16 +77,19 @@ def export_patient_pdf(path,patient,media,analyses,palette_id="colibri"):
     path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
     palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])["colors"]
     styles=getSampleStyleSheet()
+    styles["Title"].textColor = colors.HexColor(palette["primary"])
+    styles["Heading2"].textColor = colors.HexColor(palette["primary"])
+    styles["Heading3"].textColor = colors.HexColor(palette["primary"])
     styles.add(ParagraphStyle(name="SmallClinical",parent=styles["BodyText"],fontSize=8,leading=10,textColor=colors.HexColor(palette["text"])))
     story=[Paragraph("Expediente odontológico",styles["Title"]),
-      Paragraph("Pack Análisis Dentales · Resumen de estudios y registros",styles["Normal"]),Spacer(1,6*mm),
+      Paragraph("AVIS · Análisis Odontológico Integral · Resumen de estudios y registros",styles["Normal"]),Spacer(1,6*mm),
       Paragraph("Datos del paciente",styles["Heading2"])]
     rows=[["Paciente",escape(patient.get("full_name","")),"Expediente",escape(patient.get("record_number",""))],
       ["Nacimiento",escape(patient.get("birth_date") or "No registrado"),"Sexo",escape(patient.get("sex") or "No especificado")],
       ["Teléfono",escape(patient.get("phone") or "—"),"Correo",escape(patient.get("email") or "—")]]
     t=Table(rows,colWidths=[25*mm,64*mm,25*mm,64*mm])
-    t.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.35,colors.HexColor("#cbd5df")),
-      ("BACKGROUND",(0,0),(0,-1),colors.HexColor("#edf2f7")),("BACKGROUND",(2,0),(2,-1),colors.HexColor("#edf2f7")),
+        t.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.35,colors.HexColor(palette["border"])),
+      ("BACKGROUND",(0,0),(0,-1),colors.HexColor(palette["soft"])),("BACKGROUND",(2,0),(2,-1),colors.HexColor(palette["soft"])),
       ("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),("FONTNAME",(2,0),(2,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8)]))
     story += [t,Spacer(1,5*mm),Paragraph("Estudios cargados",styles["Heading2"])]
     if media:
@@ -94,8 +97,8 @@ def export_patient_pdf(path,patient,media,analyses,palette_id="colibri"):
         for m in media:
             slot=SLOTS.get(m["slot_key"]); data.append([slot.label if slot else m["slot_key"],escape(m["filename"]),m["created_at"][:10]])
         tab=Table(data,colWidths=[55*mm,100*mm,24*mm],repeatRows=1)
-        tab.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1d3448")),
-          ("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.3,colors.HexColor("#cbd5df")),
+        tab.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor(palette["primary"])),
+          ("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.3,colors.HexColor(palette["border"])),
           ("FONTSIZE",(0,0),(-1,-1),7.5),("VALIGN",(0,0),(-1,-1),"TOP")]))
         story.append(tab)
     else: story.append(Paragraph("No hay estudios cargados.",styles["BodyText"]))
@@ -367,6 +370,8 @@ def export_academic_report(path, patient, student_name, teacher_email,
         raise ValueError("No hay análisis completos para incluir.")
 
     styles = getSampleStyleSheet()
+    styles["Heading2"].textColor = colors.HexColor(palette["primary"])
+    styles["Heading3"].textColor = colors.HexColor(palette["primary"])
     styles.add(ParagraphStyle(
         name="YSMSubtitle", parent=styles["Normal"], alignment=TA_CENTER,
         textColor=colors.HexColor(palette["muted"]), fontSize=9, leading=12,
@@ -412,7 +417,7 @@ def export_academic_report(path, patient, student_name, teacher_email,
     ]
     info = Table(patient_rows, colWidths=[27*mm, 61*mm, 25*mm, 65*mm])
     info.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#D5DEDA")),
+        ("GRID", (0, 0), (-1, -1), .35, colors.HexColor(palette["border"])),
         ("BACKGROUND", (0, 0), (0, -1), colors.HexColor(palette["soft"])),
         ("BACKGROUND", (2, 0), (2, -1), colors.HexColor(palette["soft"])),
         ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor(palette["text"])),
