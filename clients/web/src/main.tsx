@@ -449,7 +449,7 @@ function App() {
             </article>
             <article className="module-card module-card-active">
               <span>05</span><h2>Modelos dentales</h2>
-              <p>Little, Moyers 75 %, Tanaka-Johnston y Carey. Carga de modelos, trazado y reportes.</p>
+              <p>Little, Moyers, Tanaka-Johnston, Carey y relaciones intermaxilares. Carga de las 11 vistas y reportes.</p>
               <button className="primary" onClick={() => setScreen("models")}>Abrir análisis de modelos</button>
             </article>
             <article className="module-card module-card-active">
