@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // GitHub Pages publica el sitio bajo /PackAanlisisDentales/; Vercel conserva la raíz /.
+  base: process.env.GITHUB_PAGES === 'true' ? '/PackAanlisisDentales/' : '/',
   plugins: [
     react(),
     VitePWA({
