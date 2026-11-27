@@ -51,14 +51,9 @@ const distance = (a: XY, b: XY) => Math.hypot(b.x - a.x, b.y - a.y);
 const anteriorCoordinate = (point: XY, direction: "left" | "right") => direction === "left" ? -point.x : point.x;
 function pointOptions(view: ViewKey, dentition: Dentition): Array<[string, string]> {
   if (view === "occlusion_right" || view === "occlusion_left") {
-    const result: Array<[string, string]> = [
-      ["molarUpper", LABELS.molarUpper], ["molarLower", LABELS.molarLower],
-      ["canineUpper", LABELS.canineUpper], ["canineLower", LABELS.canineLower],
-      ["overjetUpper", LABELS.overjetUpper], ["overjetLower", LABELS.overjetLower],
-    ];
-    if (dentition === "temporal") {
-      result.push(["terminalUpper", LABELS.terminalUpper], ["terminalLower", LABELS.terminalLower]);
-    }
+    const result: Array<[string, string]> = dentition === "temporal"
+      ? [["terminalUpper", LABELS.terminalUpper], ["terminalLower", LABELS.terminalLower], ["overjetUpper", LABELS.overjetUpper], ["overjetLower", LABELS.overjetLower]]
+      : [["molarUpper", LABELS.molarUpper], ["molarLower", LABELS.molarLower], ["canineUpper", LABELS.canineUpper], ["canineLower", LABELS.canineLower], ["overjetUpper", LABELS.overjetUpper], ["overjetLower", LABELS.overjetLower]];
     return result;
   }
   if (view === "occlusion_frontal") return [["upperIncisal", LABELS.upperIncisal], ["lowerIncisal", LABELS.lowerIncisal]];
@@ -112,7 +107,6 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
   const [overbiteMax, setOverbiteMax] = useState("30");
   const [observations, setObservations] = useState("");
   const [conclusion, setConclusion] = useState("");
-  const [imageOrientationConfirmed, setImageOrientationConfirmed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const objectUrls = useRef<Set<string>>(new Set());
 
@@ -242,7 +236,8 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
     const interpretation = overlap === null ? "Pendiente"
       : overlap < 0 ? "Separación incisal en esta vista"
       : percentage === null ? "Porcentaje no calculado: escala no homologada"
-      : Number.isFinite(min) && Number.isFinite(max) && percentage >= min && percentage <= max ? "Dentro del rango configurado"
+      : !Number.isFinite(min) || !Number.isFinite(max) || min > max ? "Rango de referencia inválido"
+      : percentage >= min && percentage <= max ? "Dentro del rango configurado"
       : percentage < min ? "Cobertura menor al rango configurado" : "Cobertura mayor al rango configurado";
     return { upperHeight, lowerHeight, overlap, percentage, interpretation };
   }, [points, scaleComparable, overbiteMin, overbiteMax]);
@@ -380,7 +375,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
     </section> : <>
       <div className="mode-row">
         <label htmlFor="dentition-change">Dentición</label>
-        <select id="dentition-change" value={dentition} onChange={event => { setDentition(event.target.value as Dentition); setPoints({}); }}>
+        <select id="dentition-change" value={dentition} onChange={event => { const next = event.target.value as Dentition; setDentition(next); setPoints({}); setSelectedPoint(pointOptions(activeView, next)[0]?.[0] || ""); }}>
           <option value="permanente">Permanente</option><option value="mixta">Mixta</option><option value="temporal">Temporal</option>
         </select>
         <button className="secondary" onClick={() => { setDentition(""); setImages({}); setPoints({}); }}>Reiniciar selección</button>
@@ -448,7 +443,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
           <aside className="panel results-panel">
             <div className="panel-heading"><div><h2>4. Resultados sagitales</h2><p>Clasificación por lado y medición en píxeles.</p></div></div>
             {dentition === "temporal" ? <>
-              <table><thead><tr><th>Lado</th><th>Plano terminal</th></tr></thead><tbody>{sides.map(side => <tr key={side.side}><td>{side.side}</td><td className="result-value">{relationStatus(side.terminal)}</td></tr>)}</tbody></table>
+              <table><thead><tr><th>Lado</th><th>Plano terminal</th><th>Valoración</th></tr></thead><tbody>{sides.map(side => <tr key={side.side}><td>{side.side}</td><td className="result-value">{relationStatus(side.terminal)}</td><td><select value={side.side === "Derecha" ? (rightTerminalUnavailable ? "No valorable" : "Valorar puntos") : (leftTerminalUnavailable ? "No valorable" : "Valorar puntos")} onChange={event => (side.side === "Derecha" ? setRightTerminalUnavailable : setLeftTerminalUnavailable)(event.target.value === "No valorable")}><option>Valorar puntos</option><option>No valorable</option></select></td></tr>)}</tbody></table>
               <p className="clinical-note">En dentición temporal no se calcula relación canina. Marca «No valorable» cuando falte el segundo molar temporal o no pueda identificarse el punto distal.</p>
             </> : <>
               <table><thead><tr><th>Lado</th><th>Clase molar</th><th>Clase canina</th></tr></thead><tbody>{sides.map(side => <tr key={side.side}><td>{side.side}</td><td className="result-value">{relationStatus(side.molar)}</td><td className="result-value">{relationStatus(side.canine)}</td></tr>)}</tbody></table>
