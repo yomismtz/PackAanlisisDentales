@@ -23,6 +23,16 @@ export type PaletteColors = {
   muted: string;
 };
 
+/**
+ * Eight visible bird-derived swatches are defined per palette.
+ * The legacy semantic tokens surface/text alias background/plum so that
+ * existing report and interface consumers remain compatible.
+ */
+export const AVIS_SWATCH_KEYS = [
+  "plum", "primary", "accent", "mint",
+  "background", "soft", "border", "muted",
+] as const satisfies readonly (keyof PaletteColors)[];
+
 export type AvisPalette = {
   id: PaletteId;
   name: string;
@@ -36,9 +46,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Búho real",
     bird: "🦉",
     colors: {
-      plum: "#3C3451", primary: "#756B8C", accent: "#C39B67", mint: "#E6E0D1",
-      background: "#F7F5F0", surface: "#FFFFFF", soft: "#F0ECF5", border: "#D9D1DE",
-      text: "#16131B", muted: "#706B75",
+      plum: "#302923", primary: "#805A43", accent: "#D58B31", mint: "#C7A77C",
+      background: "#F8F4EB", surface: "#F8F4EB", soft: "#ECE2D2", border: "#CFB999",
+      text: "#302923", muted: "#75695C",
     },
   },
   {
@@ -46,9 +56,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Colibrí",
     bird: "🐦",
     colors: {
-      plum: "#48263F", primary: "#6D45A6", accent: "#22B8B0", mint: "#C8F0E2",
-      background: "#F7F7FA", surface: "#FFFFFF", soft: "#F1EBF2", border: "#D8C7D7",
-      text: "#141414", muted: "#6D6872",
+      plum: "#252A3A", primary: "#16816D", accent: "#C94B92", mint: "#34BDB4",
+      background: "#F4F9F7", surface: "#F4F9F7", soft: "#E3F1EC", border: "#BFDCD4",
+      text: "#252A3A", muted: "#63766F",
     },
   },
   {
@@ -56,9 +66,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Guacamayo azul",
     bird: "🦜",
     colors: {
-      plum: "#263A66", primary: "#2478B7", accent: "#27B7A5", mint: "#C7EEE3",
-      background: "#F3F8FC", surface: "#FFFFFF", soft: "#EAF3F8", border: "#C9DDEB",
-      text: "#142333", muted: "#627789",
+      plum: "#1E3556", primary: "#176FA8", accent: "#E8BE31", mint: "#48B7A1",
+      background: "#F4F8FB", surface: "#F4F8FB", soft: "#E4EFF6", border: "#BDD1E0",
+      text: "#1E3556", muted: "#60778B",
     },
   },
   {
@@ -66,9 +76,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Guacamaya roja",
     bird: "🦜",
     colors: {
-      plum: "#57263A", primary: "#D33E42", accent: "#D9A72D", mint: "#F9E6B7",
-      background: "#FBF6F1", surface: "#FFFFFF", soft: "#F7EBDC", border: "#EAC9AD",
-      text: "#24191D", muted: "#77665F",
+      plum: "#38262C", primary: "#D43B34", accent: "#E9B72F", mint: "#2784A2",
+      background: "#FBF5EF", surface: "#FBF5EF", soft: "#F3E4D7", border: "#DCC5B4",
+      text: "#38262C", muted: "#77665F",
     },
   },
   {
@@ -76,19 +86,19 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Quetzal",
     bird: "🪶",
     colors: {
-      plum: "#173E3A", primary: "#1D775D", accent: "#22A9A7", mint: "#C9EDE3",
-      background: "#F4F8F5", surface: "#FFFFFF", soft: "#E6F3EE", border: "#BFDCCF",
-      text: "#172B28", muted: "#637772",
+      plum: "#183D35", primary: "#168364", accent: "#C8463F", mint: "#42B9A6",
+      background: "#F5F9F4", surface: "#F5F9F4", soft: "#E4F1E7", border: "#C8B26D",
+      text: "#183D35", muted: "#66796F",
     },
   },
   {
     id: "faisan",
     name: "Faisán",
-    bird: "🐓",
+    bird: "🐦",
     colors: {
-      plum: "#55362C", primary: "#A36A3F", accent: "#C4A04D", mint: "#E8E2C8",
-      background: "#FAF7F1", surface: "#FFFFFF", soft: "#F3EDE2", border: "#DDD0BA",
-      text: "#241D18", muted: "#756A5D",
+      plum: "#21343B", primary: "#A45136", accent: "#D2A12F", mint: "#277B73",
+      background: "#FAF6EF", surface: "#FAF6EF", soft: "#F0E6D6", border: "#D8C3A7",
+      text: "#21343B", muted: "#74675E",
     },
   },
   {
@@ -96,9 +106,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Ninfa",
     bird: "🐦",
     colors: {
-      plum: "#47434B", primary: "#96949D", accent: "#E4BD55", mint: "#E6EDE1",
-      background: "#F7F7F5", surface: "#FFFFFF", soft: "#F0F0EB", border: "#D8D8D1",
-      text: "#201F22", muted: "#77747A",
+      plum: "#3B4146", primary: "#81888D", accent: "#E27C45", mint: "#E8CA56",
+      background: "#FAF9F3", surface: "#FAF9F3", soft: "#EEECE3", border: "#D2D0C6",
+      text: "#3B4146", muted: "#74777B",
     },
   },
   {
@@ -106,9 +116,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Pavo real",
     bird: "🦚",
     colors: {
-      plum: "#352A65", primary: "#306FA6", accent: "#168C85", mint: "#D6EEE8",
-      background: "#F4F7FB", surface: "#FFFFFF", soft: "#EAEFF8", border: "#C9D5E8",
-      text: "#19182B", muted: "#66677D",
+      plum: "#23304F", primary: "#176C83", accent: "#B58B34", mint: "#25946F",
+      background: "#F4F8F8", surface: "#F4F8F8", soft: "#E3F0ED", border: "#BBD5CF",
+      text: "#23304F", muted: "#677985",
     },
   },
   {
@@ -116,9 +126,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Tucán",
     bird: "🐦",
     colors: {
-      plum: "#33303A", primary: "#E37A2C", accent: "#D6B83F", mint: "#D5EAE2",
-      background: "#F8F6F2", surface: "#FFFFFF", soft: "#F2ECE5", border: "#DCD0C2",
-      text: "#1C1A1D", muted: "#716A63",
+      plum: "#202328", primary: "#323D43", accent: "#EF8A28", mint: "#E8C638",
+      background: "#FBF8F0", surface: "#FBF8F0", soft: "#EEE8DA", border: "#CEC7B7",
+      text: "#202328", muted: "#76746E",
     },
   },
   {
@@ -126,9 +136,9 @@ export const AVIS_PALETTES: AvisPalette[] = [
     name: "Agapornis",
     bird: "🦜",
     colors: {
-      plum: "#4D2939", primary: "#B85C4D", accent: "#85B846", mint: "#E5F0C8",
-      background: "#FAF8F2", surface: "#FFFFFF", soft: "#F3F5E7", border: "#D5DFBE",
-      text: "#201B1D", muted: "#706A62",
+      plum: "#5D3B62", primary: "#62A54D", accent: "#EE927A", mint: "#41B9B0",
+      background: "#FFFCF4", surface: "#FFFCF4", soft: "#BBA6D2", border: "#E3C65A",
+      text: "#5D3B62", muted: "#4687B6",
     },
   },
 ];
