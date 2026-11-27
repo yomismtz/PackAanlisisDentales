@@ -216,25 +216,25 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
 
 function drawPageFrame(
   pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors,
-  reportLabel = "Reporte", hasLogo = false, hasClinicLogo = false, hasBird = false, hasWatermark = false,
-  hasPaletteIcon = false, hasClinicWatermark = false,
+  reportLabel = "Reporte", hasLogo = false, hasClinicLogo = false, hasPaletteIcon = false,
+  hasBirdWatermark = false, hasClinicWatermark = false,
 ): string {
   const plum = toRgb(palette.plum);
   const primary = toRgb(palette.primary);
   const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
-  let output = "";
-  if (hasWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\n";
+  let output = rectangle(0, 0, PAGE_W, PAGE_H, toRgb(palette.background), null);
+  if (hasBirdWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\\n";
+  if (hasClinicWatermark) output += "q 225 0 0 225 185 340 cm /ClinicWatermark Do Q\\n";
   output += rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\n";
-  output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
-  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
-  if (hasBird) output += "q 29 0 0 29 532 778 cm /Bird Do Q\n";
-  if (hasClinicLogo) output += "q 24 0 0 24 526 29 cm /ClinicLogo Do Q\n";
-  output += text(paletteName.toUpperCase(), 465, 773, 6.5, "F2", primary);
-  output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
-  output += text(generatedAt, 300, 795, 7.5, "F1", muted);
-  output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
+  if (hasLogo) output += "q 30 0 0 30 48 778 cm /Logo Do Q\\n";
+  output += text("AVIS", hasLogo ? 84 : 48, 790, 19, "F2", primary);
+  output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 137 : 101, 795, 8, "F2", plum);
+  if (hasClinicLogo) output += "q 54 0 0 54 505 766 cm /ClinicLogo Do Q\\n";
+  if (hasPaletteIcon) output += "q 34 0 0 34 526 766 cm /Bird Do Q\\n";
+  output += text("Fecha y hora del análisis: " + generatedAt, 300, 778, 7, "F1", muted);
+  output += text(pageTitle.toUpperCase(), 48, 750, 12, "F2", primary);
+  output += line(48, 738, PAGE_W - 48, 738, accent, 1.25);
   output += text(`AVIS · ${reportLabel} · Página ${pageNumber}`, 48, 58, 7, "F1", muted);
   output += text("Autoría: Dra. Yomira Salgado Martínez · YomDental", 48, 46, 6, "F1", muted);
   output += text("Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación", 48, 35, 5.1, "F1", muted);
