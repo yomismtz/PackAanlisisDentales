@@ -34,7 +34,8 @@ export type AvisPalette = {
   id: PaletteId;
   name: string;
   bird: string;
-  birdImage: string;\n  clinicLogoImage: string;
+  birdImage: string;
+  clinicLogoImage: string;
   /** Eight distinctive colors inspired by this bird's plumage and markings. */
   swatches: PaletteSwatches;
   /** Accessible semantic colors used by the interface and reports. */
