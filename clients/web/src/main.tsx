@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
-import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl } from "./pdfReport";
+import { buildPhotoReportPdf, loadAvisLogoDataUrl, loadAvisBirdIconDataUrl, loadAvisBirdWatermarkDataUrl, loadYomDentalLogoDataUrl } from "./pdfReport";
 import { renderPhotoReportImage } from "./reportImage";
 import { AVIS_PALETTES, applyAvisPalette, getAvisPalette } from "./themePalettes";
 import { playBirdCall, stopBirdCall } from "./birdAudio";
@@ -326,7 +326,7 @@ function App() {
         generatedAt: new Date(),
         palette: activePalette.colors,
         paletteName: activePalette.name,
-        logoDataUrl: await loadAvisLogoDataUrl(),
+        logoDataUrl: await loadAvisLogoDataUrl(),\n        clinicLogoDataUrl: await loadYomDentalLogoDataUrl(activePalette.colors),
         birdIconDataUrl: await loadAvisBirdIconDataUrl(activePalette.birdImage),
         birdWatermarkDataUrl: await loadAvisBirdWatermarkDataUrl(activePalette.birdImage),
       };
