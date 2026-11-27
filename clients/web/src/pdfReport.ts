@@ -223,7 +223,6 @@ function drawPageFrame(
   const muted = toRgb(palette.muted);
   let output = rectangle(0, 0, PAGE_W, PAGE_H, toRgb(palette.background), null);
   if (hasBirdWatermark) output += "q 250 0 0 250 172 330 cm /Watermark Do Q\n";
-  if (hasClinicWatermark) output += "q 225 0 0 225 185 340 cm /ClinicWatermark Do Q\n";
   output += rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
   if (hasLogo) output += "q 30 0 0 30 48 778 cm /Logo Do Q\n";
   output += text("AVIS", hasLogo ? 84 : 48, 790, 19, "F2", primary);
