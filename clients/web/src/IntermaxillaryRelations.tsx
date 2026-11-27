@@ -32,7 +32,6 @@ const VIEW_GROUPS: Array<{ title: string; items: Array<{ key: ViewKey; label: st
   ]},
 ];
 const ALL_VIEWS = VIEW_GROUPS.flatMap(group => group.items);
-const SIDE_VIEWS = ["occlusion_right", "occlusion_left"] as const;
 const LABELS: Record<string, string> = {
   molarUpper: "Cúspide mesiovestibular del primer molar superior",
   molarLower: "Surco vestibular del primer molar inferior",
@@ -47,7 +46,6 @@ const LABELS: Record<string, string> = {
   upperGingival: "Límite gingival del incisivo central superior",
   lowerGingival: "Límite gingival del incisivo central inferior",
 };
-const distance = (a: XY, b: XY) => Math.hypot(b.x - a.x, b.y - a.y);
 const anteriorCoordinate = (point: XY, direction: "left" | "right") => direction === "left" ? -point.x : point.x;
 function pointOptions(view: ViewKey, dentition: Dentition): Array<[string, string]> {
   if (view === "occlusion_right" || view === "occlusion_left") {
@@ -103,8 +101,8 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
   const [scissorBite, setScissorBite] = useState("No valorable");
   const [brodieBite, setBrodieBite] = useState("No valorable");
   const [scaleComparable, setScaleComparable] = useState(false);
-  const [overbiteMin, setOverbiteMin] = useState("20");
-  const [overbiteMax, setOverbiteMax] = useState("30");
+  const [overbiteMin, setOverbiteMin] = useState("");
+  const [overbiteMax, setOverbiteMax] = useState("");
   const [observations, setObservations] = useState("");
   const [conclusion, setConclusion] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -236,7 +234,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
     const interpretation = overlap === null ? "Pendiente"
       : overlap < 0 ? "Separación incisal en esta vista"
       : percentage === null ? "Porcentaje no calculado: escala no homologada"
-      : !Number.isFinite(min) || !Number.isFinite(max) || min > max ? "Rango de referencia inválido"
+      : !Number.isFinite(min) || !Number.isFinite(max) || min > max || overbiteMin.trim() === "" || overbiteMax.trim() === "" ? "Rango de referencia no configurado o inválido"
       : percentage >= min && percentage <= max ? "Dentro del rango configurado"
       : percentage < min ? "Cobertura menor al rango configurado" : "Cobertura mayor al rango configurado";
     return { upperHeight, lowerHeight, overlap, percentage, interpretation };
@@ -470,7 +468,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
                 <label className="visual-field"><span>Porcentaje mínimo de referencia</span><input type="number" min="0" max="100" value={overbiteMin} onChange={event => setOverbiteMin(event.target.value)}/></label>
                 <label className="visual-field"><span>Porcentaje máximo de referencia</span><input type="number" min="0" max="100" value={overbiteMax} onChange={event => setOverbiteMax(event.target.value)}/></label>
               </div>
-              <p className="clinical-note">El rango inicial 20–30 % es configurable y debe validarse según el tipo de dentición, etapa de desarrollo y referencia clínica elegida. Sin escala equivalente, AVIS no declara el porcentaje como válido.</p>
+              <p className="clinical-note">Configura el intervalo de referencia que utilizarás para esta dentición y método. No hay un único intervalo porcentual aplicable a todas las edades. Sin escala equivalente, AVIS no declara el porcentaje como válido.</p>
               <div className="visual-grid">
                 <label className="visual-field"><span>Mordida abierta posterior derecha</span><select value={rightOpenBite} onChange={event => setRightOpenBite(event.target.value)}><option>No valorable</option><option>Sí</option><option>No</option></select></label>
                 <label className="visual-field"><span>Mordida abierta posterior izquierda</span><select value={leftOpenBite} onChange={event => setLeftOpenBite(event.target.value)}><option>No valorable</option><option>Sí</option><option>No</option></select></label>
