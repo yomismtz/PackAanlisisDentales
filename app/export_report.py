@@ -9,39 +9,10 @@ from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableSty
 from .catalog import SLOTS,ANALYSES
 from .theme import REPORT_PALETTES, report_bird_path
 
-def _logo_image_reader():
-    """Rasterize the existing AVIS SVG wordmark for ReportLab."""
-    try:
-        from io import BytesIO
-        from reportlab.lib.utils import ImageReader
-        from PySide6.QtCore import Qt
-        from PySide6.QtGui import QImage, QPainter
-        from PySide6.QtSvg import QSvgRenderer
-
-        root = Path(getattr(__import__("sys"), "_MEIPASS", Path(__file__).resolve().parents[1]))
-        svg_path = root / "clients" / "web" / "public" / "avis-logo.svg"
-        renderer = QSvgRenderer(str(svg_path))
-        if not renderer.isValid():
-            return None
-        image = QImage(900, 263, QImage.Format.Format_ARGB32)
-        image.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(image)
-        renderer.render(painter)
-        painter.end()
-        buffer = BytesIO()
-        image.save(buffer, "PNG")
-        buffer.seek(0)
-        return ImageReader(buffer)
-    except Exception:
-        return None
-
-
 def _report_page_decorator(palette_id="colibri"):
-    from reportlab.lib.utils import ImageReader
-
     palette = REPORT_PALETTES.get(palette_id, REPORT_PALETTES["colibri"])["colors"]
     bird_path = report_bird_path(palette_id)
-    logo = _logo_image_reader()
+    brand_icon_path = report_bird_path("colibri")
 
     def draw_page(canvas, doc):
         canvas.saveState()
@@ -58,9 +29,15 @@ def _report_page_decorator(palette_id="colibri"):
                                  anchor="c", mask="auto")
             except Exception:
                 pass
-        if logo:
-            canvas.drawImage(logo, 15*mm, A4[1]-27*mm, width=58*mm, height=17*mm,
+        if brand_icon_path.is_file():
+            canvas.drawImage(str(brand_icon_path), 15*mm, A4[1]-28*mm, width=19*mm, height=19*mm,
                              preserveAspectRatio=True, mask="auto")
+        canvas.setFillColor(colors.HexColor(palette["primary"]))
+        canvas.setFont("Helvetica-Bold", 19)
+        canvas.drawString(36*mm, A4[1]-19*mm, "AVIS")
+        canvas.setFillColor(colors.HexColor(palette["plum"]))
+        canvas.setFont("Helvetica-Bold", 6.5)
+        canvas.drawString(36*mm, A4[1]-24*mm, "ANÁLISIS ODONTOLÓGICO INTEGRAL")
         canvas.setStrokeColor(colors.HexColor(palette["accent"]))
         canvas.setLineWidth(1.2)
         canvas.line(15*mm, A4[1]-31*mm, A4[0]-15*mm, A4[1]-31*mm)
