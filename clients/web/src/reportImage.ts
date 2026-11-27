@@ -114,7 +114,7 @@ function drawWrapped(
   return y;
 }
 
-function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null): HTMLCanvasElement {
+function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null, clinicLogo: HTMLImageElement | null): HTMLCanvasElement {
   const plum = input.palette.plum;
   const accent = input.palette.accent;
   const mint = input.palette.mint;
@@ -131,7 +131,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   canvas.height = pageHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No fue posible generar la imagen del reporte.");
-  fillPage(context, pageHeight, "Registro fotográfico", 1, date, input, logo, bird, watermark);
+  fillPage(context, pageHeight, "Registro fotográfico", 1, date, input, logo, bird, watermark, clinicLogo);
 
   context.fillStyle = BLACK;
   context.font = "bold 22px Arial, sans-serif";
@@ -189,7 +189,7 @@ function drawPageOne(input: PhotoReportInput, photo: HTMLImageElement, date: str
   return canvas;
 }
 
-function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null): HTMLCanvasElement {
+function drawPageTwo(input: PhotoReportInput, date: string, logo: HTMLImageElement | null, bird: HTMLImageElement | null, watermark: HTMLImageElement | null, clinicLogo: HTMLImageElement | null): HTMLCanvasElement {
   const plum = input.palette.plum;
   const primary = input.palette.primary;
   const accent = input.palette.accent;
