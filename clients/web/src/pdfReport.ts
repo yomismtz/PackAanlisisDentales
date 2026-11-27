@@ -189,7 +189,7 @@ export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Pro
  const scale=Math.min(380/image.naturalWidth,380/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
  context.drawImage(image,(400-w)/2,(400-h)/2,w,h);context.globalCompositeOperation="source-in";
  const gradient=context.createLinearGradient(20,20,380,380);gradient.addColorStop(0,palette.plum);gradient.addColorStop(.55,palette.primary);gradient.addColorStop(1,palette.accent);
- context.fillStyle=gradient;context.fillRect(0,0,400,400);return canvas.toDataURL("image/png");
+ context.fillStyle=gradient;context.fillRect(0,0,400,400);return canvas.toDataURL("image/jpeg", 0.92);
 }
 export function loadAvisBirdIconDataUrl(source: string): Promise<string> {
   return loadBirdRasterDataUrl(source, 128, 1);
@@ -217,7 +217,7 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
 function drawPageFrame(
   pageTitle: string, pageNumber: number, generatedAt: string, palette: PaletteColors,
   reportLabel = "Reporte", hasLogo = false, hasClinicLogo = false, hasBird = false, hasWatermark = false,
-  paletteName = "Colibrí",
+  hasPaletteIcon = false, hasClinicWatermark = false,
 ): string {
   const plum = toRgb(palette.plum);
   const primary = toRgb(palette.primary);
@@ -236,7 +236,7 @@ function drawPageFrame(
   output += text(generatedAt, 300, 795, 7.5, "F1", muted);
   output += line(48, 750, PAGE_W - 48, 750, accent, 1.25);
   output += text(`AVIS · ${reportLabel} · Página ${pageNumber}`, 48, 58, 7, "F1", muted);
-  output += text("YomDental · Generado por la Dra. Yomira Salgado Martínez", 48, 46, 6, "F1", muted);
+  output += text("Autoría: Dra. Yomira Salgado Martínez · YomDental", 48, 46, 6, "F1", muted);
   output += text("Cirujano Dentista · Especialidad en Ortodoncia · Maestría en Ciencias Odontológicas · Doctorado en Educación", 48, 35, 5.1, "F1", muted);
   return output;
 }
@@ -247,17 +247,20 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   const clinicLogoBytes = input.clinicLogoDataUrl ? base64ToBytes(input.clinicLogoDataUrl) : null;
   const birdBytes = input.birdIconDataUrl ? base64ToBytes(input.birdIconDataUrl) : null;
   const watermarkBytes = input.birdWatermarkDataUrl ? base64ToBytes(input.birdWatermarkDataUrl) : null;
+  const clinicWatermarkBytes = input.clinicWatermarkDataUrl ? base64ToBytes(input.clinicWatermarkDataUrl) : null;
   let nextImageObject = 10;
   const logoObjectId = logoBytes ? nextImageObject++ : null;
   const clinicLogoObjectId = clinicLogoBytes ? nextImageObject++ : null;
   const birdObjectId = birdBytes ? nextImageObject++ : null;
   const watermarkObjectId = watermarkBytes ? nextImageObject++ : null;
+  const clinicWatermarkObjectId = clinicWatermarkBytes ? nextImageObject++ : null;
   const page1XObjects = [
     "/Im1 7 0 R",
     ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
     ...(clinicLogoObjectId ? [`/ClinicLogo ${clinicLogoObjectId} 0 R`] : []),
     ...(birdObjectId ? [`/Bird ${birdObjectId} 0 R`] : []),
     ...(watermarkObjectId ? [`/Watermark ${watermarkObjectId} 0 R`] : []),
+    ...(clinicWatermarkObjectId ? [`/ClinicWatermark ${clinicWatermarkObjectId} 0 R`] : []),
   ].join(" ");
   const page2XObjects = [
     ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
@@ -276,7 +279,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   });
 
   // Página 1: fotografía anotada y conclusiones inmediatamente debajo.
-  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
+  let page1 = drawPageFrame("Imagen y trazado", 1, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), false, Boolean(watermarkBytes), Boolean(clinicWatermarkBytes));
   page1 += text(input.title, 48, 732, 10.5, "F2", primary);
   page1 += text(input.horizontalGuides ? "Puntos anatómicos y líneas horizontales de referencia" : "Puntos anatómicos trazados sobre la fotografía", 48, 716, 8, "F1", muted);
   page1 += text(`Imagen: ${input.fileName || "Fotografía cargada"} · ${input.photoWidth} × ${input.photoHeight} px`, 48, 701, 7.5, "F1", BLACK);
@@ -325,7 +328,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   }
 
   // Página 2: tabla completa de mediciones y registro complementario.
-  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), Boolean(watermarkBytes), input.paletteName);
+  let page2 = drawPageFrame("Resultados y mediciones", 2, generatedAt, input.palette, input.reportLabel, Boolean(logoBytes), Boolean(clinicLogoBytes), Boolean(birdBytes), false, false);
   page2 += text(input.title, 48, 732, 10, "F2", primary);
   page2 += text(`Estado: ${input.status} · Unidad de distancia: píxeles relativos (px)`, 48, 716, 8, "F1", BLACK);
   page2 += text("Las medidas fotográficas son relativas a la imagen y no equivalen a milímetros.", 48, 702, 7.5, "F1", muted);
@@ -416,6 +419,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   if (clinicLogoBytes && clinicLogoObjectId) appendImageObject(clinicLogoObjectId, 220, 220, clinicLogoBytes);
   if (birdBytes && birdObjectId) appendImageObject(birdObjectId, 128, 128, birdBytes);
   if (watermarkBytes && watermarkObjectId) appendImageObject(watermarkObjectId, 320, 320, watermarkBytes);
+  if (clinicWatermarkBytes && clinicWatermarkObjectId) appendImageObject(clinicWatermarkObjectId, 400, 400, clinicWatermarkBytes);
 
   const chunks: Uint8Array[] = [ascii("%PDF-1.4\n")];
   const offsets: number[] = [0];
