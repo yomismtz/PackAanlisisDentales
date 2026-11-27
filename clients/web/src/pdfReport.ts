@@ -26,7 +26,7 @@ export type PhotoReportInput = {
   paletteName?: string;
   reportLabel?: string;
   logoDataUrl?: string;
-  clinicLogoDataUrl?: string;
+  clinicLogoDataUrl?: string;\n  clinicWatermarkDataUrl?: string;
   birdIconDataUrl?: string;
   birdWatermarkDataUrl?: string;
 };
@@ -179,6 +179,16 @@ export async function loadYomDentalLogoDataUrl(palette: PaletteColors): Promise<
  context.drawImage(image,(220-w)/2,(220-h)/2,w,h);context.globalCompositeOperation="source-in";
  const gradient=context.createLinearGradient(10,10,210,210);gradient.addColorStop(0,palette.plum);gradient.addColorStop(.55,palette.primary);gradient.addColorStop(1,palette.accent);
  context.fillStyle=gradient;context.fillRect(0,0,220,220);return canvas.toDataURL("image/jpeg",.92);
+}
+export async function loadYomDentalWatermarkDataUrl(palette: PaletteColors): Promise<string> {
+ const image=new Image();image.src="/yomdental-logo.svg";
+ await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error("No fue posible cargar la marca de agua YomDental."));});
+ const canvas=document.createElement("canvas");canvas.width=400;canvas.height=400;
+ const context=canvas.getContext("2d");if(!context)throw new Error("No fue posible preparar la marca de agua YomDental.");
+ const scale=Math.min(380/image.naturalWidth,380/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
+ context.drawImage(image,(400-w)/2,(400-h)/2,w,h);context.globalCompositeOperation="source-in";
+ const gradient=context.createLinearGradient(20,20,380,380);gradient.addColorStop(0,palette.plum);gradient.addColorStop(.55,palette.primary);gradient.addColorStop(1,palette.accent);
+ context.fillStyle=gradient;context.fillRect(0,0,400,400);return canvas.toDataURL("image/png");
 }
 export function loadAvisBirdIconDataUrl(source: string): Promise<string> {
   return loadBirdRasterDataUrl(source, 128, 1);
