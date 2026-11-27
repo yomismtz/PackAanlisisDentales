@@ -256,7 +256,7 @@ export default function IntermaxillaryRelations({ onBack, paletteId }: { onBack:
     rows.push({ label: "Overbite · solapamiento vertical", value: px(vertical.overlap), reference: "Medición en oclusión frontal; positivo = cobertura" });
     rows.push({ label: "Overbite · porcentaje", value: vertical.percentage === null ? "No calculable" : vertical.percentage.toFixed(1) + " %", reference: "Solo al confirmar escala equivalente entre fotografías" });
     rows.push({ label: "Overbite · interpretación", value: vertical.interpretation, reference: "Rango editable en el formulario; verificar según dentición y referencia" });
-    rows.push({ label: "Mordida abierta posterior derecha", value: rightOpenBite, reference: "Registro visual Sí / No / No valorable" });
+    rows.push({ label: "Mordida abierta posterior derecha", value: rightOpenBite, reference: "Registro visual Sí / No" });
     rows.push({ label: "Mordida abierta posterior izquierda", value: leftOpenBite, reference: "Registro visual Sí / No / No valorable" });
     rows.push({ label: "Mordida cruzada posterior", value: posteriorCrossbite, reference: "Registro transversal" });
     rows.push({ label: "Mordida cruzada anterior", value: anteriorCrossbite, reference: "Inversión de la relación incisiva; no se denomina Brodie bite" });
