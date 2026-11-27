@@ -426,8 +426,9 @@ function App() {
       {screen === "home" ? (
         <>
           <section className="hero">
-            <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral · Observa, Analiza, Integra" />
-            <p className="hero-description">Plataforma de análisis odontológico. Las fotografías se procesan localmente en este navegador.</p>
+            <img className="hero-logo" src="/avis-logo.svg" alt="AVIS · Análisis Odontológico Integral" />
+            <h1 className="hero-slogan">Observa <span>·</span> Analiza <span>·</span> Integra</h1>
+            <p className="hero-description">Herramientas de análisis odontológico en un solo entorno. Los estudios se procesan localmente en este navegador.</p>
           </section>
           <section className="grid">
             <article className="module-card module-card-active">
