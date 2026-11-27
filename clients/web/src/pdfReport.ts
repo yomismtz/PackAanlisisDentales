@@ -230,6 +230,7 @@ function drawPageFrame(
   output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
   output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
   if (hasBird) output += "q 29 0 0 29 532 778 cm /Bird Do Q\n";
+  if (hasClinicLogo) output += "q 24 0 0 24 526 29 cm /ClinicLogo Do Q\\n";
   output += text(paletteName.toUpperCase(), 465, 773, 6.5, "F2", primary);
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
   output += text(generatedAt, 300, 795, 7.5, "F1", muted);
@@ -260,6 +261,7 @@ function createPdf(input: PhotoReportInput): Uint8Array {
   ].join(" ");
   const page2XObjects = [
     ...(logoObjectId ? [`/Logo ${logoObjectId} 0 R`] : []),
+    ...(clinicLogoObjectId ? [`/ClinicLogo ${clinicLogoObjectId} 0 R`] : []),
     ...(birdObjectId ? [`/Bird ${birdObjectId} 0 R`] : []),
     ...(watermarkObjectId ? [`/Watermark ${watermarkObjectId} 0 R`] : []),
   ].join(" ");
