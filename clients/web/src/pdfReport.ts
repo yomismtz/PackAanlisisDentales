@@ -163,7 +163,7 @@ function drawPageFrame(pageTitle: string, pageNumber: number, generatedAt: strin
   const accent = toRgb(palette.accent);
   const muted = toRgb(palette.muted);
   let output = rectangle(27, 27, PAGE_W - 54, PAGE_H - 54, null, plum, 1.15);
-  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\\n";
+  if (hasLogo) output += "q 28 0 0 28 48 778 cm /Logo Do Q\n";
   output += text("AVIS", hasLogo ? 82 : 48, 790, 19, "F2", primary);
   output += text("ANÁLISIS ODONTOLÓGICO INTEGRAL", hasLogo ? 135 : 101, 795, 8, "F2", plum);
   output += text(pageTitle.toUpperCase(), 48, 764, 12, "F2", primary);
@@ -316,6 +316,15 @@ function createPdf(input: PhotoReportInput): Uint8Array {
     concatBytes([ascii(`8 0 obj\n<< /Length ${ascii(page1).length} >>\nstream\n`), ascii(page1), ascii("\nendstream\nendobj\n")]),
     concatBytes([ascii(`9 0 obj\n<< /Length ${ascii(page2).length} >>\nstream\n`), ascii(page2), ascii("\nendstream\nendobj\n")]),
   ];
+
+  if (logoBytes) {
+    const logoObject = concatBytes([
+      ascii("10 0 obj\n<< /Type /XObject /Subtype /Image /Width 96 /Height 96 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + logoBytes.length + " >>\nstream\n"),
+      logoBytes,
+      ascii("\nendstream\nendobj\n"),
+    ]);
+    objects.push(logoObject);
+  }
 
   const chunks: Uint8Array[] = [ascii("%PDF-1.4\n")];
   const offsets: number[] = [0];
