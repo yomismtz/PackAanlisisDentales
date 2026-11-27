@@ -4,3 +4,6 @@
 .yomdental-footer{margin:28px auto 0;padding:16px 12px 4px;border-top:1px solid var(--avis-border);color:var(--avis-muted);font-size:11px;line-height:1.65;text-align:center}
 .yomdental-footer strong{color:var(--avis-primary);font-size:12px;letter-spacing:.04em}
 .yomdental-footer span{display:block;font-size:10px}
+
+.yomdental-mark{width:44px;height:44px;flex:0 0 44px;background:linear-gradient(135deg,var(--avis-plum),var(--avis-primary) 55%,var(--avis-accent));-webkit-mask:url("/yomdental-logo.svg") center/contain no-repeat;mask:url("/yomdental-logo.svg") center/contain no-repeat;margin-inline:12px;}
+@media(max-width:700px){.yomdental-mark{width:34px;height:34px;flex-basis:34px;margin-inline:4px;}}

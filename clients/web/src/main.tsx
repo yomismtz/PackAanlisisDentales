@@ -403,6 +403,7 @@ function App() {
           <img className="brand-mark" src="/avis-icon.svg" alt="" />
           <span className="brand-copy"><strong>AVIS</strong><small>ANÁLISIS ODONTOLÓGICO INTEGRAL</small></span>
         </button>
+        <div className="yomdental-mark" role="img" aria-label="YomDental · consultorio de la Dra. Yomira Salgado Martínez" />
         <div className="topbar-actions">
           <label className="palette-control" htmlFor="palette-select">
             <span>PALETA</span>
